@@ -1,0 +1,123 @@
+@startuml
+title UML Class / Database Diagram - Hệ Thống BrewLite
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam roundcorner 8
+
+skinparam class {
+    BackgroundColor #FFFFFF
+    BorderColor #2D6BE4
+    HeaderBackgroundColor #0A0E1A
+    HeaderFontColor #FFFFFF
+}
+
+enum OrderStatus <<enumeration>> {
+  PENDING
+  PAID
+  PREPARING
+  READY
+  COMPLETED
+  PAYMENT_FAILED
+  CANCELLED
+}
+
+enum PaymentMethod <<enumeration>> {
+  E_WALLET
+  BANK_CARD
+}
+
+enum PaymentStatus <<enumeration>> {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ProductSize <<enumeration>> {
+  S
+  M
+  L
+}
+
+class "User (users)" as User {
+  + id : String [PK] <<cuid>>
+  + email : String [UK]
+  + password_hash : String
+  + full_name : String?
+  + loyalty_points : Int = 0
+  + created_at : DateTime
+  + updated_at : DateTime
+  --
+  + register()
+  + login()
+}
+
+class "Product (products)" as Product {
+  + id : String [PK] <<cuid>>
+  + name : String
+  + base_price : Decimal(10,2)
+  + image_url : String?
+  + stock : Int = 0
+  + version : Int = 0 <<OptimisticLock>>
+  + is_available : Boolean = true
+  + created_at : DateTime
+  + updated_at : DateTime
+  --
+  + checkStock()
+  + updateStock()
+}
+
+class "Order (orders)" as Order {
+  + id : String [PK] <<cuid>>
+  + order_code : String [UK]
+  + user_id : String [FK]
+  + status : OrderStatus = PENDING
+  + total_amount : Decimal(10,2)
+  + discount_amount : Decimal(10,2) = 0
+  + final_amount : Decimal(10,2)
+  + created_at : DateTime
+  + updated_at : DateTime
+  --
+  + assertTransition(newStatus)
+  + calculateTotal()
+}
+
+class "OrderItem (order_items)" as OrderItem {
+  + id : String [PK] <<cuid>>
+  + order_id : String [FK]
+  + product_id : String [FK]
+  + size : ProductSize = M
+  + toppings : Json?
+  + quantity : Int = 1
+  + unit_price : Decimal(10,2)
+  + line_total : Decimal(10,2)
+  --
+  + calculateLineTotal()
+}
+
+class "Payment (payments)" as Payment {
+  + id : String [PK] <<cuid>>
+  + order_id : String [FK, UK]
+  + idempotency_key : String [UK]
+  + amount : Decimal(10,2)
+  + method : PaymentMethod
+  + status : PaymentStatus = PENDING
+  + transaction_ref : String?
+  + created_at : DateTime
+  --
+  + processPayment()
+}
+
+' Relationships & Multiplicities
+User "1" *-- "0..*" Order : "places"
+Order "1" *-- "1..*" OrderItem : "contains"
+Product "1" <-- "0..*" OrderItem : "references"
+Order "1" ||-- "0..1" Payment : "has"
+
+Order ..> OrderStatus : uses
+Payment ..> PaymentMethod : uses
+Payment ..> PaymentStatus : uses
+OrderItem ..> ProductSize : uses
+
+@enduml

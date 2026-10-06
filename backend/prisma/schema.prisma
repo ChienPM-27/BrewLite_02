@@ -1,0 +1,114 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PREPARING
+  READY
+  COMPLETED
+  PAYMENT_FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  E_WALLET
+  BANK_CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ProductSize {
+  S
+  M
+  L
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  fullName      String?  @map("full_name")
+  loyaltyPoints Int      @default(0) @map("loyalty_points")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  orders        Order[]
+
+  @@map("users")
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  basePrice   Decimal     @map("base_price") @db.Decimal(10, 2)
+  imageUrl    String?     @map("image_url")
+  stock       Int         @default(0)
+  version     Int         @default(0) // Dùng cho Optimistic Locking (Task 10)
+  isAvailable Boolean     @default(true) @map("is_available")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderCode      String      @unique @map("order_code") // Ví dụ: #1042
+  userId         String      @map("user_id")
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal     @map("total_amount") @db.Decimal(10, 2)
+  discountAmount Decimal     @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  finalAmount    Decimal     @map("final_amount") @db.Decimal(10, 2)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  user           User        @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String      @id @default(cuid())
+  orderId   String      @map("order_id")
+  productId String      @map("product_id")
+  size      ProductSize @default(M)
+  toppings  Json?
+  quantity  Int         @default(1)
+  unitPrice Decimal     @map("unit_price") @db.Decimal(10, 2)
+  lineTotal Decimal     @map("line_total") @db.Decimal(10, 2)
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product     @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  orderId        String        @unique @map("order_id")
+  idempotencyKey String        @unique @map("idempotency_key") // Chống lặp giao dịch (Task 10)
+  amount         Decimal       @db.Decimal(10, 2)
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  transactionRef String?       @map("transaction_ref")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  order          Order         @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
