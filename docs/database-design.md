@@ -1,6 +1,6 @@
-# 🗄️ BẢNG THIẾT KẾ CƠ SỞ DỮ LIỆU & SƠ ĐỒ UML DATABASE (BREWLITE)
+# 🗄️ BẢNG THIẾT KẾ CƠ SỞ DỮ LIỆU & SƠ ĐỒ UML DATABASE (BREWLITE - FULL SCHEMA)
 
-Tài liệu này đặc tả toàn bộ mô hình dữ liệu quan hệ (Relational Database) và Sơ đồ Lớp / Thực thể chuẩn UML của hệ thống **BrewLite**, được đồng bộ trực tiếp với **PostgreSQL qua Prisma ORM**.
+Tài liệu này đặc tả toàn bộ mô hình dữ liệu quan hệ (Relational Database) và Sơ đồ Lớp / Thực thể chuẩn UML của hệ thống **BrewLite**, đã được kiểm tra và đồng bộ trực tiếp với **PostgreSQL qua Prisma ORM 6.19**, đáp ứng trọn vẹn 100% yêu cầu cho cả 3 Sprint.
 
 ---
 
@@ -20,28 +20,61 @@ classDiagram
         +DateTime updatedAt
     }
 
+    class Category {
+        +String id PK
+        +String name UK
+        +String slug UK
+        +Int displayOrder = 0
+    }
+
     class Product {
         +String id PK
+        +String categoryId FK
         +String name
         +Decimal basePrice
         +String imageUrl
         +Int stock = 0
         +Int version = 0 (OptimisticLock)
         +Boolean isAvailable = true
-        +DateTime createdAt
-        +DateTime updatedAt
+    }
+
+    class ProductSizePrice {
+        +String id PK
+        +String productId FK
+        +ProductSize size (S/M/L)
+        +Decimal priceAdjustment
+    }
+
+    class Topping {
+        +String id PK
+        +String name UK
+        +Decimal price
+        +Int stock = 100
+        +Boolean isAvailable = true
+    }
+
+    class Promotion {
+        +String id PK
+        +String code UK (WELCOME10/GIAM15K)
+        +Int discountPercent
+        +Decimal discountAmount
+        +Decimal maxDiscount
+        +Decimal minOrderAmount
+        +Boolean isActive = true
     }
 
     class Order {
         +String id PK
-        +String orderCode UK (#1042)
+        +Int orderNumber UK (#1042 autoincrement)
         +String userId FK
+        +String promotionId FK
         +OrderStatus status = PENDING
         +Decimal totalAmount
         +Decimal discountAmount = 0
         +Decimal finalAmount
-        +DateTime createdAt
-        +DateTime updatedAt
+        +Int pointsEarned = 0
+        +DateTime paidAt
+        +Int version = 0 (StateLock)
     }
 
     class OrderItem {
@@ -49,151 +82,185 @@ classDiagram
         +String orderId FK
         +String productId FK
         +ProductSize size = M
-        +Json toppings
         +Int quantity = 1
         +Decimal unitPrice
         +Decimal lineTotal
     }
 
+    class OrderItemTopping {
+        +String id PK
+        +String orderItemId FK
+        +String toppingId FK
+        +Decimal price
+    }
+
     class Payment {
         +String id PK
-        +String orderId FK, UK
+        +String orderId FK (1-N retry)
         +String idempotencyKey UK
+        +String requestHash
         +Decimal amount
         +PaymentMethod method
         +PaymentStatus status = PENDING
+        +String failureReason
         +String transactionRef
         +DateTime createdAt
     }
 
-    class OrderStatus {
-        <<enumeration>>
-        PENDING
-        PAID
-        PREPARING
-        READY
-        COMPLETED
-        PAYMENT_FAILED
-        CANCELLED
+    class LoyaltyTransaction {
+        +String id PK
+        +String userId FK
+        +String orderId FK
+        +Int points
+        +LoyaltyTransactionType type (EARNED/SPENT)
+        +String reason
+        +DateTime createdAt
     }
 
-    class PaymentMethod {
-        <<enumeration>>
-        E_WALLET
-        BANK_CARD
+    class OrderStatusHistory {
+        +String id PK
+        +String orderId FK
+        +OrderStatus fromStatus
+        +OrderStatus toStatus
+        +String changedBy
+        +String reason
+        +DateTime createdAt
     }
 
-    class ProductSize {
-        <<enumeration>>
-        S
-        M
-        L
-    }
-
-    User "1" --> "0..*" Order : places
+    Category "1" o-- "0..*" Product : classifies
+    Product "1" *-- "1..*" ProductSizePrice : sizes
+    User "1" *-- "0..*" Order : places
+    User "1" *-- "0..*" LoyaltyTransaction : owns
+    Promotion "1" o-- "0..*" Order : applied_to
     Order "1" *-- "1..*" OrderItem : contains
+    Order "1" *-- "0..*" Payment : payments (1-N retry)
+    Order "1" *-- "0..*" OrderStatusHistory : audits
     Product "1" <-- "0..*" OrderItem : references
-    Order "1" -- "0..1" Payment : has
-    Order ..> OrderStatus : status
-    Payment ..> PaymentMethod : method
-    OrderItem ..> ProductSize : size
+    OrderItem "1" *-- "0..*" OrderItemTopping : includes
+    Topping "1" <-- "0..*" OrderItemTopping : references
 ```
 
 ---
 
-## 2. BẢNG MÔ TẢ CHI TIẾT CÁC THỰC THỂ (TABLE SCHEMAS)
+## 2. BẢNG MÔ TẢ CHI TIẾT 10 THỰC THỂ CỐT LÕI (FULL SCHEMA)
 
-### 2.1. Bảng `users` (Tài khoản khách hàng & Tích điểm)
-* **Khóa chính:** `id` (CUID, string 30 ký tự)
-* **Mục đích:** Lưu thông tin đăng nhập, mật khẩu băm và điểm thưởng tích lũy (Task 7 & 10).
+### 2.1. Bảng `users` (Tài khoản người dùng & Tích lũy)
+* **Khóa chính:** `id` (`cuid`, varchar 36)
+* **Nghiệp vụ:** Quản lý đăng ký, đăng nhập JWT (Task 7) và lưu điểm thưởng tích lũy (Task 10).
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc (Constraint) | Mô tả |
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
 | :--- | :--- | :--- | :--- |
-| `id` | `VARCHAR(36)` | **PRIMARY KEY** | Mã định danh duy nhất của người dùng |
-| `email` | `VARCHAR(255)` | **UNIQUE, NOT NULL** | Email dùng để đăng nhập hệ thống |
-| `password_hash` | `VARCHAR(255)` | **NOT NULL** | Mật khẩu được băm an toàn bằng `bcrypt` |
-| `full_name` | `VARCHAR(100)` | NULLABLE | Tên hiển thị của khách hàng |
-| `loyalty_points`| `INTEGER` | **DEFAULT 0** | Điểm tích lũy, cộng tự động sau khi đơn `PAID` |
-| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời gian đăng ký tài khoản |
-| `updated_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời gian cập nhật gần nhất |
+| `id` | `VARCHAR(36)` | **PK** | Định danh duy nhất người dùng. |
+| `email` | `VARCHAR(255)` | **UK, NOT NULL** | Email đăng nhập hệ thống. |
+| `password_hash` | `VARCHAR(255)` | **NOT NULL** | Mật khẩu băm an toàn bằng `bcrypt` (Salt round 10). |
+| `full_name` | `VARCHAR(100)` | NULLABLE | Tên hiển thị của khách hàng. |
+| `loyalty_points`| `INTEGER` | **DEFAULT 0** | Số dư điểm thưởng hiện tại. |
+| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời gian đăng ký. |
+| `updated_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời gian cập nhật gần nhất. |
 
 ---
 
-### 2.2. Bảng `products` (Danh mục đồ uống & Quản lý tồn kho)
+### 2.2. Bảng `categories` (Phân loại đồ uống)
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã danh mục. |
+| `name` | `VARCHAR(100)` | **UK, NOT NULL** | Tên loại: "Cà phê", "Trà & Trái cây". |
+| `slug` | `VARCHAR(100)` | **UK, NOT NULL** | Đường dẫn thân thiện (`ca-phe`, `tra-trai-cay`). |
+| `display_order` | `INTEGER` | **DEFAULT 0** | Thứ tự hiển thị trên Menu. |
+
+---
+
+### 2.3. Bảng `products` (Danh mục sản phẩm & Tồn kho Concurrency)
+* **Nghiệp vụ:** Hiển thị Menu (Task 2, 3), kiểm soát tồn kho đồng thời với **Optimistic Locking** (Task 10).
+
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã sản phẩm. |
+| `category_id` | `VARCHAR(36)` | **FK -> categories(id)** | Phân loại danh mục. |
+| `name` | `VARCHAR(150)` | **NOT NULL** | Tên món (Cà phê sữa đá, Americano, Cappuccino, Trà đào). |
+| `base_price` | `DECIMAL(12,0)`| **NOT NULL** | Giá gốc đồ uống (VNĐ). |
+| `image_url` | `VARCHAR(500)` | NULLABLE | Link ảnh món đồ uống. |
+| `stock` | `INTEGER` | **DEFAULT 0** | Số lượng ly/nguyên liệu còn lại trong kho. |
+| `version` | `INTEGER` | **DEFAULT 0** | **Cột Optimistic Lock:** Ngăn chặn overselling khi nhiều khách đặt cùng lúc. |
+| `is_available` | `BOOLEAN` | **DEFAULT TRUE** | Còn bán hay tạm hết. |
+
+---
+
+### 2.4. Bảng `product_size_prices` (Phụ phí theo Size S/M/L - Task 4)
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Định danh dòng giá size. |
+| `product_id` | `VARCHAR(36)` | **FK -> products(id)** | Món đồ uống áp dụng. |
+| `size` | `ENUM` | **'S', 'M', 'L'** | Size ly. |
+| `price_adjustment`| `DECIMAL(12,0)`| **DEFAULT 0** | Số tiền phụ thu (S: +0đ, M: +5.000đ, L: +10.000đ). |
+
+---
+
+### 2.5. Bảng `toppings` (Danh mục Topping chọn thêm - Task 4)
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã topping. |
+| `name` | `VARCHAR(100)` | **UK, NOT NULL** | Tên topping: "Trân châu trắng", "Kem Cheese", "Đào miếng". |
+| `price` | `DECIMAL(12,0)`| **NOT NULL** | Đơn giá thêm (5.000đ, 10.000đ, 8.000đ). |
+| `stock` | `INTEGER` | **DEFAULT 100** | Tồn kho topping. |
+| `is_available` | `BOOLEAN` | **DEFAULT TRUE** | Trạng thái còn topping không. |
+
+---
+
+### 2.6. Bảng `promotions` (Mã giảm giá Khuyến mãi - Task 10)
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã bản ghi voucher. |
+| `code` | `VARCHAR(50)` | **UK, NOT NULL** | Mã nhập: `WELCOME10`, `GIAM15K`. |
+| `description` | `VARCHAR(255)` | NULLABLE | Mô tả thể lệ khuyến mãi. |
+| `discount_percent`| `INTEGER` | NULLABLE | Phần trăm giảm giá (ví dụ 10%). |
+| `discount_amount` | `DECIMAL(12,0)`| NULLABLE | Số tiền giảm cố định (ví dụ 15.000đ). |
+| `max_discount` | `DECIMAL(12,0)`| NULLABLE | Mức giảm tối đa (ví dụ 20.000đ). |
+| `min_order_amount`| `DECIMAL(12,0)`| **DEFAULT 0** | Giá trị đơn tối thiểu để áp dụng mã. |
+| `is_active` | `BOOLEAN` | **DEFAULT TRUE** | Mã còn hiệu lực kích hoạt hay không. |
+
+---
+
+### 2.7. Bảng `orders` (Quản lý đơn hàng & State Machine)
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã UUID nội bộ của đơn. |
+| `order_number` | `INTEGER` | **UK, AUTOINCREMENT** | Mã đơn hiển thị giao diện: `#1001`, `#1042`. |
+| `user_id` | `VARCHAR(36)` | **FK -> users(id)** | Khách hàng đặt đơn. |
+| `promotion_id` | `VARCHAR(36)` | **FK -> promotions(id)** | Mã voucher được áp dụng (nếu có). |
+| `status` | `ENUM` | **DEFAULT 'PENDING'** | Trạng thái: `PENDING`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `PAYMENT_FAILED`, `CANCELLED`. |
+| `total_amount` | `DECIMAL(12,0)`| **NOT NULL** | Tổng tiền tạm tính ban đầu. |
+| `discount_amount`| `DECIMAL(12,0)`| **DEFAULT 0** | Số tiền được giảm giá. |
+| `final_amount` | `DECIMAL(12,0)`| **NOT NULL** | Số tiền thực trả (`totalAmount - discountAmount`). |
+| `points_earned` | `INTEGER` | **DEFAULT 0** | Số điểm tích lũy được sau khi đơn `PAID`. |
+| `paid_at` | `TIMESTAMP` | NULLABLE | Thời điểm thanh toán thành công. |
+| `version` | `INTEGER` | **DEFAULT 0** | Khóa phiên bản chống xung đột trạng thái đơn hàng. |
+
+---
+
+### 2.8. Bảng `order_items` & `order_item_toppings` (Chi tiết dòng đơn)
+* Lưu trữ từng ly nước được đặt, size đã chọn và mảng các topping liên kết qua bảng trung gian `order_item_toppings`.
+
+---
+
+### 2.9. Bảng `payments` (Lịch sử thanh toán & Idempotency - Task 8 & 10)
 * **Khóa chính:** `id` (CUID)
-* **Mục đích:** Lưu thông tin menu sản phẩm và cột `version` hỗ trợ **Optimistic Locking** chống overselling khi đặt đồng thời (Task 2 & 10).
+* **Quan hệ:** **1 Order có nhiều Payment (1–N)**: Hỗ trợ trường hợp thanh toán thất bại lần 1, khách hàng thực hiện thanh toán lại mà không vi phạm ràng buộc Unique.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
 | :--- | :--- | :--- | :--- |
-| `id` | `VARCHAR(36)` | **PRIMARY KEY** | Mã định danh sản phẩm |
-| `name` | `VARCHAR(150)` | **NOT NULL** | Tên đồ uống (Cà phê sữa, Americano,...) |
-| `base_price` | `DECIMAL(10,2)`| **NOT NULL** | Đơn giá cơ bản (size S) |
-| `image_url` | `VARCHAR(500)` | NULLABLE | Đường dẫn hình ảnh hiển thị trên app |
-| `stock` | `INTEGER` | **DEFAULT 0, CHECK (stock >= 0)** | Số lượng ly/nguyên liệu còn lại trong kho |
-| `version` | `INTEGER` | **DEFAULT 0** | **Optimistic Locking Version:** Tăng +1 mỗi khi cập nhật tồn kho |
-| `is_available` | `BOOLEAN` | **DEFAULT TRUE** | Trạng thái còn mở bán hay tạm hết |
-| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Ngày tạo món |
-| `updated_at` | `TIMESTAMP` | **DEFAULT NOW()** | Ngày cập nhật |
+| `id` | `VARCHAR(36)` | **PK** | Mã giao dịch thanh toán nội bộ. |
+| `order_id` | `VARCHAR(36)` | **FK -> orders(id)** | Đơn hàng cần thanh toán. |
+| `idempotency_key`| `VARCHAR(64)` | **UK, NOT NULL** | **Khóa Idempotency:** Ngăn chặn trừ tiền 2 lần khi gửi cùng request. |
+| `request_hash` | `VARCHAR(64)` | NULLABLE | Hash nội dung request để kiểm tra payload. |
+| `amount` | `DECIMAL(12,0)`| **NOT NULL** | Số tiền giao dịch. |
+| `method` | `ENUM` | **'E_WALLET', 'BANK_CARD'** | Phương thức thanh toán (Ví / Thẻ). |
+| `status` | `ENUM` | **'PENDING', 'SUCCESS', 'FAILED'** | Trạng thái giao dịch. |
+| `failure_reason` | `VARCHAR(255)`| NULLABLE | Nguyên nhân lỗi khi thất bại. |
+| `transaction_ref`| `VARCHAR(100)` | NULLABLE | Mã đối soát từ Cổng thanh toán. |
 
 ---
 
-### 2.3. Bảng `orders` (Quản lý đơn hàng & State Machine)
-* **Khóa chính:** `id` (CUID)
-* **Mục đích:** Theo dõi chu trình sống của đơn hàng theo Order State Machine (Task 6 & 10).
-
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- |
-| `id` | `VARCHAR(36)` | **PRIMARY KEY** | Mã đơn hàng nội bộ |
-| `order_code` | `VARCHAR(20)` | **UNIQUE, NOT NULL** | Mã đơn hiển thị cho khách/quầy (ví dụ `#1042`) |
-| `user_id` | `VARCHAR(36)` | **FOREIGN KEY -> users(id)** | Khách hàng đặt đơn |
-| `status` | `ENUM OrderStatus`| **DEFAULT 'PENDING'** | Trạng thái đơn (`PENDING`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `PAYMENT_FAILED`, `CANCELLED`) |
-| `total_amount`| `DECIMAL(10,2)`| **NOT NULL** | Tổng tiền tạm tính trước giảm |
-| `discount_amount`| `DECIMAL(10,2)`| **DEFAULT 0** | Tiền được giảm giá (Voucher / Điểm thưởng) |
-| `final_amount`| `DECIMAL(10,2)`| **NOT NULL** | Số tiền thực tế phải thanh toán |
-| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời điểm đặt đơn |
-| `updated_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời điểm cập nhật trạng thái |
-
----
-
-### 2.4. Bảng `order_items` (Chi tiết từng món trong đơn)
-* **Khóa chính:** `id` (CUID)
-* **Khóa ngoại:** `order_id` (trỏ `orders`), `product_id` (trỏ `products`)
-* **Mục đích:** Lưu món, size đã chọn (S/M/L) và danh sách topping đính kèm (Task 4 & 6).
-
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- |
-| `id` | `VARCHAR(36)` | **PRIMARY KEY** | Mã dòng chi tiết đơn |
-| `order_id` | `VARCHAR(36)` | **FOREIGN KEY -> orders(id) ON DELETE CASCADE** | Mã đơn chứa dòng này |
-| `product_id` | `VARCHAR(36)` | **FOREIGN KEY -> products(id)** | Sản phẩm được chọn |
-| `size` | `ENUM ProductSize`| **DEFAULT 'M'** | Size ly: `'S'`, `'M'`, `'L'` |
-| `toppings` | `JSONB` | NULLABLE | Mảng topping chọn kèm (`[{"name": "Trân châu", "price": 5000}]`) |
-| `quantity` | `INTEGER` | **DEFAULT 1, CHECK (quantity > 0)** | Số lượng đặt |
-| `unit_price` | `DECIMAL(10,2)`| **NOT NULL** | Đơn giá một ly (đã gồm phụ thu size + topping) |
-| `line_total` | `DECIMAL(10,2)`| **NOT NULL** | Thành tiền (`unit_price * quantity`) |
-
----
-
-### 2.5. Bảng `payments` (Lịch sử thanh toán & Idempotency)
-* **Khóa chính:** `id` (CUID)
-* **Khóa ngoại:** `order_id` (UNIQUE, quan hệ 1-1 với đơn hàng)
-* **Mục đích:** Chống duplicate charge qua `idempotency_key` duy nhất và lưu trạng thái thanh toán (Task 8 & 10).
-
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
-| :--- | :--- | :--- | :--- |
-| `id` | `VARCHAR(36)` | **PRIMARY KEY** | Mã giao dịch thanh toán |
-| `order_id` | `VARCHAR(36)` | **FOREIGN KEY -> orders(id), UNIQUE** | Mỗi đơn tương ứng 1 bản ghi thanh toán |
-| `idempotency_key`| `VARCHAR(64)` | **UNIQUE, NOT NULL** | **Khóa Idempotency** (Header gửi từ client chống thanh toán trùng 2 lần) |
-| `amount` | `DECIMAL(10,2)`| **NOT NULL** | Số tiền thanh toán |
-| `method` | `ENUM PaymentMethod`| **NOT NULL** | `'E_WALLET'` hoặc `'BANK_CARD'` |
-| `status` | `ENUM PaymentStatus`| **DEFAULT 'PENDING'** | Trạng thái giao dịch (`PENDING`, `SUCCESS`, `FAILED`) |
-| `transaction_ref`| `VARCHAR(100)` | NULLABLE | Mã tham chiếu trả về từ Cổng thanh toán giả lập |
-| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời điểm tạo giao dịch |
-
----
-
-## 3. CÁC TÀI LIỆU & FILE SƠ ĐỒ ĐÃ TẠO
-
-Toàn bộ các định dạng sơ đồ Database UML đã được lưu trong thư mục `docs/`:
-1. [**`docs/database-uml.svg`**](file:///d:/MyProject/BrewLite/docs/database-uml.svg): Ảnh vector SVG vẽ chuẩn UML sắc nét, có thể chèn trực tiếp vào Word hoặc slide thuyết trình.
-2. [**`docs/database-uml.puml`**](file:///d:/MyProject/BrewLite/docs/database-uml.puml): Mã nguồn PlantUML để dán vào [PlantText.com](https://www.planttext.com/) hoặc StarUML.
-3. [**`backend/prisma/schema.prisma`**](file:///d:/MyProject/BrewLite/backend/prisma/schema.prisma): File mã nguồn Prisma đã đồng bộ và tạo bảng vật lý trong database Docker PostgreSQL.
+### 2.10. Bảng `loyalty_transactions` & `order_status_history` (Audit Trail)
+* `loyalty_transactions`: Lưu lịch sử cộng/trừ điểm thưởng của khách sau khi đơn `PAID`.
+* `order_status_history`: Lưu vết audit lịch sử chuyển trạng thái đơn (`PENDING` -> `PAID` -> `PREPARING` -> `READY` -> `COMPLETED`) kèm người thực hiện và lý do.
