@@ -1,0 +1,24 @@
+@startuml
+
+left to right direction
+
+actor Customer as C
+
+rectangle "Coffee Ordering System" {
+
+    usecase "View Product Detail" as UC1
+    usecase "Customize Product" as UC2
+    usecase "Select Size" as UC3
+    usecase "Select Topping" as UC4
+    usecase "Calculate Pricing" as UC5
+}
+
+C --> UC1
+C --> UC2
+
+UC1 --> UC2 : <<include>>
+UC2 --> UC3 : <<include>>
+UC4 ..> UC2 : <<extend>>
+UC2 --> UC5 : <<include>>
+
+@enduml

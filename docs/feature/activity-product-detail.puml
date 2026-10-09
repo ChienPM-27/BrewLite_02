@@ -1,0 +1,105 @@
+@startuml
+title Activity Diagram - Coffee Ordering 
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam ArrowColor #24476B
+skinparam activity {
+    BackgroundColor #E5F2FF
+    BorderColor #3984C6
+    FontColor #17365D
+    DiamondBackgroundColor #FFF2CC
+    DiamondBorderColor #D6A323
+    StartColor #17365D
+    EndColor #17365D
+    BarColor #3984C6
+}
+
+|Customer|
+start
+:Mở ứng dụng và truy cập
+trang sản phẩm;
+
+|Frontend|
+:Gọi API lấy thông tin
+sản phẩm;
+
+|Backend|
+:GET /products/:id;
+:Trả về thông tin sản phẩm
+(tên, mô tả, hình ảnh,
+giá, size, topping);
+
+|Frontend|
+:Hiển thị thông tin
+chi tiết sản phẩm;
+
+|Customer|
+:Xem chi tiết sản phẩm
+(hình ảnh, mô tả, giá cơ bản);
+:Tùy chỉnh món
+(chọn size, topping);
+
+|Frontend|
+:Hiển thị giao diện tùy chỉnh
+(size, topping, giá);
+:Tính toán giá và hiển thị
+theo lựa chọn của người dùng;
+
+|Customer|
+:Xem giá cuối cùng;
+:Thêm vào giỏ hàng
+và tiến hành đặt hàng;
+
+|Frontend|
+:Cập nhật giỏ hàng
+và tạo yêu cầu đặt hàng;
+
+|Backend|
+:Tạo đơn hàng
+(lưu sản phẩm, giá,
+thông tin người dùng);
+
+|Customer|
+:Chọn phương thức
+thanh toán không dùng tiền mặt;
+
+|Frontend|
+:Gửi yêu cầu thanh toán
+qua Payment Provider;
+
+|Payment Provider|
+:Xử lý thanh toán
+(MoMo / ZaloPay / VNPay);
+
+if (Thanh toán thành công?) then (Có)
+    |Backend|
+    :Cập nhật trạng thái đơn hàng
+    = PAID / CONFIRMED;
+
+    |Frontend|
+    :Nhận kết quả thanh toán;
+    :Hiển thị trạng thái
+    đơn hàng thành công;
+
+    |Customer|
+    :Nhận thông báo xác nhận
+    và xem trạng thái đơn hàng;
+    stop
+else (Không)
+    |Backend|
+    :Cập nhật trạng thái thanh toán
+    = FAILED;
+
+    |Frontend|
+    :Hiển thị thanh toán thất bại;
+
+    |Customer|
+    :Thử thanh toán lại
+    hoặc chọn phương thức khác;
+    stop
+endif
+
+@enduml
