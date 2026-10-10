@@ -1,0 +1,78 @@
+@startuml
+title Activity Diagram - Product Detail
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam ArrowColor #24476B
+
+skinparam activity {
+    BackgroundColor #E5F2FF
+    BorderColor #3984C6
+    FontColor #17365D
+    DiamondBackgroundColor #FFF2CC
+    DiamondBorderColor #D6A323
+    StartColor #17365D
+    EndColor #17365D
+    BarColor #3984C6
+}
+
+|Customer|
+start
+:Mở trang chi tiết sản phẩm;
+
+|Frontend|
+:Gửi request lấy thông tin
+chi tiết sản phẩm;
+
+|Backend|
+:GET /products/:id;
+:Truy vấn thông tin sản phẩm
+từ cơ sở dữ liệu;
+
+if (Sản phẩm tồn tại?) then (Có)
+    :Trả về thông tin sản phẩm
+    (tên, mô tả, hình ảnh,
+    giá, size, topping);
+
+    |Frontend|
+    :Hiển thị trang Product Detail
+    (hình ảnh, tên, mô tả, giá);
+
+    |Customer|
+    :Xem thông tin sản phẩm;
+    :Chọn size và topping;
+
+    |Frontend|
+    :Cập nhật lựa chọn
+    và tính giá cuối cùng;
+    :Hiển thị giá theo
+    tùy chỉnh của khách hàng;
+
+    |Customer|
+    :Xác nhận lựa chọn;
+    :Thêm sản phẩm vào giỏ hàng;
+
+    |Frontend|
+    :Kiểm tra thông tin
+    tùy chỉnh sản phẩm;
+
+    if (Thông tin hợp lệ?) then (Có)
+        :Thêm sản phẩm vào giỏ hàng;
+        :Hiển thị thông báo
+        thêm vào giỏ hàng thành công;
+    else (Không)
+        :Hiển thị thông báo lỗi;
+        |Customer|
+        :Điều chỉnh lại lựa chọn;
+    endif
+
+else (Không)
+    |Frontend|
+    :Hiển thị thông báo
+    không tìm thấy sản phẩm;
+endif
+
+stop
+@enduml 
