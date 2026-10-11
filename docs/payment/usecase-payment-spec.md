@@ -27,7 +27,7 @@
 8. Backend tạo bản ghi Payment với trạng thái `PENDING`.
 9. Backend gửi yêu cầu đến Mock Payment Gateway.
 10. Nếu thanh toán thành công, Backend cập nhật Payment thành `SUCCESS` và cập nhật đơn hàng thành `PAID`.
-11. Hệ thống trả kết quả để Frontend hiển thị cho khách hàng.
+11. Hệ thống trả kết quả đã được bọc qua `TransformInterceptor` (`{ success: true, statusCode: 201, data: {...}, timestamp }`) để Frontend hiển thị cho khách hàng.
 
 ## 4. Luồng thay thế (Alternative Flows)
 
