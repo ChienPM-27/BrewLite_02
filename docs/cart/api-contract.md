@@ -49,14 +49,14 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
 
 ### 3.1. Kịch bản Thành công (Tạo đơn thành công)
 * **Status Code:** `201 Created`
-* **Mô tả:** Backend lưu đơn thành công vào cơ sở dữ liệu, trả về mã `orderId` và `orderNumber` để Frontend làm rỗng giỏ hàng và điều hướng sang màn hình Thanh toán.
+* **Mô tả:** Backend lưu đơn thành công vào cơ sở dữ liệu, trả về mã `id` (mã đơn hàng) và `orderNumber` để Frontend làm rỗng giỏ hàng và điều hướng sang màn hình Thanh toán.
 
 ```json
 {
   "success": true,
   "statusCode": 201,
   "data": {
-    "orderId": "clx_order_998877",
+    "id": "clx_order_998877",
     "orderNumber": 1042,
     "status": "PENDING",
     "totalAmount": 125000,

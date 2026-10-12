@@ -16,7 +16,7 @@
   * Trạng thái Giỏ hàng (Local State / LocalStorage) được làm sạch sau khi tạo đơn thành công.
   * Một bản ghi Đơn hàng (`Order`) mới được tạo trong Cơ sở dữ liệu với trạng thái `PENDING` và `orderNumber` tự động tăng.
   * Các bản ghi Chi tiết đơn hàng (`OrderItem`) và Topping (`OrderItemTopping`) được tạo tương ứng với số lượng và đơn giá được Backend kiểm tra đối chiếu.
-  * Khách hàng được chuyển hướng sang giao diện Thanh toán với `orderId` tương ứng.
+  * Khách hàng được chuyển hướng sang giao diện Thanh toán với `id` đơn hàng tương ứng.
 
 ## 3. Basic Flow (Luồng sự kiện chính)
 1. Khách hàng nhấn vào biểu tượng Giỏ hàng trên thanh Header hoặc nút "Xem giỏ hàng".
@@ -30,8 +30,8 @@
 7. Frontend hiển thị trạng thái đang xử lý (Loading State, vô hiệu hóa các nút bấm) và gửi request payload (`POST /api/v1/orders`) kèm Header `Authorization: Bearer <token>` xuống Backend.
 8. Backend nhận request qua `AuthGuard`, kiểm tra định dạng dữ liệu thông qua `ValidationPipe` và `CreateOrderDto` (`quantity >= 1`, `size in ['S', 'M', 'L']`, ...).
 9. Backend truy vấn Database để kiểm tra trạng thái mở bán (`isAvailable`), số lượng tồn kho (`stock`) và tính toán lại đơn giá chính xác (`basePrice + sizePrice + toppingPrices`).
-10. Backend khởi tạo đơn hàng thành công trong CSDL (Order `PENDING`, OrderItem, OrderItemTopping) và trả về phản hồi chuẩn với mã `201 Created` kèm `orderId`.
-11. Frontend tắt Loading State, xóa sạch dữ liệu giỏ hàng (`clearCart()`) và chuyển hướng Khách hàng sang màn hình Thanh toán với `orderId` được trả về.
+10. Backend khởi tạo đơn hàng thành công trong CSDL (Order `PENDING`, OrderItem, OrderItemTopping) và trả về phản hồi chuẩn với mã `201 Created` kèm `id` đơn hàng.
+11. Frontend tắt Loading State, xóa sạch dữ liệu giỏ hàng (`clearCart()`) và chuyển hướng Khách hàng sang màn hình Thanh toán với `id` đơn hàng được trả về.
 
 ## 4. Alternative Flows (Luồng thay thế)
 
@@ -85,3 +85,38 @@
 * **Bảng `Order` (Create):** Khởi tạo bản ghi đơn hàng với `userId`, `status = PENDING`, `totalAmount`, `discountAmount`, `finalAmount`.
 * **Bảng `OrderItem` (Create):** Lưu từng dòng sản phẩm với `orderId`, `productId`, `size`, `quantity`, `unitPrice`, `lineTotal`.
 * **Bảng `OrderItemTopping` (Create):** Lưu các topping đi kèm với từng `orderItemId` cùng với giá `price` tại thời điểm đặt hàng.
+
+---
+
+## 7. Quy tắc nghiệp vụ (Business Rules)
+
+| Mã quy tắc | Tên quy tắc | Nội dung chi tiết |
+| :--- | :--- | :--- |
+| **BR-CART-01** | Số lượng tối thiểu mỗi món | Số lượng (`quantity`) của mỗi món trong giỏ hàng và trong payload tạo đơn tối thiểu phải là 1 (`quantity >= 1`). DTO Backend bắt buộc kiểm tra bằng `@Min(1, { message: 'Số lượng mỗi món phải lớn hơn hoặc bằng 1' })`. |
+| **BR-CART-02** | Tự động xóa khi số lượng <= 0 | Khi Khách hàng giảm số lượng của một món về 0 hoặc số âm (`quantity <= 0`), hệ thống tự động loại bỏ (`removeItem`) món đó khỏi giỏ hàng mà không cần thêm thao tác xác nhận xóa. |
+| **BR-CART-03** | Khóa thanh toán khi giỏ hàng rỗng | Khi giỏ hàng không có sản phẩm nào (`items.length === 0`), giao diện hiển thị trạng thái rỗng (Empty State) và vô hiệu hóa nút "Thanh toán". Backend từ chối tạo đơn với mảng items rỗng bằng `@ArrayNotEmpty({ message: 'Giỏ hàng không được để trống khi đặt hàng' })`. |
+| **BR-CART-04** | Gộp dòng trùng theo Composite Key | Các món có cùng cấu hình thuộc tính sẽ được gộp vào chung một dòng và cộng dồn số lượng. Khóa định danh composite key được tính theo công thức: `${productId}-${size}-${[...toppingIds].sort().join('-')}` để phân biệt chính xác từng cấu hình (kể cả cùng sản phẩm, cùng size nhưng khác topping). |
+| **BR-CART-05** | Tổng tiền do Backend tính toán lại | Đơn giá (`estimatedUnitPrice`) và tổng tiền (`totalAmount`) tại Frontend chỉ mang tính chất hiển thị tạm tính cho người dùng. Khi gửi request tạo đơn, client KHÔNG gửi giá tiền. Backend bắt buộc truy vấn CSDL để lấy giá gốc (`Product.basePrice`), phụ thu kích cỡ (`ProductSizePrice.priceAdjustment`), giá từng topping (`Topping.price`) và tính toán lại toàn bộ `totalAmount`, `discountAmount`, `finalAmount`. |
+| **BR-CART-06** | Không tin cậy giá từ Client (Zero Trust Pricing) | Backend tuyệt đối không tin tưởng bất kỳ thông tin đơn giá nào do Client gửi lên nhằm phòng chống tấn công thao túng giá (price tampering). Mọi đơn giá, phụ phí và chiết khấu đều phải được xác thực từ CSDL và Promotion Engine tại máy chủ. |
+| **BR-CART-07** | Giới hạn số lượng tối đa mỗi món | Giới hạn số lượng tối đa cho mỗi dòng sản phẩm trong giỏ hàng (ví dụ: tối đa 99 ly/dòng) nhằm tránh lỗi tràn số, đơn hàng ảo hoặc sự cố vận hành tại quầy. Đề xuất mặc định: `quantity <= 99` mỗi dòng món. — **ĐỀ XUẤT – cần nhóm xác nhận.** |
+
+---
+
+## 8. Giả định / Câu hỏi mở
+
+> Các mục dưới đây **chưa được chốt**. Mỗi mục được đánh dấu **ĐỀ XUẤT – cần nhóm xác nhận** trước khi đưa vào implementation.
+
+### [Q1] Giới hạn số lượng tối đa cho mỗi dòng sản phẩm và toàn bộ giỏ hàng
+
+**ĐỀ XUẤT – cần nhóm xác nhận.**
+
+- Đề xuất mặc định: Tối đa **99 sản phẩm** cho mỗi dòng món (`quantity <= 99`), và tối đa **200 sản phẩm** cho toàn bộ giỏ hàng một đơn.
+- Lý do: Phù hợp năng lực phục vụ của quầy đồ uống mang đi, ngăn ngừa spam đơn hàng và lỗi số học.
+- Hệ quả nếu chốt: Bổ sung `@Max(99)` vào `CreateOrderItemDto` ở backend và ràng buộc input `min=1 max=99` ở frontend.
+
+### [Q2] Chuẩn hóa trường mã đơn hàng trả về: `id` thay cho `orderId`
+
+**ĐỀ XUẤT – cần nhóm xác nhận.**
+
+- Đã chuẩn hóa trường mã đơn hàng trong response `POST /api/v1/orders` thành `id` theo đúng `docs/naming-convention.md` (Primary Key luôn là `id`).
+- Lưu ý liên phân hệ: `docs/payment/` hiện đang sử dụng `orderId` trong payload hoặc response mẫu. Cần nhóm thống nhất để phân hệ Payment đồng bộ theo chuẩn này.

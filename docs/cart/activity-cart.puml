@@ -59,7 +59,7 @@ else (Có)
     :Tạo bản ghi bảng Order (Trạng thái PENDING, tính finalAmount);
     :Tạo các bản ghi OrderItem (quantity, unitPrice, lineTotal);
     :Tạo các bản ghi OrderItemTopping;
-    :Trả về mã orderId và statusCode 201;
+    :Trả về mã id đơn hàng và statusCode 201;
   endif
 endif
 
@@ -67,7 +67,7 @@ endif
 if (Kết quả trả về) then (Thành công 201)
   :Tắt Loading;
   :Xóa sạch dữ liệu Giỏ hàng (clearCart);
-  :Chuyển hướng Khách hàng sang màn hình Thanh toán (/checkout/:orderId);
+  :Chuyển hướng Khách hàng sang màn hình Thanh toán (/checkout/:id);
   stop
 else (Lỗi 400 / 401)
   :Tắt Loading;

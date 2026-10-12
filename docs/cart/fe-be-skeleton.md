@@ -125,7 +125,7 @@ Các component được tổ chức theo quy chuẩn React & Tailwind CSS:
 `frontend/src/services/order.service.ts`
 
 ```typescript
-import { apiClient } from '@/lib/api-client';
+import { fetchApi } from '@/lib/api-client';
 
 export interface CheckoutItemPayload {
   productId: string;
@@ -140,7 +140,7 @@ export interface CreateOrderPayload {
 }
 
 export interface CreateOrderResponse {
-  orderId: string;
+  id: string;
   orderNumber: number;
   status: string;
   totalAmount: number;
@@ -149,7 +149,10 @@ export interface CreateOrderResponse {
 }
 
 export const checkoutCart = async (payload: CreateOrderPayload) => {
-  return apiClient.post<CreateOrderResponse>('/orders', payload);
+  return fetchApi<CreateOrderResponse>('/orders', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 };
 ```
 
@@ -165,6 +168,7 @@ Bộ Data Transfer Object (DTO) nhận request từ giỏ hàng để tạo đơ
 import {
   IsArray,
   ArrayNotEmpty,
+  ArrayUnique,
   ValidateNested,
   IsString,
   IsInt,
@@ -184,6 +188,7 @@ export class CreateOrderItemDto {
   size: 'S' | 'M' | 'L';
 
   @IsArray({ message: 'toppingIds phải là một mảng danh sách ID' })
+  @ArrayUnique({ message: 'toppingIds không được chứa giá trị trùng lặp' })
   @IsString({ each: true, message: 'Mỗi toppingId phải là một chuỗi hợp lệ' })
   toppingIds: string[];
 
