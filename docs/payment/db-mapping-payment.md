@@ -21,20 +21,27 @@ Mô tả mapping giữa Prisma model `Payment`, model `Order` và các cột tư
 
 Tên bảng trong database: `payments`.
 
-## 3. Quan hệ với Order
+## 3. Quan hệ với Order và Chuyển đổi trạng thái
 
-- Một Order có thể có nhiều Payment records nếu hệ thống cho phép thử thanh toán lại sau lần thất bại.
-- Mỗi Payment thuộc về một Order thông qua `orderId`.
-- `Order.status` được cập nhật thành `PAID` khi thanh toán được xác nhận thành công.
-- `Order.paidAt` lưu thời điểm thanh toán thành công nếu trường này được sử dụng theo schema hiện tại.
+- **Quan hệ 1 - N (Order - Payments):** Một `Order` có thể liên kết với nhiều bản ghi `Payment` (quan hệ 1-N trong `schema.prisma`, trường `orderId` trong `payments` không có `@unique`) nhằm cho phép khách hàng thực hiện nhiều lượt thử thanh toán (Retry) khi các lượt trước bị thất bại.
+- **Thanh toán thành công:** Khi bản ghi Payment đạt trạng thái `SUCCESS`:
+  - `Order.status` chuyển từ `PENDING` sang `PAID`.
+  - `Order.paidAt` lưu thời điểm thanh toán thành công (`now()`).
+- **Thanh toán thất bại từng lượt:** Khi một bản ghi Payment chuyển trạng thái `FAILED`:
+  - `Order.status` vẫn **giữ nguyên `PENDING`** để khách hàng có thể đổi phương thức thanh toán hoặc thử lại với `idempotencyKey` mới.
+- **Làm rõ trạng thái `OrderStatus.PAYMENT_FAILED` (từ `schema.prisma`):**
+  - Trạng thái `PAYMENT_FAILED` của `Order` **không** được gán ngay sau một lần giao dịch thất bại đơn lẻ.
+  - Trạng thái này được kích hoạt khi đơn hàng đã vượt quá số lần thử thanh toán cho phép (đề xuất tối đa 3 lần thất bại) hoặc quá thời hạn thanh toán (đề xuất sau 15 phút).
+  - Khi `Order.status = PAYMENT_FAILED`, đơn hàng bị khóa thanh toán vĩnh viễn, giải phóng tồn kho (`stock`), và có thể chuyển tiếp sang `CANCELLED`.
+  - *(Chi tiết số lần retry tối đa và thời gian timeout thuộc mục ĐỀ XUẤT – cần nhóm xác nhận).*
 
 ## 4. Các quy tắc dữ liệu
 
-- `idempotencyKey` phải duy nhất.
-- `amount` được xác định từ dữ liệu đơn hàng ở Backend.
-- Không đánh dấu Order là `PAID` khi Payment thất bại hoặc chưa rõ kết quả.
-- Không tạo giao dịch trùng khi nhận lại cùng yêu cầu.
-- Việc thử lại sau thất bại phải tuân theo quy tắc nghiệp vụ và sử dụng key mới.
+- `idempotencyKey` phải duy nhất toàn hệ thống (`@unique`).
+- `amount` bắt buộc được trích xuất từ `Order.finalAmount` ở Backend, không tin cậy dữ liệu client.
+- Không đánh dấu Order là `PAID` khi Payment thất bại hoặc chưa rõ kết quả (`PENDING`).
+- Không tạo giao dịch trùng khi nhận lại cùng `idempotencyKey` và cùng request hash/payload.
+- Việc thử lại sau thất bại phải tuân theo quy tắc nghiệp vụ và bắt buộc sử dụng `idempotencyKey` mới.
 
 ## 5. Lưu ý
 

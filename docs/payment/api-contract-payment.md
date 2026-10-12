@@ -79,6 +79,9 @@ Khi cổng thanh toán từ chối (hoặc tài khoản không đủ số dư), 
 }
 ```
 
+- **Trạng thái đơn hàng (Order Status):** Sau khi Payment bị `FAILED`, đơn hàng vẫn giữ nguyên `PENDING` (khi chưa vượt quá số lần retry tối đa) để khách hàng có thể thử lại.
+- **Vượt quá số lần thử (Max Retries):** Nếu khách hàng thử thất bại quá số lần quy định (đề xuất tối đa 3 lần) hoặc quá thời hạn thanh toán (đề xuất 15 phút), đơn hàng sẽ chuyển sang trạng thái `OrderStatus.PAYMENT_FAILED` và bị khóa thanh toán. Khách hàng không thể tiếp tục gửi request thanh toán cho đơn hàng này.
+
 ### 4.2. Giao dịch đang chờ xác minh (Pending / Timeout)
 
 Nếu cổng thanh toán timeout hoặc chưa xác định kết quả:
@@ -110,6 +113,7 @@ Khi xảy ra lỗi (Status code 400, 401, 403, 404, 409, 500), response được
 | HTTP Status | Trường hợp | Ví dụ `message` |
 |---|---|---|
 | `400 Bad Request` | Thiếu hoặc sai định dạng DTO | `["orderId must be a string", "method must be a valid enum value"]` |
+| `400 Bad Request` / `409 Conflict` | Đơn hàng không ở trạng thái `PENDING` (đã `PAID`, `CANCELLED` hoặc `PAYMENT_FAILED` do quá số lần thử/timeout) | `"Đơn hàng không ở trạng thái hợp lệ để thanh toán"` |
 | `401 Unauthorized` | Chưa đăng nhập hoặc token không hợp lệ | `"Unauthorized"` |
 | `403 Forbidden` | Không có quyền thanh toán đơn hàng này | `"Bạn không có quyền thanh toán đơn hàng này"` |
 | `404 Not Found` | Không tìm thấy đơn hàng | `"Không tìm thấy đơn hàng"` |
@@ -128,12 +132,13 @@ Khi xảy ra lỗi (Status code 400, 401, 403, 404, 409, 500), response được
 }
 ```
 
-## 5. Quy tắc Idempotency
+## 5. Quy tắc Idempotency & Thử lại (Retry Policy)
 
 - **Cùng key, cùng nội dung:** Backend trả lại kết quả giao dịch đã lưu trong `payments` hoặc trạng thái hiện tại mà không tạo thêm giao dịch mới.
 - **Cùng key, khác nội dung:** Backend ném `409 Conflict` từ chối yêu cầu.
 - **Xử lý đồng thời (Concurrency):** Ràng buộc `unique` trên `idempotency_key` đảm bảo không bao giờ phát sinh 2 bản ghi thanh toán trùng nhau.
-- **Retry sau thất bại:** Khi giao dịch trước đã xác nhận `FAILED`, khách hàng bấm "Thử lại" thì Frontend **bắt buộc phải sinh Idempotency-Key mới** và đơn hàng phải còn đủ điều kiện (`PENDING`).
+- **Retry sau thất bại:** Khi giao dịch trước đã xác nhận `FAILED`, khách hàng bấm "Thử lại" thì Frontend **bắt buộc phải sinh Idempotency-Key mới** và đơn hàng phải còn đủ điều kiện (`PENDING`, chưa vượt quá số lần retry tối đa — đề xuất tối đa 3 lần).
+- **Khóa đơn hàng khi hết lượt thử:** Nếu đơn hàng đã vượt quá số lần retry cho phép hoặc quá thời hạn thanh toán (đề xuất 15 phút), đơn hàng chuyển sang `OrderStatus.PAYMENT_FAILED` và hệ thống sẽ từ chối mọi yêu cầu thanh toán tiếp theo.
 
 ## 6. Hợp đồng Mock Payment Gateway (Mock Gateway Contract)
 
