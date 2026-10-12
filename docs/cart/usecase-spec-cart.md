@@ -3,77 +3,85 @@
 ## 1. Thông tin chung
 * **Mã Use Case:** UC-CART-01
 * **Tên Use Case:** Quản lý Giỏ hàng và Khởi tạo đơn (Manage Cart & Checkout)
-* **Tác nhân (Actor):** Khách hàng (Customer)
-* **Mô tả ngắn gọn:** Cho phép Khách hàng xem danh sách các món đã chọn, thay đổi số lượng, xóa món và xác nhận chuyển sang bước Thanh toán.
+* **Tác nhân (Actor):** Khách hàng (Customer) - bao gồm cả Khách vãng lai khi xem/sửa và Khách hàng đã đăng nhập khi tiến hành thanh toán.
+* **Mô tả ngắn gọn:** Cho phép Khách hàng xem danh sách các món đồ uống đã chọn, tùy chỉnh số lượng, xóa từng món, tự động tính tổng tiền và xác nhận chuyển sang bước Đặt hàng & Thanh toán.
 
 ## 2. Điều kiện
 * **Tiền điều kiện (Pre-conditions):**
   * Hệ thống hoạt động bình thường.
-  * Khách hàng đã có tài khoản và đăng nhập thành công (yêu cầu bắt buộc để gọi API tạo đơn theo `API Contract`).
   * Khách hàng đã thêm ít nhất 1 sản phẩm vào giỏ hàng từ trang Menu hoặc Chi tiết sản phẩm.
+  * Khách hàng có thể là Khách vãng lai (Guest) khi duyệt món, thêm vào giỏ và xem/chỉnh sửa giỏ hàng (lưu cục bộ tại trình duyệt qua Zustand Persist / LocalStorage).
+  * **Yêu cầu bắt buộc khi Thanh toán:** Khách hàng phải đăng nhập thành công và sở hữu JWT Bearer Token hợp lệ để gọi API tạo đơn (`POST /api/v1/orders`).
 * **Hậu điều kiện (Post-conditions):**
-  * Trạng thái Giỏ hàng (Local State) được làm sạch.
-  * Một bản ghi Đơn hàng (Order) mới được tạo trong Database với trạng thái `PENDING`.
-  * Khách hàng được chuyển hướng sang giao diện Thanh toán thành công.
+  * Trạng thái Giỏ hàng (Local State / LocalStorage) được làm sạch sau khi tạo đơn thành công.
+  * Một bản ghi Đơn hàng (`Order`) mới được tạo trong Cơ sở dữ liệu với trạng thái `PENDING` và `orderNumber` tự động tăng.
+  * Các bản ghi Chi tiết đơn hàng (`OrderItem`) và Topping (`OrderItemTopping`) được tạo tương ứng với số lượng và đơn giá được Backend kiểm tra đối chiếu.
+  * Khách hàng được chuyển hướng sang giao diện Thanh toán với `orderId` tương ứng.
 
-## 3. Basic flow (luồng sự kiện chính)
-1. Khách hàng nhấn vào biểu tượng giỏ hàng.
-2. Hệ thống (Frontend) trượt mở giao diện giỏ hàng, đọc dữ liệu từ Zustand State.
-3. Hệ thống hiển thị danh sách sản phẩm.
-4. Hệ thống tự động tính toán và hiển thị tổng tiền cuối cùng.
+## 3. Basic Flow (Luồng sự kiện chính)
+1. Khách hàng nhấn vào biểu tượng Giỏ hàng trên thanh Header hoặc nút "Xem giỏ hàng".
+2. Hệ thống (Frontend) mở giao diện Giỏ hàng (Cart Drawer hoặc Cart Page), đọc dữ liệu từ Zustand State (`useCartStore`).
+3. Hệ thống hiển thị danh sách các món đồ uống đã chọn (tên món, hình ảnh, size, danh sách topping, số lượng và tạm tính từng dòng).
+4. Hệ thống tự động tính toán và hiển thị tổng số lượng món (Badge) và tổng tiền tạm tính.
 5. Khách hàng nhấn nút **"Thanh toán"**.
-6. Hệ thống hiển thị loading state và gửi request payload (`POST /api/v1/orders`) xuống backend.
-7. Backend kiểm tra tính hợp lệ của dữ liệu (class validator), xác minh tồn kho (stock) và đối chiếu giá tiền (price).
-8. Backend khởi tạo đơn hàng thành công và trả về `orderId`.
-9. Hệ thống (frontend) xóa sạch giỏ hàng hiện tại và chuyển hướng Khách hàng sang trang thanh toán với `orderId` tương ứng.
+6. Hệ thống (Frontend) kiểm tra trạng thái xác thực người dùng:
+   * Nếu Khách hàng đã đăng nhập (đã có Token JWT hợp lệ): Tiếp tục bước 7.
+   * Nếu Khách hàng chưa đăng nhập: Hệ thống thực hiện luồng thay thế **4.2 (Xác thực người dùng)**.
+7. Frontend hiển thị trạng thái đang xử lý (Loading State, vô hiệu hóa các nút bấm) và gửi request payload (`POST /api/v1/orders`) kèm Header `Authorization: Bearer <token>` xuống Backend.
+8. Backend nhận request qua `AuthGuard`, kiểm tra định dạng dữ liệu thông qua `ValidationPipe` và `CreateOrderDto` (`quantity >= 1`, `size in ['S', 'M', 'L']`, ...).
+9. Backend truy vấn Database để kiểm tra trạng thái mở bán (`isAvailable`), số lượng tồn kho (`stock`) và tính toán lại đơn giá chính xác (`basePrice + sizePrice + toppingPrices`).
+10. Backend khởi tạo đơn hàng thành công trong CSDL (Order `PENDING`, OrderItem, OrderItemTopping) và trả về phản hồi chuẩn với mã `201 Created` kèm `orderId`.
+11. Frontend tắt Loading State, xóa sạch dữ liệu giỏ hàng (`clearCart()`) và chuyển hướng Khách hàng sang màn hình Thanh toán với `orderId` được trả về.
 
-## 4. Alternative Flows (luồng thay thế)
+## 4. Alternative Flows (Luồng thay thế)
 
-### 4.1. Cập nhật số lượng / Xóa món
-* Tại bước 3 của luồng chính, khách hàng có thể thêm, xóa hoặc sửa sản phẩm theo ý.
-* Hệ thống (Frontend) cập nhật lại Zustand State ngay lập tức (không gọi API).
-* Hệ thống tự động tính toán lại tổng tiền và cập nhật số lượng Badge.
+### 4.1. Cập nhật số lượng / Xóa món trong giỏ
+* Tại bước 3 của luồng chính, Khách hàng có thể:
+  * Tăng số lượng (`+`) hoặc giảm số lượng (`-`) của một món: Hệ thống cập nhật trường `quantity` của `CartItem` tương ứng qua `cartItemId`. Nếu số lượng giảm về 0, hệ thống tự động xóa món đó khỏi giỏ hàng.
+  * Nhấn biểu tượng Thùng rác (Xóa món): Hệ thống loại bỏ dòng `CartItem` tương ứng ra khỏi danh sách.
+* Frontend cập nhật lại Zustand State và đồng bộ ngay vào LocalStorage (không cần gọi API server).
+* Hệ thống tự động tính toán lại tổng tiền tạm tính và số lượng hiển thị trên Badge.
 * Quay lại bước 3 của luồng chính.
 
-## 5. Exception Flows (luồng ngoại lệ)
+### 4.2. Yêu cầu đăng nhập trước khi tạo đơn (Guest Checkout)
+* Tại bước 6 của luồng chính, nếu Frontend phát hiện người dùng chưa đăng nhập:
+* Hệ thống lưu đường dẫn chuyển hướng quay lại (redirect URL) và điều hướng Khách hàng sang trang Đăng nhập (`/auth/login`). Trạng thái giỏ hàng vẫn được bảo toàn trong LocalStorage.
+* Sau khi Khách hàng đăng nhập thành công và nhận được JWT token, hệ thống tự động điều hướng Khách hàng trở lại Giỏ hàng để tiếp tục bước 7 của luồng chính.
+
+## 5. Exception Flows (Luồng ngoại lệ)
 
 ### 5.1. Giỏ hàng trống (Empty State)
-* Tại bước 2 của luồng chính, nếu Frontend phát hiện Zustand State không có sản phẩm nào.
-* Hệ thống hiển thị giao diện "Giỏ hàng trống".
-* Hệ thống vô hiệu hóa hoặc ẩn nút "Thanh toán".
-* Khách hàng nhấn nút "Tiếp tục mua hàng" để đóng giỏ hàng.
+* Tại bước 2 của luồng chính, nếu danh sách `items` trong giỏ hàng rỗng (`items.length === 0`):
+* Hệ thống hiển thị giao diện "Giỏ hàng của bạn đang trống" kèm hình minh họa.
+* Hệ thống vô hiệu hóa nút "Thanh toán".
+* Khách hàng nhấn nút "Khám phá thực đơn" để đóng giỏ hàng và duyệt món tại trang Menu.
 
-### 5.2. Lỗi dữ liệu đầu vào (Bad Request - 400)
-* Tại bước 7 của luồng chính, Backend phát hiện Payload gửi lên bị sai định dạng.
-* Backend từ chối xử lý và trả về mã lỗi 400 kèm thông báo chi tiết.
-* Hệ thống (Frontend) tắt Loading, hiển thị thông báo lỗi (Toast/Alert) yêu cầu Khách hàng thử lại.
+### 5.2. Lỗi dữ liệu đầu vào (Bad Request - 400 Validation Error)
+* Tại bước 8 của luồng chính, Backend phát hiện Payload gửi lên bị sai định dạng (ví dụ: `quantity <= 0`, thiếu `productId`, sai enum `size`):
+* Backend từ chối xử lý, trả về mã lỗi `400 Bad Request` kèm mảng chi tiết các lỗi validation (bọc qua `AllExceptionsFilter`).
+* Frontend tắt Loading State, hiển thị Toast cảnh báo lỗi dữ liệu và yêu cầu Khách hàng kiểm tra lại.
 
-### 5.3. Hết hàng hoặc Lệch giá (Business Logic Error - 400)
-* Tại bước 7 của luồng chính, Backend truy vấn Database và phát hiện sản phẩm đã hết tồn kho hoặc giá sản phẩm đã bị thay đổi bởi Admin.
-* Backend từ chối tạo đơn, trả về mã lỗi 400.
-* Hệ thống (Frontend) tắt Loading, hiện cảnh báo đỏ báo cho Khách hàng biết món nào đã hết hàng/đổi giá.
-* Hệ thống cập nhật lại trạng thái giỏ hàng theo dữ liệu mới nhất từ Backend.
-* Khách hàng xem lại giỏ hàng và tiếp tục từ bước 3 của luồng chính.
+### 5.3. Hết hàng hoặc Lệch giá (Business Logic Error - 400 Bad Request)
+* Tại bước 9 của luồng chính, Backend kiểm tra trong DB và phát hiện:
+  * Sản phẩm tạm ngưng bán (`isAvailable = false`) hoặc tồn kho không đủ (`stock < quantity`).
+  * Hoặc đơn giá của sản phẩm/topping vừa được cập nhật bởi Quản trị viên.
+* Backend từ chối tạo đơn, trả về mã lỗi `400 Bad Request` kèm thông báo chi tiết (ví dụ: *"Sản phẩm Cà phê sữa (Size M) đã hết hàng"*).
+* Frontend tắt Loading State, hiển thị thông báo lỗi nổi bật trên giao diện Giỏ hàng.
+* Khách hàng điều chỉnh số lượng hoặc xóa món không hợp lệ và tiếp tục từ bước 3 của luồng chính.
+
+### 5.4. Phiên đăng nhập hết hạn (401 Unauthorized)
+* Tại bước 7 của luồng chính, nếu JWT token của Khách hàng đã hết hạn hoặc không hợp lệ:
+* Backend từ chối yêu cầu và trả về lỗi `401 Unauthorized`.
+* Frontend tắt Loading State, xóa token cũ nhưng **vẫn giữ nguyên giỏ hàng trong LocalStorage**, hiển thị thông báo "Phiên đăng nhập đã hết hạn" và chuyển hướng Khách hàng sang trang Đăng nhập lại.
 
 ## 6. Dữ liệu liên quan (Related Data / Entities)
-Use Case này thực hiện các thao tác Đọc (Read), Thêm (Create) và Xóa (Delete) trên các vùng dữ liệu sau:
 
-### 6.1. Dữ liệu Frontend (Local State)
-* **`CartState` (Zustand/Local Storage):** 
-  * **Đọc:** Lấy danh sách `CartItem` hiện có để hiển thị lên UI.
-  * **Cập nhật:** Thêm/sửa/xóa item trong lúc khách hàng thao tác.
-  * **Xóa (Clear):** Xóa toàn bộ dữ liệu khi nhận được mã `201 Created` từ Backend.
+### 6.1. Dữ liệu Frontend (Local State / Zustand)
+* **`CartItem`:** Chứa thông tin hiển thị tại client gồm `id` (khóa định danh duy nhất của dòng món kết hợp `productId`, `size`, `toppingIds`), `productId`, `name`, `imageUrl`, `size`, `toppingIds`, `quantity`, `estimatedUnitPrice`.
+* **`CartState`:** Lưu danh sách `items`, `totalAmount`, `badgeCount` và các actions (`addItem`, `removeItem`, `updateQuantity`, `clearCart`), được lưu giữ qua `localStorage` bằng middleware `persist`.
 
-### 6.2. Dữ liệu Backend (Database)
-* **Bảng `Product`, `ProductSizePrice`, `Topping`:**
-  * **Thao tác:** Đọc (Read-only).
-  * **Mục đích:** Truy xuất `basePrice`, `sizePrice`, `toppingPrice`, `isAvailable` và `stock` để kiểm tra chéo với dữ liệu từ Frontend gửi lên, đảm bảo tính toàn vẹn dữ liệu.
-* **Bảng `Order` (Đơn hàng gốc):**
-  * **Thao tác:** Tạo mới (Create).
-  * **Mục đích:** Lưu thông tin tổng quát của đơn hàng (Mã khách hàng, tổng tiền, trạng thái mặc định là `PENDING`).
-* **Bảng `OrderItem` (Chi tiết món):**
-  * **Thao tác:** Tạo mới (Create).
-  * **Mục đích:** Lưu từng món đồ uống khách hàng đã đặt (Id món, Size, số lượng, giá tiền tại thời điểm chốt đơn).
-* **Bảng `OrderItemTopping` (Chi tiết Topping của món):**
-  * **Thao tác:** Tạo mới (Create).
-  * **Mục đích:** Map các topping đi kèm với từng `OrderItem` cụ thể.
+### 6.2. Dữ liệu Backend (Database PostgreSQL / Prisma)
+* **Bảng `Product`, `ProductSizePrice`, `Topping` (Read-only):** Truy xuất để kiểm tra `isAvailable`, `stock`, `basePrice`, `priceAdjustment` và giá topping nhằm tính toán lại giá chính xác và trừ tồn kho khi đơn hàng được xác nhận.
+* **Bảng `Order` (Create):** Khởi tạo bản ghi đơn hàng với `userId`, `status = PENDING`, `totalAmount`, `discountAmount`, `finalAmount`.
+* **Bảng `OrderItem` (Create):** Lưu từng dòng sản phẩm với `orderId`, `productId`, `size`, `quantity`, `unitPrice`, `lineTotal`.
+* **Bảng `OrderItemTopping` (Create):** Lưu các topping đi kèm với từng `orderItemId` cùng với giá `price` tại thời điểm đặt hàng.

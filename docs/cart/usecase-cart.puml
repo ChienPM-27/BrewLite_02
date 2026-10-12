@@ -5,30 +5,28 @@ skinparam Backgroundcolor transparent
 
 actor "Khách hàng" as Client
 
-rectangle "Quản lý giỏ hàng (cart)" {
+rectangle "Phân hệ Giỏ hàng (Cart State & Checkout)" {
   usecase "Xem Giỏ hàng" as UC_View
-  usecase "Thay đổi Size / Topping / Số lượng" as UC_Edit
-  usecase "Xóa món khỏi giỏ" as UC_Remove
-  usecase "Cập nhật Tổng tiền & Badge" as UC_Calc
+  usecase "Cập nhật Số lượng / Xóa món" as UC_Edit
+  usecase "Tự động tính Tổng tiền & Badge" as UC_Calc
   
-  usecase "Đặt hàng (POST /orders)" as UC_Checkout
-  usecase "Xác thực Đăng nhập" as UC_Auth
-  usecase "Kiểm tra Tồn kho & Giá" as UC_Validate
-  usecase "Cảnh báo mất đồng bộ dữ liệu" as UC_Error
+  usecase "Tiến hành Đặt hàng (Checkout)" as UC_Checkout
+  usecase "Xác thực Đăng nhập (JWT Auth)" as UC_Auth
+  usecase "Kiểm tra Tồn kho & Đơn giá" as UC_Validate
+  usecase "Cảnh báo Lỗi (Hết hàng / Lệch giá)" as UC_Error
 }
 
 Client --> UC_View
 Client --> UC_Edit
-Client --> UC_Remove
 Client --> UC_Checkout
 
 UC_Edit ..> UC_Calc : <<include>>
-UC_Remove ..> UC_Calc : <<include>>
+UC_View ..> UC_Calc : <<include>>
 
 UC_Checkout ..> UC_Validate : <<include>>
 UC_Checkout ..> UC_Auth : <<include>>
 
 UC_Error ..> UC_Checkout : <<extend>>
-note bottom of UC_Error : Xảy ra khi DB báo hết hàng,\nsai giá hoặc lỗi class-validator
+note bottom of UC_Error : Kích hoạt khi DB báo hết tồn kho,\nngưng bán hoặc dữ liệu request không hợp lệ
 
 @enduml
