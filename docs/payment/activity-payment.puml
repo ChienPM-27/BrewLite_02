@@ -50,6 +50,7 @@ if (Yêu cầu hợp lệ?) then (Có)
             if (Kết quả thanh toán?) then (Thành công)
 
                 :Cập nhật Payment = SUCCESS;
+                :Cập nhật Order = PAID (paidAt = now());
                 :Lưu mã giao dịch nếu có;
                 :Hiển thị thanh toán thành công;
                 stop
@@ -58,6 +59,7 @@ if (Yêu cầu hợp lệ?) then (Có)
 
                 :Cập nhật Payment = FAILED;
                 :Lưu lý do thất bại nếu có;
+                :Giữ nguyên Order = PENDING (cho phép thử lại);
                 :Hiển thị thông báo thất bại;
 
                 if (Khách hàng muốn thử lại?) then (Có)
@@ -71,6 +73,7 @@ if (Yêu cầu hợp lệ?) then (Có)
                     end note
                     stop
                 else (Không)
+                    :Đơn hàng giữ PENDING (hoặc PAYMENT_FAILED nếu quá số lần/timeout);
                     stop
                 endif
 
@@ -83,9 +86,11 @@ if (Yêu cầu hợp lệ?) then (Có)
 
                     if (Giao dịch thành công?) then (Có)
                         :Cập nhật Payment = SUCCESS;
+                        :Cập nhật Order = PAID;
                         :Hiển thị thanh toán thành công;
                     else (Không)
                         :Cập nhật Payment = FAILED;
+                        :Giữ Order = PENDING (hoặc PAYMENT_FAILED nếu quá số lần/timeout);
                         :Hiển thị thanh toán thất bại;
                     endif
 
