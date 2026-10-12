@@ -144,6 +144,8 @@ Khi đã có dữ liệu đầy đủ theo hợp đồng:
 
 Với API contract hiện tại, phần giá cơ bản và phụ phí size đã được định nghĩa. Công thức đầy đủ có thể thực thi sau khi schema topping được xác nhận. Không thay giá thiếu/null bằng `0`. Giá này là ước tính cho một món; không phải giá thanh toán chính thức.
 
+
+
 #### Các luồng thay thế & ngoại lệ
 
 - **E1 — Sản phẩm không khả dụng:** `data.available === false` thì hiển thị trạng thái không khả dụng và khóa thêm vào Cart.
@@ -226,6 +228,58 @@ Với API contract hiện tại, phần giá cơ bản và phụ phí size đã 
 9. **`BR-PROD-09` — Topping và tồn kho chi tiết:** Quan hệ Product–Topping, schema phần tử `toppings[]`, trạng thái khả dụng riêng của size/topping và cách sử dụng `Product.stock` cần nhóm thống nhất trước khi coi là yêu cầu đã chốt.
 
 ---
+
+### 3.1. BẢNG QUY TẮC TÍNH GIÁ (PRICING RULES)
+
+#### Công thức
+
+```
+unitPrice = basePrice + priceAdjustment(size) + Σ giá topping
+Thành tiền = (basePrice + priceAdjustment(size) + Σ giá topping) × quantity
+```
+
+- `basePrice`: Giá gốc, lấy từ `Product.basePrice` (nguồn: `seed.ts`).
+- `priceAdjustment(size)`: Phụ phí theo kích cỡ, lấy từ `ProductSizePrice.priceAdjustment`.
+- `Σ giá topping`: Tổng giá các topping được chọn (xem lưu ý blocker bên dưới).
+- Không làm tròn số; Prisma dùng kiểu `Decimal` — tránh mất độ chính xác khi chuyển sang `number`.
+- `unitPrice` trên là giá cho **1 sản phẩm** với cấu hình đã chọn.
+- Thành tiền = `unitPrice × quantity`.
+
+#### Bảng phụ phí Size (từ `backend/prisma/seed.ts`, áp dụng cho **tất cả sản phẩm**)
+
+| Size | `priceAdjustment` |
+|------|-------------------|
+| S    | +0 đ              |
+| M    | +5.000 đ          |
+| L    | +10.000 đ         |
+
+#### Bảng giá Topping (từ `backend/prisma/seed.ts`)
+
+| Topping            | Giá topping |
+|--------------------|-------------|
+| Trân châu trắng    | 5.000 đ     |
+| Kem Cheese         | 10.000 đ    |
+| Đào miếng          | 8.000 đ     |
+
+#### Ví dụ Input/Output (sử dụng sản phẩm "Cà phê sữa đá", basePrice = 35.000 đ)
+
+| # | Input: Size | Input: Topping(s) | Tính | Output: unitPrice |
+|---|-------------|-------------------|------|-------------------|
+| 1 | S | Không có | 35.000 + 0 + 0 | **35.000 đ** |
+| 2 | M | Không có | 35.000 + 5.000 + 0 | **40.000 đ** |
+| 3 | L | Trân châu trắng (5.000) | 35.000 + 10.000 + 5.000 | **50.000 đ** |
+| 4 | M | Kem Cheese (10.000) + Đào miếng (8.000) | 35.000 + 5.000 + 10.000 + 8.000 | **58.000 đ** |
+| 5 | S | Kem Cheese (10.000) | 35.000 + 0 + 10.000 | **45.000 đ** |
+| 6 | L | Trân châu trắng (5.000) + Kem Cheese (10.000) | 35.000 + 10.000 + 5.000 + 10.000 | **60.000 đ** |
+
+> **Lưu ý:** Ví dụ #3–6 có topping chỉ áp dụng khi blocker `ProductTopping` được giải quyết (xem mục Giả định / Câu hỏi mở). Hiện tại `toppings: []` trong API response.
+
+#### Quy tắc làm tròn
+
+Chưa xác định. `seed.ts` dùng đơn vị đồng nguyên (VND không có phần thập phân thực tế). Đề xuất: không làm tròn; hiển thị số nguyên. **ĐỀ XUẤT – cần nhóm xác nhận.**
+
+---
+
 
 ## 4. HỢP ĐỒNG API VÀ PAYLOAD (API CONTRACT & SAMPLES)
 
@@ -349,3 +403,43 @@ Các điểm sau được ghi nhận trong `api-contract.md` và chưa nên xem 
 4. **Khả dụng size/topping:** Response chưa có `available` riêng cho từng size/topping. Không thể nghiệm thu trạng thái hết hàng riêng từng lựa chọn cho đến khi contract bổ sung.
 5. **Payload Cart:** API Product không xử lý Cart. Tên trường payload, định danh size/topping và quy tắc gộp dòng hàng phải được đồng bộ với tài liệu Cart.
 6. **Xác thực:** Trạng thái yêu cầu xác thực cho `GET /api/v1/products/:id` đang chờ nhóm xác nhận.
+
+---
+
+## 8. GIẢ ĐỊNH / CÂU HỎI MỞ
+
+> Các mục dưới đây **chưa được chốt**. Mỗi mục được đánh dấu **ĐỀ XUẤT – cần nhóm xác nhận** trước khi đưa vào implementation.
+
+### [Q1] Số lượng Topping tối đa mỗi lần đặt
+
+**ĐỀ XUẤT – cần nhóm xác nhận.**
+
+- Đề xuất mặc định: **tối đa 3 topping** mỗi item.
+- Lý do: tránh UI bị quá tải, phù hợp với quy mô POS nhỏ.
+- Hệ quả nếu chốt: cần thêm rule vào DTO backend và validation frontend.
+
+### [Q2] Cho phép chọn cùng một Topping nhiều lần không?
+
+**ĐỀ XUẤT – cần nhóm xác nhận.**
+
+- Đề xuất mặc định: **không cho chọn trùng** (mỗi loại topping chỉ chọn 1 lần).
+- Lý do: đơn giản hóa logic giỏ hàng; nếu muốn tăng số lượng, nên tách thành `quantity` riêng cho topping.
+- Hệ quả nếu chốt: `toppingIds` phải là mảng các ID unique.
+
+### [Q3] Blocker — Thiếu quan hệ Product–Topping trong schema hiện tại
+
+**Đây là blocker kỹ thuật, chưa thể tự chốt.**
+
+- `schema.prisma` hiện định nghĩa `Topping` là model độc lập, **không có quan hệ với `Product`** (không có bảng `ProductTopping` hay trường `productId` trong `Topping`).
+- Hệ quả: API `GET /api/v1/products/:id` **không thể trả về danh sách topping theo từng sản phẩm**; contract hiện để `toppings: []`.
+- Ví dụ tính giá có topping (mục 3.1) **chỉ có giá trị minh họa** cho khi blocker được giải quyết.
+- **Đề xuất cho Sprint 2:** Tạo bảng trung gian `ProductTopping` với quan hệ `Product ↔ Topping` (many-to-many).
+- Cần nhóm xác nhận hướng xử lý trước khi implement tính năng topping.
+
+### [Q4] Quy tắc làm tròn giá
+
+**ĐỀ XUẤT – cần nhóm xác nhận.**
+
+- `seed.ts` dùng đơn vị VND nguyên (không có phần thập phân thực tế).
+- Đề xuất: **không làm tròn**; hiển thị số nguyên đồng.
+- Nếu có khuyến mãi theo % trong tương lai, cần chốt rule làm tròn (ví dụ: làm tròn lên đến hàng nghìn đ).
