@@ -57,8 +57,12 @@ Ví dụ phản hồi đề xuất:
     "available": true,
     "sizes": [
       {
-        "size": "M",
+        "size": "S",
         "priceAdjustment": 0
+      },
+      {
+        "size": "M",
+        "priceAdjustment": 5000
       },
       {
         "size": "L",

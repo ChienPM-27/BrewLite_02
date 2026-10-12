@@ -68,7 +68,9 @@ Các trường trong đặc tả này phải khớp với `api-contract.md`:
 5. Backend trả `200 OK` theo wrapper chung: `success: true`, `statusCode: 200`, `data`, `timestamp`.
 6. Frontend đọc dữ liệu từ thuộc tính `data` và hiển thị tên, ảnh nếu có, giá gốc, đơn vị tiền, các size, topping và trạng thái `available`.
 7. Nếu `imageUrl` là `null`, Frontend hiển thị ảnh thay thế; không coi đây là lỗi tải Product API.
-8. Frontend cho phép người dùng tiếp tục tùy chỉnh dựa trên các tùy chọn thực sự có trong response.
+8. Frontend kiểm tra trạng thái khả dụng của sản phẩm (`available` / `isAvailable`):
+   - **Nếu `available === true` (khả dụng):** Cho phép khách hàng xem chi tiết thông tin và chuyển sang `UC-PROD-02` để tùy chỉnh kích cỡ (size) và topping.
+   - **Nếu `available === false` (hết hàng / không còn bán):** Frontend hiển thị thông báo "Sản phẩm không còn bán / Hết hàng", vô hiệu hóa hoàn toàn giao diện tùy chỉnh và khóa thao tác thêm vào giỏ hàng (khớp đúng luồng rẽ nhánh trong `activity-product-detail.puml`).
 
 #### Các luồng thay thế & ngoại lệ (Alternative & Exception Flows)
 
@@ -263,14 +265,14 @@ Thành tiền = (basePrice + priceAdjustment(size) + Σ giá topping) × quantit
 
 #### Ví dụ Input/Output (sử dụng sản phẩm "Cà phê sữa đá", basePrice = 35.000 đ)
 
-| # | Input: Size | Input: Topping(s) | Tính | Output: unitPrice |
-|---|-------------|-------------------|------|-------------------|
-| 1 | S | Không có | 35.000 + 0 + 0 | **35.000 đ** |
-| 2 | M | Không có | 35.000 + 5.000 + 0 | **40.000 đ** |
-| 3 | L | Trân châu trắng (5.000) | 35.000 + 10.000 + 5.000 | **50.000 đ** |
-| 4 | M | Kem Cheese (10.000) + Đào miếng (8.000) | 35.000 + 5.000 + 10.000 + 8.000 | **58.000 đ** |
-| 5 | S | Kem Cheese (10.000) | 35.000 + 0 + 10.000 | **45.000 đ** |
-| 6 | L | Trân châu trắng (5.000) + Kem Cheese (10.000) | 35.000 + 10.000 + 5.000 + 10.000 | **60.000 đ** |
+| # | Input: Size | Input: Topping(s) | Input: Số lượng (`quantity`) | Công thức tính chi tiết | Đơn giá (`unitPrice`) | Thành tiền (`lineTotal`) |
+|---|-------------|-------------------|:---:|-------------------|:---:|:---:|
+| 1 | S | Không có | 1 | (35.000 + 0 + 0) × 1 | **35.000 đ** | **35.000 đ** |
+| 2 | M | Không có | 2 | (35.000 + 5.000 + 0) × 2 | **40.000 đ** | **80.000 đ** |
+| 3 | L | Trân châu trắng (5.000 đ) | 1 | (35.000 + 10.000 + 5.000) × 1 | **50.000 đ** | **50.000 đ** |
+| 4 | M | Kem Cheese (10.000 đ) + Đào miếng (8.000 đ) | 2 | (35.000 + 5.000 + 10.000 + 8.000) × 2 | **58.000 đ** | **116.000 đ** |
+| 5 | S | Kem Cheese (10.000 đ) | 1 | (35.000 + 0 + 10.000) × 1 | **45.000 đ** | **45.000 đ** |
+| 6 | L | Trân châu trắng (5.000 đ) + Kem Cheese (10.000 đ) | 3 | (35.000 + 10.000 + 5.000 + 10.000) × 3 | **60.000 đ** | **180.000 đ** |
 
 > **Lưu ý:** Ví dụ #3–6 có topping chỉ áp dụng khi blocker `ProductTopping` được giải quyết (xem mục Giả định / Câu hỏi mở). Hiện tại `toppings: []` trong API response.
 
