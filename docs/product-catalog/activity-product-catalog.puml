@@ -1,0 +1,110 @@
+@startuml
+title Activity Diagram - Phân hệ Danh mục sản phẩm
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam activity {
+    BackgroundColor #F0FDF4
+    BorderColor #15803D
+    DiamondBackgroundColor #FEF3C7
+    DiamondBorderColor #D97706
+}
+
+|Khách hàng|
+start
+:Mở thực đơn;
+
+|Frontend|
+:Hiển thị trạng thái đang tải;
+:Yêu cầu Backend cấp danh sách sản phẩm;
+
+|Backend|
+:Nhận yêu cầu;
+:Truy vấn danh sách sản phẩm;
+
+if (Truy vấn thành công?) then (Có)
+    :Trả về danh sách sản phẩm;
+else (Không)
+    :Trả về lỗi API;
+endif
+
+|Frontend|
+if (Truy vấn thành công?) then (Có)
+    :Đọc danh sách sản phẩm;
+    :Lọc sản phẩm đang mở bán;
+    :Sắp xếp tên tăng dần;
+
+    if (Danh sách rỗng?) then (Có)
+        :Hiển thị thông báo chưa có sản phẩm;
+    else (Không)
+        :Hiển thị danh sách sản phẩm;
+    endif
+
+    |Khách hàng|
+    if (Muốn tìm kiếm?) then (Có)
+        :Nhập từ khóa tìm kiếm;
+
+        |Frontend|
+        :Loại bỏ khoảng trắng thừa;
+        :Tìm theo tên, không phân biệt chữ hoa và chữ thường;
+    else (Không)
+        
+
+
+    endif
+
+    |Khách hàng|
+    if (Muốn lọc danh mục?) then (Có)
+        :Chọn danh mục;
+
+        |Frontend|
+        if (Danh mục được chọn là Tất cả?) then (Có)
+            :Bỏ điều kiện lọc danh mục;
+        else (Không)
+            :Lọc theo danh mục sản phẩm;
+        endif
+    else (Không)
+    endif
+
+    |Frontend|
+    :Kết hợp điều kiện tìm kiếm và lọc danh mục;
+
+    if (Có kết quả phù hợp?) then (Có)
+        :Hiển thị danh sách sản phẩm phù hợp;
+    else (Không)
+        :Hiển thị thông báo không tìm thấy sản phẩm;
+    endif
+
+    |Khách hàng|
+    :Xem menu và kết quả;
+    stop
+
+else (Không)
+    :Hiển thị thông báo lỗi;
+    :Hiển thị nút Thử lại;
+
+    |Khách hàng|
+    if (Chọn Thử lại?) then (Có)
+        |Frontend|
+        :Gửi lại yêu cầu cho Backend;
+
+        |Backend|
+        :Xử lý yêu cầu và trả phản hồi;
+
+        |Frontend|
+        :Tiếp nhận phản hồi sau khi thử lại;
+        :Tiếp tục kiểm tra kết quả API;
+
+        note right
+          Nếu thành công: hiển thị danh sách.
+          Nếu thất bại: thông báo lỗi
+          và cho phép thử lại.
+        end note
+        stop
+    else (Không)
+        :Không thử tải lại;
+        stop
+    endif
+endif
+
+@enduml
