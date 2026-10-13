@@ -55,3 +55,11 @@ Trước khi duyệt bất kỳ Pull Request nào vào nhánh `develop`, ngườ
 - [ ] **Quy chuẩn tên:** Tên biến, hàm, endpoint tuân thủ đúng `naming-convention.md`.
 - [ ] **Xử lý bất đồng bộ:** Sử dụng đúng `async/await` và có xử lý bắt lỗi (try/catch hoặc để ExceptionFilter xử lý).
 - [ ] **Giao diện:** Phía Frontend có xử lý đầy đủ các trạng thái `loading` (spinner/skeleton) và `error`.
+
+---
+
+## 4. QUYẾT ĐỊNH ĐẶC THÙ THEO GIAI ĐOẠN (SPRINT MILESTONES)
+
+* **Miễn trừ Wireframe / Figma ở Tuần 1 (Foundation Review):**
+  Theo quyết định chính thức của Nhóm trưởng (Phạm Minh Chiến), toàn bộ 4 feature trong Tuần 1 (`feat/product-catalog`, `feat/product-detail`, `feat/cart-state`, `feat/mock-payment`) được **miễn trừ kiểm tra tiêu chí Wireframe/Figma trực quan** nhằm tập trung hoàn thiện và Freeze kiến trúc kỹ thuật (Use Case Specification, Activity Flow, API Contract, DB Mapping, FE/BE Skeleton). Các màn hình được mô tả trực quan thông qua text component states trong tài liệu đặc tả và tiến hành code UI trực tiếp ở Sprint 2.
+
