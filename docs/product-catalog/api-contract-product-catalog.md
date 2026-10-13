@@ -1,27 +1,51 @@
-# API CONTRACT - PRODUCT CATALOG
-## 1. Tổng quan
-API cung cấp danh sách sản phẩm đang được mở bán để Frontend hiển thị trên trang Menu.
+# 📜 API CONTRACT – PRODUCT CATALOG (MENU SẢN PHẨM)
 
-**Method**: `GET`
-**Endpoint**: `/api/v1/products`
-**Success Status**: `200 OK`
-> **Lưu ý:** Theo triển khai hiện tại, Backend lọc `isAvailable = true` và sắp xếp tên sản phẩm tăng dần. Tìm kiếm theo tên và lọc theo danh mục được thực hiện ở Frontend, không gửi query parameters lên API.`
+**Phân hệ:** Product Catalog (CAT)  
+**Tác giả:** Đinh Nhật Lan (Owner Feature: Product Catalog)  
+**Phiên bản:** 1.1 — Chuẩn hóa theo quyết định của Nhóm trưởng  
+**Ngày cập nhật:** 13/10/2026  
 
-## 2. Request
+---
+
+## 1. TỔNG QUAN
+
+API cung cấp danh sách toàn bộ sản phẩm đồ uống đang mở bán và còn hàng để Frontend hiển thị trên trang Thực đơn (`/menu`).
+
+* **Phương thức (HTTP Method):** `GET`
+* **Đường dẫn (Endpoint):** `/api/v1/products`
+* **Mã thành công:** `200 OK`
+* **Xác thực (Authentication):** Không yêu cầu (Public API).
+* **Quy tắc lọc dữ liệu phía Server:**
+  * Backend lọc theo điều kiện: `Product.isAvailable === true` VÀ `Product.stock > 0`.
+  * Sắp xếp mặc định: Tên sản phẩm tăng dần (`name ASC`).
+  * **Bảo mật kinh doanh:** Tuyệt đối **không trả trường `stock`** ra ngoài API. Cờ `isAvailable` trả về `true` cho các sản phẩm còn hàng đủ điều kiện mở bán.
+* **Xử lý phía Client (Frontend):**
+  * Toàn bộ thao tác tìm kiếm theo tên (không phân biệt hoa/thường, không phân biệt dấu tiếng Việt) và lọc theo danh mục đều thực hiện tại Frontend trên danh sách đã tải về.
+  * Không gửi query parameters (`?search=...`, `?category=...`) lên Backend trong phiên bản MVP.
+
+---
+
+## 2. YÊU CẦU (REQUEST SPECIFICATION)
+
 ### 2.1. HTTP Request
-**GET /api/v1/products**
-**Base URL**: http://localhost:4000
-**Request Body**: Không có.
-**Query Parameters**: Không có.
+* **URL:** `http://localhost:4000/api/v1/products`
+* **Headers:**
+  ```http
+  Accept: application/json
+  ```
+* **Request Body:** Không có.
+* **Query Parameters:** Không có.
 
-### 2.2. Mô tả
-Frontend gửi request đến Backend để lấy danh sách sản phẩm đang được mở bán. Backend truy vấn dữ liệu và trả về danh sách sản phẩm dưới dạng JSON.
-Tìm kiếm theo tên và lọc theo danh mục được thực hiện ở Frontend trên danh sách sản phẩm đã tải về.
+---
 
-## 3. Success Response
-### 3.1. HTTP Status
-`200 OK`
-### 3.2. Response Body mẫu
+## 3. PHẢN HỒI THÀNH CÔNG (SUCCESS RESPONSE)
+
+* **HTTP Status Code:** `200 OK`
+* **Định dạng bao đóng:** Bọc qua `TransformInterceptor` theo quy chuẩn `checklist-review.md`.
+
+### 3.1. Phản hồi mẫu (Sample JSON Response)
+
+Dữ liệu mẫu chuẩn hóa 100% theo `backend/prisma/seed.ts` và `backend/prisma/schema.prisma`:
 
 ```json
 {
@@ -117,64 +141,83 @@ Tìm kiếm theo tên và lọc theo danh mục được thực hiện ở Front
       ]
     }
   ],
-  "timestamp": "2026-10-11T08:39:03.235Z"
+  "timestamp": "2026-10-13T08:39:03.235Z"
 }
 ```
 
-> Đây là response mẫu dựa trên dữ liệu hiện có. `id` và `timestamp` có thể khác nhau giữa các lần gọi API.
+### 3.2. Bảng mô tả chi tiết trường dữ liệu (Field Specifications)
 
+| Tên trường | Kiểu dữ liệu | Bắt buộc | Nguồn CSDL (`schema.prisma`) | Mô tả & Quy ước |
+| :--- | :--- | :---: | :--- | :--- |
+| `success` | `boolean` | Có | Interceptor | Luôn là `true` khi gọi thành công |
+| `statusCode` | `number` | Có | Interceptor | `200` |
+| `data` | `Array<ProductItem>` | Có | Database Query | Danh sách các đối tượng món thỏa mãn điều kiện |
+| `data[].id` | `string` | Có | `Product.id` | Mã định danh CUID của sản phẩm |
+| `data[].name` | `string` | Có | `Product.name` | Tên đồ uống |
+| `data[].basePrice` | `number` | Có | `Product.basePrice` | Giá cơ bản (VND nguyên chẵn, convert từ Prisma `Decimal`) |
+| `data[].imageUrl` | `string \| null` | Không | `Product.imageUrl` | Đường dẫn ảnh sản phẩm (Unsplash URL hoặc ảnh lưu trữ) |
+| `data[].isAvailable` | `boolean` | Có | Tính toán từ `Product.isAvailable && Product.stock > 0` | Trạng thái mở bán (luôn `true` trong danh sách menu) |
+| `data[].categoryName` | `string \| null` | Không | `Category.name` | Tên danh mục của sản phẩm. Nếu không có danh mục thì là `null` |
+| `data[].sizePrices` | `Array<SizePrice>` | Có | Quan hệ `ProductSizePrice` | Danh sách các kích cỡ và mức phụ thu tương ứng |
+| `data[].sizePrices[].size` | `string` | Có | `ProductSizePrice.size` | Kích cỡ món theo enum: `'S'`, `'M'`, `'L'` |
+| `data[].sizePrices[].priceAdjustment` | `number` | Có | `ProductSizePrice.priceAdjustment` | Phụ thu kích cỡ (VND nguyên chẵn: `0`, `5000`, `10000`) |
+| `timestamp` | `string` | Có | Interceptor | Thời điểm trả về phản hồi theo chuẩn ISO-8601 |
 
-## 4. Error Responses
+---
 
-Khi request thất bại, Backend trả về HTTP status phù hợp với nguyên nhân lỗi. Frontend cần phân biệt lỗi request với trường hợp API trả về danh sách sản phẩm rỗng.
+## 4. PHẢN HỒI LỖI (ERROR RESPONSES)
 
-### 4.1. Error Response Body
-
-Cấu trúc JSON phản hồi khi xảy ra lỗi:
+Tất cả phản hồi lỗi được chuẩn hóa bọc qua `AllExceptionsFilter` (`docs/checklist-review.md`):
 
 ```json
 {
   "success": false,
   "statusCode": 500,
-  "message": "Không thể tải danh sách sản phẩm.",
-  "timestamp": "2026-10-11T08:39:03.235Z"
+  "error": "Internal Server Error",
+  "message": "Không thể tải danh sách sản phẩm từ cơ sở dữ liệu.",
+  "timestamp": "2026-10-13T08:39:03.235Z",
+  "path": "/api/v1/products"
 }
 ```
 
-Trong đó:
+### Các kịch bản lỗi chi tiết:
 
-- `success`: Cho biết request có thành công hay không; giá trị `false` khi xảy ra lỗi.
-- `statusCode`: Mã HTTP phản hồi.
-- `message`: Mô tả lỗi.
-- `timestamp`: Thời điểm xảy ra lỗi.
-
-### 4.2. Các trường hợp lỗi
-
-| Trường hợp | HTTP Status | Xử lý ở Frontend |
-|---|---|---|
-| Request không hợp lệ, nếu phát sinh | `400 Bad Request` | Hiển thị thông báo lỗi phù hợp. |
-| Lỗi không mong muốn từ Backend | `500 Internal Server Error` | Hiển thị thông báo không thể tải danh sách sản phẩm và nút thử lại. |
-| Lỗi mạng hoặc không kết nối được Backend | Không nhận được HTTP response | Hiển thị thông báo kết nối thất bại và nút thử lại. |
-| API thành công nhưng `data` là `[]` | `200 OK` | Hiển thị thông báo chưa có sản phẩm; không coi đây là lỗi. |
-
-
-## 5. Frontend Integration Notes
-
-1. **Gọi API:** Khi mở trang Menu, Frontend gọi `GET /api/v1/products`.
-2. **Loading state:** Hiển thị trạng thái tải trong lúc chờ phản hồi từ Backend.
-3. **Xử lý response:** Khi request thành công, lấy danh sách sản phẩm từ trường `data`.
-4. **Hiển thị sản phẩm:** Nếu `data` có phần tử, hiển thị Product Card tương ứng với từng sản phẩm.
-5. **Empty state:** Nếu `data` là mảng rỗng, hiển thị thông báo: “Hiện chưa có sản phẩm nào được mở bán.”
-6. **Error state:** Nếu request thất bại, hiển thị thông báo lỗi và nút thử lại.
-7. **Tìm kiếm và lọc:** Thực hiện tìm kiếm theo tên và lọc theo danh mục tại Frontend trên danh sách đã tải. Không gửi `search` hoặc `category` lên API trong phiên bản hiện tại.
-
-
-
-## 6. Out of Scope / Chưa được hỗ trợ
-
-- Query parameters tìm kiếm hoặc lọc danh mục ở Backend.
-- Phân trang, sắp xếp tùy chọn hoặc tìm kiếm phía máy chủ.
+| Mã HTTP | Tên lỗi (`error`) | Nguyên nhân | Hành vi xử lý ở Frontend |
+| :---: | :--- | :--- | :--- |
+| `500` | `Internal Server Error` | Lỗi truy vấn cơ sở dữ liệu hoặc crash phía máy chủ | Hiển thị thông báo "Không thể kết nối đến máy chủ" kèm nút **Thử lại** (`Retry`). |
+| `None` | Lỗi mạng / Offline | Khách hàng mất kết nối Internet hoặc Server tắt | Hiển thị Error State mạng kèm nút **Thử lại**. |
+| `200` | *(Không phải lỗi)* | Cơ sở dữ liệu chưa có món nào mở bán (`data: []`) | Hiển thị Empty Menu State: "Hiện chưa có món nào mở bán." |
 
 ---
 
-**Ghi chú:** Khi thay đổi endpoint, cấu trúc response hoặc schema dữ liệu, cần cập nhật API Contract tương ứng để bảo đảm Frontend và Backend thống nhất.
+## 5. HƯỚNG DẪN TÍCH HỢP FRONTEND (FRONTEND INTEGRATION NOTES)
+
+1. **Gọi API:** Gọi `fetchApi<ProductItem[]>('/products')` khi trang Menu được mount (Next.js client component hoặc SSR).
+2. **Xử lý danh mục (Category Tabs):**
+   * Frontend duyệt qua mảng `products` để trích xuất danh sách các `categoryName` duy nhất theo thứ tự xuất hiện.
+   * Tab đầu tiên luôn là `"Tất cả"`.
+   * Các món có `categoryName === null` hoặc không có danh mục sẽ được gom vào tab `"Khác"`.
+3. **Tìm kiếm (Search):**
+   * Sử dụng hàm loại bỏ dấu tiếng Việt kết hợp `toLowerCase()` và `trim()`.
+   * Ví dụ hàm chuẩn hóa:
+     ```typescript
+     export function removeVietnameseTones(str: string): string {
+       return str
+         .normalize('NFD')
+         .replace(/[\u0300-\u036f]/g, '')
+         .replace(/đ/g, 'd')
+         .replace(/Đ/g, 'D');
+     }
+     ```
+4. **Lọc kết hợp (Combined Filter):**
+   * Danh sách hiển thị = Sản phẩm thỏa mãn (`tab === 'Tất cả'` HOẶC `item.categoryName === tab`) VÀ (`removeVietnameseTones(item.name).includes(keyword)`).
+5. **Điều hướng sang Product Detail:**
+   * Khi khách hàng click vào thẻ `ProductCard`, điều hướng sang route `/products/[id]` để xem chi tiết và tùy biến kích cỡ/topping (`GET /api/v1/products/:id`).
+
+---
+
+## 6. QUYẾT ĐỊNH KIẾN TRÚC & PHẠM VI (OUT OF SCOPE)
+
+* **ProductsModule dùng chung:** Triển khai API này bên trong `backend/src/modules/products/` (`products.controller.ts` hàm `getProducts()`, `products.service.ts`), không tạo module riêng `product-catalog`.
+* **API `GET /api/v1/categories`:** Hoãn lại sang **Sprint 2** theo quyết định của Nhóm trưởng.
+* **Phân trang (Pagination) & Query Params:** Không áp dụng cho phiên bản hiện tại; sẽ đánh giá lại nếu số lượng sản phẩm vượt quá 100 món.

@@ -2,17 +2,17 @@
 ### Tác giả: Đinh Nhật Lan (Owner Feature: Product Catalog)
 **Dự án:** BrewLite – Hệ Thống Đặt Cà Phê Không Dùng Tiền Mặt  
 **Môn học:** Công nghệ Phần mềm | **Học kỳ:** I – 2026–2027  
-**Phạm vi:** Đáp ứng Task 6 (Menu sản phẩm): Đặc tả chức năng xem menu, chức năng tìm kiếm và lọc sản phẩm 
+**Phạm vi:** Đáp ứng Task 6 (Menu sản phẩm): Đặc tả chức năng xem menu, chức năng tìm kiếm và lọc sản phẩm
 
 ---
 
 ## 1. TỔNG QUAN PHÂN HỆ (MODULE OVERVIEW)
-Phân hệ Danh mục sản phẩm (Product Catalog) chịu trách nhiệm cung cấp danh sách đồ uống để khách hàng xem menu, tìm kiếm và lọc sản phẩm theo các tiêu chí được hệ thống hỗ trợ. Phân hệ lấy dữ liệu sản phẩm từ Backend thông qua API và hiển thị thông tin tương ứng trên giao diện người dùng.
+Phân hệ Danh mục sản phẩm (Product Catalog) chịu trách nhiệm cung cấp danh sách đồ uống để khách hàng xem menu, tìm kiếm và lọc sản phẩm theo các tiêu chí được hệ thống hỗ trợ. Phân hệ lấy dữ liệu sản phẩm từ Backend thông qua API `GET /api/v1/products` và hiển thị thông tin tương ứng trên giao diện người dùng.
 
 * **Các ca sử dụng cốt lõi:**
   1. **`UC-CAT-01`**: Xem menu sản phẩm (View Menu).
-  2. **`UC-CAT-02`**: Tìm kiếm sản phẩm (Search Products)
-  3. **`UC-CAT-03`**: Lọc sản phẩm theo danh mục 
+  2. **`UC-CAT-02`**: Tìm kiếm sản phẩm theo tên (Search Products).
+  3. **`UC-CAT-03`**: Lọc sản phẩm theo danh mục (Filter Products by Category).
 
 ---
 
@@ -25,149 +25,185 @@ Phân hệ Danh mục sản phẩm (Product Catalog) chịu trách nhiệm cung 
 | **Mã Use Case** | `UC-CAT-01` |
 | **Tên Use Case** | Xem menu sản phẩm |
 | **Actor chính** | Khách hàng (Customer) |
-| **Mục đích** | Xem danh sách sản phẩm đang được mở bán |
+| **Mục đích** | Xem danh sách sản phẩm đang được mở bán và còn hàng |
 | **Điều kiện tiên quyết (Pre-condition)** | Người dùng đang mở ứng dụng web BrewLite |
-| **Điều kiện kết thúc (Post-condition)** | Danh sách sản phẩm phù hợp được hiển thị trên giao diện |
+| **Điều kiện kết thúc (Post-condition)** | Danh sách sản phẩm phù hợp được hiển thị trên giao diện Menu |
 
 #### Luồng sự kiện chính (Main Flow - Happy Path):
-1. Khách hàng truy cập trang chủ và chọn chức năng **Khám phá thực đơn**.\
+1. Khách hàng truy cập trang chủ và chọn chức năng **Khám phá thực đơn** (hoặc điều hướng đến route `/menu`).
 2. Hệ thống điều hướng đến trang Menu.
-3. Frontend hiển thị trạng thái tải dữ liệu.
-4. Frontend gửi yêu cầu lấy danh sách sản phẩm đến Backend.
-5. Backend nhận yêu cầu và truy vấn dữ liệu sản phẩm trong cơ sở dữ liệu.
-6. Backend trả về danh sách sản phẩm theo hợp đồng API đã thống nhất.
-7. Frontend nhận dữ liệu và hiển thị danh sách sản phẩm bằng các Product Card.
-8. Khách hàng xem thông tin sản phẩm trên menu.
+3. Frontend hiển thị trạng thái đang tải dữ liệu (Loading Skeleton).
+4. Frontend gọi API `GET /api/v1/products` đến Backend.
+5. Backend nhận yêu cầu, truy vấn CSDL để lấy các sản phẩm thỏa mãn điều kiện `isAvailable = true` và `stock > 0`.
+6. Backend trả về danh sách sản phẩm theo hợp đồng API chuẩn bọc qua `TransformInterceptor`.
+7. Frontend nhận dữ liệu, trích xuất danh sách danh mục (Category tabs) theo thứ tự xuất hiện, và hiển thị danh sách sản phẩm bằng các `ProductCard`.
+8. Khách hàng xem thông tin sản phẩm trên menu (tên, ảnh, giá gốc, nhãn danh mục, phụ thu kích cỡ).
 
 #### Các luồng thay thế & ngoại lệ (Alternative & Exception Flows):
-* **A1: Không có sản phẩm**
-  Tại bước 6, nếu Backend trả về danh sách rỗng, Frontend hiển thị trạng thái chưa có sản phẩm thay vì danh sách Product Card.
+* **A1 – Chưa có sản phẩm mở bán:**
+  Tại bước 6, nếu Backend trả về mảng `data` rỗng (`[]`), Frontend hiển thị giao diện danh sách rỗng (Empty State) thông báo quán chưa mở bán món nào thay vì hiển thị lỗi.
 * **E1 – Lỗi tải dữ liệu:**
-  Tại bước 4 hoặc bước 5, yêu cầu lấy dữ liệu thất bại hoặc Backend không phản hồi, Frontend hiển thị thông báo lỗi kèm nút thử lại.
+  Tại bước 4 hoặc bước 5, nếu yêu cầu lấy dữ liệu thất bại do lỗi mạng hoặc Backend phản hồi lỗi HTTP 500, Frontend hiển thị thông báo lỗi kết nối kèm nút bấm **Thử lại** (`Retry`).
 
 ---
 
-### 📄 UC-CAT-02: Tìm kiếm sản phẩm (Search Products)
+### 📄 UC-CAT-02: TÌM KIẾM SẢN PHẨM THEO TÊN (SEARCH PRODUCTS)
 
 | Thuộc tính | Chi tiết đặc tả |
 | :--- | :--- |
 | **Mã Use Case** | `UC-CAT-02` |
-| **Tên Use Case** | Tìm kiếm sản phẩm (Search Products) |
+| **Tên Use Case** | Tìm kiếm sản phẩm theo tên (Search Products) |
 | **Actor chính** | Khách hàng (Customer) |
-| **Mục đích** | Giúp khách hàng tìm nhanh sản phẩm theo tên. |
-| **Pre-condition** | Khách hàng đang ở trang Menu và danh sách sản phẩm đã được tải thành công. |
-| **Post-condition** | Danh sách sản phẩm được cập nhật theo từ khóa tìm kiếm. |
+| **Mục đích** | Giúp khách hàng tìm nhanh sản phẩm theo từ khóa tên món |
+| **Pre-condition** | Khách hàng đang ở trang Menu và danh sách sản phẩm đã được tải thành công |
+| **Post-condition** | Danh sách sản phẩm trên màn hình được cập nhật theo từ khóa tìm kiếm |
 
 #### Luồng sự kiện chính (Main Flow):
-1. Khách hàng truy cập trang Menu.
-2. Khách hàng nhập tên hoặc một phần tên sản phẩm vào ô tìm kiếm và nhấn nút.
-3. Frontend tiếp nhận từ khóa tìm kiếm.
-4. Hệ thống chuẩn hóa từ khóa bằng cách loại bỏ khoảng trắng thừa và không phân biệt chữ hoa, chữ thường.
-5. Frontend đối chiếu từ khóa với tên các sản phẩm đã tải.
-6. Hệ thống hiển thị danh sách sản phẩm có tên phù hợp với từ khóa.
+1. Khách hàng nhập từ khóa vào ô tìm kiếm trên trang Menu.
+2. Frontend tiếp nhận từ khóa theo thời gian thực (hỗ trợ debounce).
+3. Hệ thống chuẩn hóa từ khóa: cắt bỏ khoảng trắng thừa đầu cuối, chuyển về chữ thường, và chuẩn hóa bỏ dấu tiếng Việt (ví dụ: "ca phe" hay "cà phê" đều khớp).
+4. Frontend lọc trực tiếp (client-side) trên danh sách sản phẩm đã tải, so sánh từ khóa với tên sản phẩm đã chuẩn hóa bỏ dấu.
+5. Frontend kết hợp đồng thời với điều kiện lọc danh mục hiện tại (nếu có).
+6. Hệ thống hiển thị danh sách các thẻ sản phẩm phù hợp.
 7. Khách hàng xem kết quả tìm kiếm.
 
 #### Các luồng thay thế & ngoại lệ (Alternative & Exception Flows):
-* **A1: Không tìm thấy sản phẩm phù hợp**
-  * Tại bước 5, hệ thống không tìm thấy sản phẩm nào phù hợp với từ khóa, Frontend hiển thị thông báo không tìm thấy sản phẩm phù hợp, khách hàng có thể thay đổi từ khóa để tìm kiếm lại.
-* **A2: Từ khóa tìm kiếm rỗng**
-  * Tại bước 2, khách hàng xóa toàn bộ từ khóa tìm kiếm, Frontend hiển thị lại danh sách sản phẩm ban đầu.
+* **A1 – Không tìm thấy sản phẩm phù hợp:**
+  Tại bước 4, nếu không có món nào thỏa mãn từ khóa, Frontend hiển thị trạng thái "Không tìm thấy kết quả" kèm gợi ý thử từ khóa khác hoặc nút "Xóa bộ lọc".
+* **A2 – Xóa từ khóa tìm kiếm:**
+  Tại bước 1, khi khách hàng xóa sạch ô tìm kiếm, Frontend tự động hiển thị lại danh sách sản phẩm theo bộ lọc danh mục hiện tại.
 
 ---
 
-### 📄 UC-CAT-03: Lọc sản phẩm theo danh mục (Filter Products by Category)
+### 📄 UC-CAT-03: LỌC SẢN PHẨM THEO DANH MỤC (FILTER PRODUCTS BY CATEGORY)
 
 | Thuộc tính | Chi tiết đặc tả |
 | :--- | :--- |
 | **Mã Use Case** | `UC-CAT-03` |
 | **Tên Use Case** | Lọc sản phẩm theo danh mục (Filter Products by Category) |
-| **Actor** | Khách hàng |
-| **Mục đích** | Giúp khách hàng xem các sản phẩm thuộc danh mục mong muốn. |
-| **Pre-condition** | Khách hàng đang ở trang Menu và danh sách sản phẩm đã được tải thành công. |
-| **Post-condition** | Danh sách sản phẩm được cập nhật theo danh mục được chọn. |
+| **Actor** | Khách hàng (Customer) |
+| **Mục đích** | Giúp khách hàng nhanh chóng duyệt các món thuộc nhóm đồ uống mong muốn |
+| **Pre-condition** | Khách hàng đang ở trang Menu và danh sách sản phẩm đã được tải thành công |
+| **Post-condition** | Danh sách sản phẩm được cập nhật theo tab danh mục được chọn |
 
 #### Luồng sự kiện chính (Main Flow):
-1. Khách hàng chọn một danh mục.
-2. Frontend tiếp nhận danh mục được chọn.
-3. Hệ thống đối chiếu danh mục được chọn với trường danh mục của từng sản phẩm.
-4. Frontend lọc danh sách và chỉ giữ lại các sản phẩm thuộc danh mục đã chọn.
-5. Hệ thống hiển thị danh sách sản phẩm phù hợp.
-6. Khách hàng xem các sản phẩm trong danh mục.
+1. Frontend hiển thị thanh danh mục gồm tab "Tất cả", tiếp theo là các tab danh mục trích xuất từ dữ liệu món (ví dụ: "Cà phê", "Trà & Trái cây"), và tab "Khác" (nếu có món không có danh mục).
+2. Khách hàng nhấn chọn một tab danh mục.
+3. Frontend kích hoạt trạng thái được chọn (Active Tab) cho danh mục đó.
+4. Frontend lọc danh sách món: chỉ giữ lại các sản phẩm có `categoryName` trùng với tab được chọn (hoặc `categoryName == null` nếu chọn tab "Khác").
+5. Frontend kết hợp đồng thời với từ khóa tìm kiếm hiện tại (nếu có).
+6. Hệ thống cập nhật danh sách thẻ sản phẩm hiển thị trên màn hình.
+7. Khách hàng duyệt các món trong danh mục.
 
 #### Các luồng thay thế & ngoại lệ (Alternative & Exception Flows):
-* **A1: Không có sản phẩm thuộc danh mục được chọn**
-  * Tại bước 5, khi hệ thống không tìm thấy sản phẩm nào thuộc danh mục được chọn, Frontend hiển thị thông báo chưa có sản phẩm trong danh mục này, khách hàng có thể chọn danh mục khác.
-* **A2: Khách hàng chọn “Tất cả”**
-  * Tại bước 3, khách hàng chọn danh mục “Tất cả”, Frontend loại bỏ điều kiện lọc danh mục và hiển toàn bộ sản phẩm phù hợp với từ khóa tìm kiếm nếu có.
+* **A1 – Khách hàng chọn tab "Tất cả":**
+  Tại bước 2, khi khách hàng chọn "Tất cả", Frontend loại bỏ điều kiện lọc danh mục và hiển thị toàn bộ sản phẩm (vẫn áp dụng từ khóa tìm kiếm nếu có).
+* **A2 – Danh mục không có món thỏa mãn từ khóa:**
+  Tại bước 5, nếu trong danh mục được chọn không có món nào khớp với từ khóa tìm kiếm hiện tại, Frontend hiển thị thông báo danh sách trống kèm nút xóa tìm kiếm.
 
 ---
 
 ## 3. QUY TẮC NGHIỆP VỤ & BẢO MẬT (BUSINESS RULES)
 
-1. **BR-CAT-01:** Chỉ hiển thị các sản phẩm có trạng thái mở bán (isAvailable = true).
-2. **BR-CAT-02:** Danh sách sản phẩm mặc định được sắp xếp theo tên tăng dần.
-3. **BR-CAT-03:** Tìm kiếm sản phẩm dựa trên tên sản phẩm, không phân biệt chữ hoa và chữ thường.
-4. **BR-CAT-04:** Lọc danh mục dựa trên danh mục của sản phẩm (categoryName).
-5. **BR-CAT-05:** Khi không có kết quả tìm kiếm hoặc lọc, hệ thống phải hiển thị trạng thái danh sách trống phù hợp.
-6. **BR-CAT-06:** Khi API tải dữ liệu thất bại, hệ thống phải thông báo lỗi và cho phép thử lại.
-7. **BR-CAT-07:** Khi chọn “Tất cả”, hệ thống bỏ điều kiện lọc danh mục nhưng vẫn giữ từ khóa tìm kiếm hiện tại.
+| Mã quy tắc | Tên quy tắc | Nội dung chi tiết |
+| :--- | :--- | :--- |
+| **BR-CAT-01** | Trạng thái mở bán & Tồn kho | API `GET /api/v1/products` chỉ trả về các sản phẩm thỏa mãn điều kiện kép: `isAvailable = true` VÀ `stock > 0` trong CSDL. Backend tính toán trả về cờ `isAvailable: true`. Tuyệt đối không trả trường `stock` ra ngoài API để bảo mật thông tin tồn kho kinh doanh. |
+| **BR-CAT-02** | Thứ tự sắp xếp mặc định | Danh sách sản phẩm trả về từ Backend mặc định được sắp xếp theo tên sản phẩm tăng dần theo bảng chữ cái (A-Z). |
+| **BR-CAT-03** | Tìm kiếm không phân biệt dấu và hoa thường | Chức năng tìm kiếm thực hiện tại Client-side. Hệ thống chuẩn hóa cả từ khóa và tên sản phẩm: chuyển thành chữ thường, loại bỏ khoảng trắng thừa, và chuyển đổi ký tự tiếng Việt có dấu thành không dấu (ví dụ: `cà phê` ➔ `ca phe`). Người dùng gõ có dấu hay không dấu đều tìm thấy sản phẩm chính xác. |
+| **BR-CAT-04** | Tự động sinh Category Tabs | Frontend tự động trích xuất danh sách các `categoryName` duy nhất (distinct) từ danh sách sản phẩm nhận được từ API. Thứ tự hiển thị các tab danh mục tuân theo thứ tự xuất hiện đầu tiên của từng danh mục trong danh sách. Nếu có sản phẩm không thuộc danh mục nào (`categoryName = null`), hệ thống gom vào tab "Khác". |
+| **BR-CAT-05** | Xử lý dữ liệu Client-side (Zero Query Params) | Phiên bản MVP xử lý toàn bộ tìm kiếm và lọc danh mục tại Client-side, không gửi query parameters (`?search=`, `?category=`) lên Backend và không phân trang (Pagination). Quy mô menu cà phê hiện tại (~20–50 món) được tải một lần duy nhất giúp phản hồi tức thì và giảm tải server. Đánh giá lại cơ chế phân trang phía Server khi quy mô thực đơn vượt quá 100 món. |
+| **BR-CAT-06** | Độc lập giữa tìm kiếm và lọc | Khi người dùng chuyển đổi qua lại giữa các tab danh mục, từ khóa tìm kiếm trong ô nhập liệu vẫn được giữ nguyên để lọc kết hợp. Ngược lại, khi xóa từ khóa, danh mục đang chọn vẫn được bảo lưu. |
+| **BR-CAT-07** | Bảo mật API & Dữ liệu mở | Endpoint `GET /api/v1/products` là API công khai (Public API), không yêu cầu Header xác thực (`Authorization`) để bất kỳ khách hàng nào cũng có thể duyệt thực đơn. |
 
 ---
 
-## 4.TIÊU CHÍ CHẤP NHẬN (ACCEPTANCE CRITERIA)
-### AC-CAT-01: Hiển thị danh sách sản phẩm
-* Điều kiện: Khách hàng truy cập trang Menu.
-* Hành động: Hệ thống gửi yêu cầu lấy danh sách sản phẩm và nhận được phản hồi thành công từ API.
-* Kết quả mong đợi: 
-Hệ thống hiển thị danh sách sản phẩm được trả về trong trường data.
-Mỗi sản phẩm được hiển thị dưới dạng thẻ sản phẩm, bao gồm các thông tin tương ứng với dữ liệu API.
-Chỉ hiển thị các sản phẩm có trạng thái mở bán (isAvailable = true).
-Danh sách sản phẩm được sắp xếp theo tên tăng dần.
+## 4. TIÊU CHÍ CHẤP NHẬN (ACCEPTANCE CRITERIA)
 
-### AC-CAT-02: Tìm kiếm sản phẩm theo tên
-* Điều kiện: Danh sách sản phẩm đã được tải thành công.
-* Hành động: Khách hàng nhập tên hoặc một phần tên sản phẩm vào ô tìm kiếm.
-* Kết quả mong đợi:
-Hệ thống hiển thị các sản phẩm có tên chứa từ khóa tìm kiếm.
-Việc tìm kiếm không phân biệt chữ hoa và chữ thường.
-Khoảng trắng thừa ở đầu và cuối từ khóa được loại bỏ trước khi tìm kiếm.
-Nếu không có sản phẩm phù hợp, hệ thống hiển thị thông báo không tìm thấy sản phẩm.
-Nếu khách hàng xóa từ khóa tìm kiếm, hệ thống hiển thị lại danh sách sản phẩm theo bộ lọc danh mục hiện tại, nếu có.
+### AC-CAT-01: Hiển thị danh sách sản phẩm hợp lệ
+* **Điều kiện:** Khách hàng truy cập trang Menu (`/menu`).
+* **Hành động:** Frontend gọi `GET /api/v1/products` thành công.
+* **Kết quả mong đợi:**
+  * Chỉ các món có `isAvailable = true` và `stock > 0` mới xuất hiện trên giao diện.
+  * Mỗi sản phẩm hiển thị đầy đủ: tên (`name`), ảnh (`imageUrl`), giá cơ bản (`basePrice`), tên danh mục (`categoryName`), và các mức giá phụ thu size (`sizePrices`).
+  * Danh sách được sắp xếp theo tên tăng dần.
 
-### AC-CAT-03: Lọc sản phẩm theo danh mục
-* Điều kiện: Danh sách sản phẩm đã được tải thành công.
-* Hành động: Khách hàng chọn một danh mục sản phẩm.
-* Kết quả mong đợi:
-Hệ thống chỉ hiển thị các sản phẩm thuộc danh mục đã chọn, các sản phẩm thuộc danh mục khác không được hiển thị.
-Nếu không có sản phẩm thuộc danh mục đã chọn, hệ thống hiển thị thông báo.
-Khi khách hàng chọn danh mục Tất cả, hệ thống loại bỏ điều kiện lọc danh mục và giữ nguyên từ khóa tìm kiếm hiện tại, nếu có.
+### AC-CAT-02: Tìm kiếm sản phẩm linh hoạt (hỗ trợ tiếng Việt không dấu)
+* **Điều kiện:** Danh sách sản phẩm đã được tải về giao diện.
+* **Hành động:** Khách hàng gõ từ khóa vào ô tìm kiếm (ví dụ gõ "tra dao" hoặc "Trà Đào").
+* **Kết quả mong đợi:**
+  * Hiển thị sản phẩm "Trà đào cam sả".
+  * Không phân biệt hoa/thường, không phân biệt dấu tiếng Việt.
+  * Khoảng trắng thừa ở đầu/cuối từ khóa tự động được loại bỏ.
 
-### AC-CAT-04: Kết hợp tìm kiếm và lọc danh mục
-* Điều kiện: Danh sách sản phẩm đã được tải thành công.
-* Hành động: Khách hàng nhập từ khóa tìm kiếm và chọn một danh mục.
-* Kết quả mong đợi:
-Hệ thống chỉ hiển thị các sản phẩm đồng thời phù hợp với từ khóa tìm kiếm và danh mục đã chọn.
-Khi thay đổi từ khóa hoặc danh mục, danh sách kết quả được cập nhật tương ứng.
-Nếu không có sản phẩm thỏa mãn đồng thời hai điều kiện, hệ thống hiển thị trạng thái danh sách trống.
+### AC-CAT-03: Lọc danh mục tự động và tab "Khác"
+* **Điều kiện:** Danh sách sản phẩm đã tải thành công.
+* **Hành động:** Khách hàng bấm chọn một tab danh mục trên thanh điều hướng.
+* **Kết quả mong đợi:**
+  * Chọn tab cụ thể: chỉ các món có `categoryName` tương ứng hiển thị.
+  * Chọn tab "Khác": chỉ các món có `categoryName = null` hiển thị.
+  * Chọn tab "Tất cả": hiển thị lại toàn bộ sản phẩm.
 
-### AC-CAT-05: Hiển thị trạng thái đang tải dữ liệu
-* Điều kiện: Khách hàng mở trang Menu và dữ liệu sản phẩm chưa được tải xong.
-* Hành động: Hệ thống đang chờ phản hồi từ API.
-* Kết quả mong đợi: Giao diện hiển thị trạng thái đang tải dữ liệu và không hiển thị nhầm thông báo danh sách trống trước khi quá trình tải hoàn tất.
+### AC-CAT-04: Kết hợp đồng thời bộ lọc và tìm kiếm
+* **Điều kiện:** Đang chọn danh mục "Cà phê".
+* **Hành động:** Khách hàng nhập từ khóa "sua".
+* **Kết quả mong đợi:**
+  * Chỉ hiển thị các món vừa thuộc nhóm "Cà phê" vừa có tên chứa "sữa" (ví dụ: "Cà phê sữa đá").
 
-### AC-CAT-06: Xử lý danh sách sản phẩm rỗng
-* Điều kiện: API trả về phản hồi thành công nhưng trường data là danh sách rỗng.
-* Hành động: Hệ thống tiếp nhận và xử lý phản hồi từ API.
-* Kết quả mong đợi:
-Không có thẻ sản phẩm nào được hiển thị.
-Giao diện hiển thị thông báo danh sách sản phẩm hiện chưa có.
-Hệ thống không hiển thị thông báo lỗi tải dữ liệu.
+---
 
-### AC-CAT-07: Xử lý lỗi tải danh sách sản phẩm
-* Điều kiện: Khách hàng mở trang Menu.
-* Hành động: Yêu cầu lấy danh sách sản phẩm thất bại do lỗi mạng, máy chủ không phản hồi hoặc API trả về lỗi.
-* Kết quả mong đợi:
-Giao diện hiển thị thông báo không thể tải danh sách sản phẩm.
-Hệ thống cung cấp nút thử lại.
-Khi khách hàng chọn thử lại, hệ thống gửi lại yêu cầu lấy danh sách sản phẩm.
-Nếu yêu cầu thử lại thành công, hệ thống hiển thị danh sách sản phẩm nhận được.
+## 5. MÔ TẢ GIAO DIỆN VÀ CÁC TRẠNG THÁI UI (UI COMPONENT STATES)
+
+> **Ghi chú quyết định nhóm:** Tiêu chí Wireframe/Figma trực quan được **miễn trừ ở Tuần 1** theo quyết định của Nhóm trưởng. Giao diện được đặc tả chi tiết thông qua các trạng thái thành phần giao diện (Component States) dưới đây:
+
+### 5.1. Trạng thái Đang tải (Loading State)
+* **Khi nào xuất hiện:** Khi người dùng mở trang Menu và API `GET /api/v1/products` đang trong quá trình tải.
+* **Giao diện thể hiện:**
+  * Hiển thị khung xương (Skeleton Loader) dạng lưới 4 cột (desktop) hoặc 2 cột (mobile).
+  * Mỗi thẻ skeleton có hiệu ứng chuyển động sáng mờ (shimmer animation), mô phỏng vị trí ảnh (tỷ lệ 1:1), dòng tiêu đề tên món và dòng giá tiền.
+  * Thanh tìm kiếm và các tab danh mục ở trạng thái vô hiệu hóa tạm thời (disabled).
+
+### 5.2. Trạng thái Danh sách thực đơn rỗng (Empty Menu State)
+* **Khi nào xuất hiện:** Khi Backend phản hồi thành công (`200 OK`) nhưng trường `data` là mảng rỗng (`[]`) do quán chưa mở bán món nào.
+* **Giao diện thể hiện:**
+  * Vùng nội dung chính ẩn lưới thẻ sản phẩm.
+  * Hiển thị hình minh họa cốc cà phê trống.
+  * Dòng chữ thông báo: *"Hiện chưa có sản phẩm nào được mở bán. Vui lòng quay lại sau!"*
+  * Không hiển thị thông báo lỗi kỹ thuật hay nút thử lại.
+
+### 5.3. Trạng thái Không có kết quả tìm kiếm/lọc (No Search/Filter Results State)
+* **Khi nào xuất hiện:** Danh sách món có dữ liệu, nhưng không có món nào thỏa mãn từ khóa tìm kiếm hoặc danh mục đang chọn.
+* **Giao diện thể hiện:**
+  * Hiển thị biểu tượng kính lúp không có kết quả.
+  * Tiêu đề: *"Không tìm thấy món phù hợp"*
+  * Mô tả: *"Không có sản phẩm nào khớp với từ khóa '**{keyword}**' trong danh mục '**{category}**'."*
+  * Nút bấm hành động: *"Xóa bộ lọc"* (Click vào sẽ reset ô tìm kiếm và chuyển tab về "Tất cả").
+
+### 5.4. Trạng thái Lỗi kết nối (Error State)
+* **Khi nào xuất hiện:** Khi gọi API thất bại (lỗi mạng, server offline, mã lỗi HTTP 500).
+* **Giao diện thể hiện:**
+  * Hiển thị biểu tượng cảnh báo hình tam giác màu cam.
+  * Tiêu đề: *"Không thể tải thực đơn"*
+  * Mô tả: *"Đã có lỗi xảy ra trong quá trình lấy danh sách sản phẩm. Vui lòng kiểm tra lại kết nối mạng."*
+  * Nút bấm hành động: Nút **"Thử lại"** (`Retry`) màu chủ đạo thương hiệu để kích hoạt gọi lại API.
+
+### 5.5. Trạng thái Hết hàng / Ngừng bán (Out of Stock / Unavailable State)
+* **Khi nào xuất hiện:** Khi một món có `isAvailable = false` hoặc `stock = 0` (được xử lý ở màn hình chi tiết hoặc danh sách nếu có món hiển thị).
+* **Giao diện thể hiện:**
+  * Ảnh sản phẩm bị phủ lớp mờ xám (grayscale 50% opacity).
+  * Huy hiệu (Badge) màu xám ở góc trên thẻ: *"Hết hàng"*.
+  * Nút xem chi tiết hoặc thêm nhanh vào giỏ bị vô hiệu hóa (disabled cursor).
+
+---
+
+## 6. GIẢ ĐỊNH / CÂU HỎI MỞ
+
+> Các mục dưới đây ghi nhận các quyết định kiến trúc và định hướng mở rộng:
+
+### [Q1] Endpoint chuyên biệt lấy danh mục: `GET /api/v1/categories`
+- **Quyết định nhóm trưởng:** Hoãn lại sang **Sprint 2**. Trong Tuần 1 và MVP hiện tại, Frontend tự động trích xuất `categoryName` duy nhất từ mảng sản phẩm.
+
+### [Q2] Miễn trừ Wireframe/Figma Tuần 1
+- **Quyết định nhóm trưởng:** Toàn bộ 4 feature Tuần 1 được miễn trừ tiêu chí Figma trực quan theo quyết định chính thức tại `docs/checklist-review.md`. Thiết kế UI chi tiết được thực hiện bằng mã nguồn trực tiếp ở Sprint 2.
+
+### [Q3] Phân trang danh mục sản phẩm (Server-side Pagination)
+- **Quyết định nhóm trưởng:** Giữ cơ chế tải toàn bộ và lọc tại Client cho quy mô quán cà phê MVP (<100 món). Khi số lượng sản phẩm vượt quá 100 món sẽ bổ sung phân trang (`page`, `limit`) phía Backend ở các giai đoạn sau.
