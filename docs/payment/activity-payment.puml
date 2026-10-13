@@ -1,0 +1,115 @@
+@startuml
+title SƠ ĐỒ HOẠT ĐỘNG - QUY TRÌNH THANH TOÁN
+
+skinparam backgroundColor white
+skinparam activity {
+    BackgroundColor white
+    BorderColor black
+    FontColor black
+    DiamondBackgroundColor white
+    DiamondBorderColor black
+}
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ArrowColor black
+
+start
+
+:Khách hàng chọn đơn hàng;
+:Chọn ví điện tử hoặc thẻ ngân hàng;
+:Xác nhận thanh toán;
+
+:Tạo Idempotency-Key;
+:Gửi yêu cầu POST /api/v1/payments;
+
+:Backend kiểm tra dữ liệu,\nquyền thanh toán và đơn hàng;
+
+if (Yêu cầu hợp lệ?) then (Có)
+
+    :Kiểm tra Idempotency-Key;
+
+    if (Khóa đã tồn tại?) then (Có)
+
+        if (Dữ liệu giống yêu cầu cũ?) then (Có)
+            :Trả về kết quả đã lưu\nhoặc trạng thái đang xử lý;
+            stop
+        else (Không)
+            :Từ chối yêu cầu\nvì khóa trùng dữ liệu khác;
+            stop
+        endif
+
+    else (Không)
+
+        :Xác định số tiền từ đơn hàng;
+
+        if (Đơn hàng đủ điều kiện?) then (Có)
+
+            :Tạo Payment = PENDING;
+            :Gửi yêu cầu đến cổng thanh toán giả lập;
+
+            if (Kết quả thanh toán?) then (Thành công)
+
+                :Cập nhật Payment = SUCCESS;
+                :Cập nhật Order = PAID (paidAt = now());
+                :Lưu mã giao dịch nếu có;
+                :Hiển thị thanh toán thành công;
+                stop
+
+            elseif (Thất bại)
+
+                :Cập nhật Payment = FAILED;
+                :Lưu lý do thất bại nếu có;
+                :Giữ nguyên Order = PENDING (cho phép thử lại);
+                :Hiển thị thông báo thất bại;
+
+                if (Khách hàng muốn thử lại?) then (Có)
+                    :Tạo Idempotency-Key mới;
+                    :Gửi yêu cầu thanh toán mới;
+                    note right
+                    Xử lý lại từ bước
+                    kiểm tra yêu cầu.
+                    Chỉ thử lại khi đã xác nhận
+                    lần trước thất bại.
+                    end note
+                    stop
+                else (Không)
+                    :Đơn hàng giữ PENDING (hoặc PAYMENT_FAILED nếu quá số lần/timeout);
+                    stop
+                endif
+
+            else (Timeout)
+
+                :Giữ Payment = PENDING;
+                :Kiểm tra trạng thái giao dịch;
+
+                if (Đã xác nhận kết quả?) then (Có)
+
+                    if (Giao dịch thành công?) then (Có)
+                        :Cập nhật Payment = SUCCESS;
+                        :Cập nhật Order = PAID;
+                        :Hiển thị thanh toán thành công;
+                    else (Không)
+                        :Cập nhật Payment = FAILED;
+                        :Giữ Order = PENDING (hoặc PAYMENT_FAILED nếu quá số lần/timeout);
+                        :Hiển thị thanh toán thất bại;
+                    endif
+
+                else (Chưa rõ)
+                    :Thông báo đang xác minh giao dịch;
+                    :Không tự động gửi giao dịch mới;
+                endif
+
+                stop
+            endif
+
+        else (Không)
+            :Từ chối vì đơn hàng\nkhông đủ điều kiện thanh toán;
+            stop
+        endif
+    endif
+
+else (Không)
+    :Thông báo yêu cầu không hợp lệ;
+    stop
+endif
+@enduml
