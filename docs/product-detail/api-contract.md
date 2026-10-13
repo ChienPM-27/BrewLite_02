@@ -1,21 +1,23 @@
 # BrewLite — Tài liệu hợp đồng API: Chi tiết sản phẩm
 
-**Trạng thái:** Bản nháp — Chờ đánh giá
-**Người phụ trách:** Product Detail
-**Giai đoạn:** Architecture Mapping
-**Cập nhật lần cuối:** 09/10/2026
+**Trạng thái:** Chuẩn hóa theo quyết định của Nhóm trưởng  
+**Người phụ trách:** Product Detail (Vũ Hoàng Huy)  
+**Giai đoạn:** Architecture Mapping  
+**Cập nhật lần cuối:** 13/10/2026  
 
 ---
 
 ## 1. Mục đích
 
-Tài liệu này mô tả hợp đồng API dùng để lấy thông tin chi tiết sản phẩm trong hệ thống BrewLite.
+Tài liệu này mô tả hợp đồng API dùng để lấy thông tin chi tiết một sản phẩm trong hệ thống BrewLite.
 
-API cung cấp dữ liệu để Frontend hiển thị trang chi tiết sản phẩm, bao gồm tên, hình ảnh, giá gốc, tình trạng sản phẩm, kích cỡ và topping.
+API cung cấp dữ liệu để Frontend hiển thị trang chi tiết sản phẩm, bao gồm tên, hình ảnh, giá gốc, trạng thái khả dụng (`isAvailable`), danh sách kích cỡ phụ thu (`sizePrices`) và topping.
 
 Backend chịu trách nhiệm xác định giá chính thức. Frontend có thể tính giá ước tính để hiển thị khi người dùng thay đổi lựa chọn.
 
-**Lưu ý:** Cấu trúc API phải thống nhất với `schema.prisma` và tài liệu `db-mapping.md` trước khi chốt hợp đồng.
+**Lưu ý:** Cấu trúc API đã được thống nhất 100% với `schema.prisma`, `backend/prisma/seed.ts` và tài liệu `db-mapping-product-detail.md`.
+
+---
 
 ## 2. Thông tin API
 
@@ -25,7 +27,7 @@ Backend chịu trách nhiệm xác định giá chính thức. Frontend có th�
 | Endpoint      | `/api/v1/products/:id`              |
 | Chức năng     | Lấy thông tin chi tiết một sản phẩm |
 | Mã thành công | `200 OK`                            |
-| Xác thực      | Chờ nhóm xác nhận                   |
+| Xác thực      | Không yêu cầu (Public API)          |
 | Kiểu dữ liệu  | `application/json`                  |
 
 ### Tham số đường dẫn
@@ -36,26 +38,28 @@ Backend chịu trách nhiệm xác định giá chính thức. Frontend có th�
 
 Theo `schema.prisma`, ID của sản phẩm được tạo bằng CUID thông qua `@default(cuid())`.
 
+---
+
 ## 3. Phản hồi khi thành công
 
-Tất cả phản hồi thành công phải tuân theo định dạng chung trong `checklist-review.md`.
+Tất cả phản hồi thành công tuân theo định dạng chung trong `checklist-review.md` qua `TransformInterceptor`.
 
 **HTTP Status:** `200 OK`
 
-Ví dụ phản hồi đề xuất:
+Ví dụ phản hồi chuẩn:
 
 ```json
 {
   "success": true,
   "statusCode": 200,
   "data": {
-    "id": "clproduct001",
-    "name": "Latte",
-    "imageUrl": "/images/latte.jpg",
+    "id": "cmv19kpye000794rc6vgebmpz",
+    "name": "Cà phê sữa đá",
+    "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600",
     "basePrice": 35000,
     "currency": "VND",
-    "available": true,
-    "sizes": [
+    "isAvailable": true,
+    "sizePrices": [
       {
         "size": "S",
         "priceAdjustment": 0
@@ -71,36 +75,34 @@ Ví dụ phản hồi đề xuất:
     ],
     "toppings": []
   },
-  "timestamp": "2026-10-09T14:00:00.000Z"
+  "timestamp": "2026-10-13T08:39:03.235Z"
 }
 ```
 
-Dữ liệu trên chỉ mang tính minh họa, không phải dữ liệu thật trong database. Danh sách kích cỡ, giá và topping cần được lấy từ dữ liệu thực tế.
-
 ### Giải thích các trường
 
-* `success`: Cho biết yêu cầu có thành công hay không.
-* `statusCode`: Mã trạng thái HTTP.
+* `success`: Cho biết yêu cầu có thành công hay không (`true`).
+* `statusCode`: Mã trạng thái HTTP (`200`).
 * `data`: Dữ liệu chi tiết sản phẩm.
-* `id`: Mã sản phẩm, được lưu trong `Product.id`.
-* `name`: Tên sản phẩm, được lưu trong `Product.name`.
-* `imageUrl`: Đường dẫn hình ảnh, được lưu trong `Product.imageUrl`; có thể là `null` nếu chưa có ảnh.
-* `basePrice`: Giá gốc, được lấy từ `Product.basePrice`.
-* `currency`: Đơn vị tiền tệ theo quy ước API, hiện dự kiến là `VND`.
-* `available`: Trạng thái có thể bán, ánh xạ từ `Product.isAvailable`.
-* `sizes`: Danh sách kích cỡ và phụ phí, lấy từ `ProductSizePrice`.
-* `size`: Giá trị kích cỡ theo enum `ProductSize`, gồm `S`, `M`, `L`.
-* `priceAdjustment`: Phần giá cộng thêm, lấy từ `ProductSizePrice.priceAdjustment`.
-* `toppings`: Danh sách topping được phép chọn; cách xác định topping theo từng sản phẩm cần nhóm thống nhất.
-* `timestamp`: Thời điểm tạo phản hồi.
+  * `id`: Mã sản phẩm, lưu trong `Product.id`.
+  * `name`: Tên sản phẩm, lưu trong `Product.name`.
+  * `imageUrl`: Đường dẫn hình ảnh, lưu trong `Product.imageUrl`; có thể là `null` nếu chưa có ảnh.
+  * `basePrice`: Giá gốc (VND nguyên chẵn), lấy từ `Product.basePrice`.
+  * `currency`: Đơn vị tiền tệ theo quy ước API, hiện là `VND`.
+  * `isAvailable`: Trạng thái mở bán (Quyết định 1 & 5). Backend tính toán: `Product.isAvailable && Product.stock > 0`. Nếu hết hàng thì trường này trả `false` để FE hiển thị badge "Hết hàng" và khóa thao tác thêm giỏ.
+  * `sizePrices`: Danh sách kích cỡ và phụ phí tương ứng, lấy từ bảng `ProductSizePrice` (Quyết định 1).
+    * `size`: Kích cỡ đồ uống theo enum `ProductSize` (`'S'`, `'M'`, `'L'`).
+    * `priceAdjustment`: Mức giá phụ thu kích cỡ (VND: `0`, `5000`, `10000`).
+  * `toppings`: Danh sách topping được phép chọn (tạm thời để `[]` chờ bảng trung gian `ProductTopping` ở Sprint 2).
+* `timestamp`: Thời điểm tạo phản hồi theo ISO-8601.
 
-Trường `description` chưa được đưa vào response vì model `Product` trong `schema.prisma` hiện chưa có trường này. Nếu giao diện bắt buộc phải hiển thị mô tả, nhóm cần thống nhất bổ sung trường vào schema hoặc có nguồn dữ liệu khác.
+> **Ghi chú về `stock` (Quyết định 5 của Nhóm trưởng):** Không trả trường `stock` ra ngoài API để bảo mật dữ liệu kho. Tính khả dụng được thể hiện trọn vẹn qua trường `isAvailable`.
 
-Backend sử dụng `TransformInterceptor` để bọc phản hồi thành công theo định dạng chung của nhóm, nếu interceptor này được triển khai đúng như quy ước dự án.
+---
 
 ## 4. Phản hồi khi xảy ra lỗi
 
-Tất cả phản hồi lỗi phải tuân theo định dạng trong `checklist-review.md`.
+Tất cả phản hồi lỗi tuân theo định dạng `AllExceptionsFilter` trong `checklist-review.md`.
 
 ### 4.1. Không tìm thấy sản phẩm
 
@@ -111,8 +113,8 @@ Tất cả phản hồi lỗi phải tuân theo định dạng trong `checklist-
   "success": false,
   "statusCode": 404,
   "error": "Not Found",
-  "message": "Không tìm thấy sản phẩm",
-  "timestamp": "2026-10-09T14:00:00.000Z",
+  "message": "Không tìm thấy sản phẩm với ID cung cấp",
+  "timestamp": "2026-10-13T08:39:03.235Z",
   "path": "/api/v1/products/clproduct001"
 }
 ```
@@ -120,7 +122,7 @@ Tất cả phản hồi lỗi phải tuân theo định dạng trong `checklist-
 ### 4.2. ID sản phẩm không hợp lệ
 
 * `400 Bad Request` nếu ID sai định dạng.
-* `404 Not Found` nếu ID đúng định dạng nhưng không tìm thấy sản phẩm.
+* `404 Not Found` nếu ID đúng định dạng nhưng không có trong CSDL.
 
 ### 4.3. Lỗi hệ thống
 
@@ -131,82 +133,52 @@ Tất cả phản hồi lỗi phải tuân theo định dạng trong `checklist-
   "success": false,
   "statusCode": 500,
   "error": "Internal Server Error",
-  "message": "Đã xảy ra lỗi không mong muốn",
-  "timestamp": "2026-10-09T14:00:00.000Z",
+  "message": "Đã xảy ra lỗi không mong muốn phía máy chủ",
+  "timestamp": "2026-10-13T08:39:03.235Z",
   "path": "/api/v1/products/clproduct001"
 }
 ```
 
-Backend sử dụng `AllExceptionsFilter` để định dạng phản hồi lỗi nếu filter này đã được triển khai. Với lỗi validation từ `ValidationPipe`, trường `message` có thể chứa một hoặc nhiều thông báo lỗi theo quy chuẩn nhóm.
+---
 
 ## 5. Quy tắc nghiệp vụ
 
-1. Backend là nguồn xác định giá chính thức.
-2. Giá sản phẩm bắt đầu từ `basePrice`.
-3. Khi chọn kích cỡ, cộng thêm `priceAdjustment` tương ứng.
-4. Mỗi topping được chọn sẽ cộng thêm giá topping tương ứng.
-5. Việc cho phép chọn nhiều topping và có được chọn trùng topping hay không cần được nhóm xác nhận.
-6. Số lượng sản phẩm phải lớn hơn hoặc bằng `1` khi sử dụng trong giỏ hàng hoặc đặt hàng.
-7. Số lượng tối đa chưa được nhóm xác định.
-8. Trạng thái `Product.isAvailable` cho biết sản phẩm có được phép bán hay không.
-9. `Product.stock` biểu thị số lượng tồn kho; cách xử lý khi hết hàng cần được nhóm thống nhất.
-10. Chỉ trả về các kích cỡ và topping hợp lệ theo quy tắc nghiệp vụ đã được thống nhất.
+1. **Nguồn xác định giá:** Backend là nguồn duy nhất xác định giá chính thức.
+2. **Công thức tính giá:**
+   ```
+   unitPrice = basePrice + priceAdjustment(size) + Σ giá topping
+   ```
+3. **Phụ phí size:** Lấy từ phần tử tương ứng trong `sizePrices[]`.
+4. **Trạng thái bán (Quyết định 5):** Dùng trường `isAvailable`. Backend trả `isAvailable = (Product.isAvailable && stock > 0)`. Nếu `isAvailable === false`, sản phẩm vẫn được trả về để Frontend hiển thị nhãn "Hết hàng" và vô hiệu hóa nút "Thêm vào giỏ hàng".
+5. **Số lượng:** Số lượng đặt phải từ 1 đến 99 mỗi món.
+6. **Bảo mật giá:** Backend tính toán lại toàn bộ đơn giá và thành tiền khi tạo đơn hàng, tuyệt đối không tin cậy giá gửi từ Frontend.
 
-**Công thức tính giá đề xuất:**
-
-`unitPrice = basePrice + size.priceAdjustment + tổng giá topping được chọn`
-
-Công thức trên là giá cho một sản phẩm sau khi chọn kích cỡ và topping. Tổng tiền của nhiều sản phẩm còn phụ thuộc số lượng.
-
-Backend cần xác thực lại giá và lựa chọn của người dùng khi tạo đơn hàng; không sử dụng giá do Frontend gửi lên làm giá thanh toán đáng tin cậy.
+---
 
 ## 6. Ánh xạ dữ liệu API với database
 
-| Trường API                | Nguồn dữ liệu                      | Ghi chú                                               |
-| ------------------------- | ---------------------------------- | ----------------------------------------------------- |
-| `id`                      | `Product.id`                       | ID dạng CUID                                          |
-| `name`                    | `Product.name`                     | Tên sản phẩm                                          |
-| `imageUrl`                | `Product.imageUrl`                 | Có thể là `null`                                      |
-| `basePrice`               | `Product.basePrice`                | Kiểu Decimal trong Prisma                             |
-| `currency`                | Quy ước API                        | Dự kiến là `VND`, không phải trường trong Product     |
-| `available`               | `Product.isAvailable`              | Tên trường API khác tên trường database               |
-| `sizes`                   | `ProductSizePrice`                 | Lấy danh sách kích cỡ theo sản phẩm                   |
-| `sizes[].size`            | `ProductSizePrice.size`            | Enum gồm `S`, `M`, `L`                                |
-| `sizes[].priceAdjustment` | `ProductSizePrice.priceAdjustment` | Phụ phí kích cỡ                                       |
-| `toppings`                | `Topping`                          | Schema hiện chưa có quan hệ trực tiếp Product–Topping |
-| `description`             | Chưa có nguồn dữ liệu              | Model `Product` hiện chưa có trường này               |
+| Trường API | Nguồn dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | `Product.id` | ID dạng CUID |
+| `name` | `Product.name` | Tên sản phẩm |
+| `imageUrl` | `Product.imageUrl` | Có thể là `null` |
+| `basePrice` | `Product.basePrice` | Kiểu Decimal trong Prisma, trả về number nguyên |
+| `currency` | Quy ước API | Giá trị `"VND"` |
+| `isAvailable` | `Product.isAvailable && Product.stock > 0` | Quyết định 1 & 5 của Nhóm trưởng |
+| `sizePrices` | `ProductSizePrice` | Lấy danh sách kích cỡ theo sản phẩm (Quyết định 1) |
+| `sizePrices[].size` | `ProductSizePrice.size` | Enum gồm `'S'`, `'M'`, `'L'` |
+| `sizePrices[].priceAdjustment` | `ProductSizePrice.priceAdjustment` | Phụ phí kích cỡ |
+| `toppings` | `Topping` | Schema hiện chưa có quan hệ trực tiếp Product–Topping |
+| `description` | Chưa có nguồn dữ liệu | Model `Product` hiện chưa có trường này |
 
-### Các model liên quan
-
-* `Product`: Thông tin sản phẩm, giá gốc, tồn kho và trạng thái bán.
-* `ProductSizePrice`: Phụ phí theo kích cỡ của từng sản phẩm.
-* `Topping`: Tên, giá, tồn kho và trạng thái bán của topping.
-* `Category`: Danh mục sản phẩm.
-
-**Lưu ý:** Schema hiện tại chưa định nghĩa quan hệ trực tiếp giữa `Product` và `Topping`. Nhóm cần thống nhất cách xác định topping nào được phép chọn cho từng sản phẩm trước khi chốt API.
-
-Trường `description` cũng chưa tồn tại trong model `Product`. Nếu giao diện cần hiển thị mô tả, nhóm cần thống nhất có bổ sung trường này vào database hay không.
-
+---
 
 ## 7. Tích hợp với Frontend
 
 Frontend có trách nhiệm:
-
 * Gọi `GET /api/v1/products/:id` để lấy chi tiết sản phẩm.
-* Hiển thị tên, hình ảnh, giá gốc, kích cỡ, topping và trạng thái bán.
+* Hiển thị tên, hình ảnh, giá gốc, kích cỡ (`sizePrices`), topping và trạng thái khả dụng (`isAvailable`).
 * Hiển thị trạng thái đang tải dữ liệu (`loading`) và trạng thái lỗi (`error`).
+* Khi `isAvailable === false`: Hiển thị huy hiệu "Hết hàng" và khóa thao tác thêm vào giỏ.
 * Tính giá ước tính khi người dùng thay đổi kích cỡ hoặc topping.
-* Xử lý trường `imageUrl` có giá trị `null`.
-* Không coi giá ước tính trên giao diện là giá thanh toán chính thức.
-* Thống nhất kiểu dữ liệu giá giữa Frontend và Backend, đặc biệt khi Prisma sử dụng `Decimal`.
-
-## 8. Phạm vi không bao gồm
-
-API này không xử lý:
-
-* Thêm sản phẩm vào giỏ hàng.
-* Tạo đơn hàng.
-* Xử lý thanh toán.
-* Đăng ký và đăng nhập tài khoản.
-
-Các chức năng trên thuộc phạm vi của những feature và API tương ứng.
+* Xử lý trường `imageUrl` có giá trị `null` bằng ảnh placeholder.

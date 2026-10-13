@@ -30,11 +30,12 @@ chi tiết sản phẩm;
 :GET /api/v1/products/:id;
 :Truy vấn thông tin sản phẩm
 từ cơ sở dữ liệu;
+:Tính cờ isAvailable = (Product.isAvailable && stock > 0);
 
 if (Sản phẩm tồn tại?) then (Có)
     :Trả về thông tin sản phẩm
-    (tên, hình ảnh,
-    giá, size, topping);
+    (tên, hình ảnh, giá,
+    isAvailable, sizePrices, toppings);
 
     |Frontend|
     :Hiển thị trang Product Detail
@@ -43,7 +44,7 @@ if (Sản phẩm tồn tại?) then (Có)
     if (isAvailable == true?) then (Có)
         |Customer|
         :Xem thông tin sản phẩm;
-        :Chọn size và topping;
+        :Chọn kích cỡ từ sizePrices và topping;
 
         |Frontend|
         :Cập nhật lựa chọn
@@ -72,14 +73,14 @@ if (Sản phẩm tồn tại?) then (Có)
     else (Không)
         |Frontend|
         :Hiển thị thông báo
-        sản phẩm không còn bán
-        (không cho phép thêm giỏ);
+        sản phẩm hết hàng / không khả dụng
+        (khóa thao tác thêm vào giỏ);
     endif
 
 else (Không)
     |Frontend|
     :Hiển thị thông báo
-    không tìm thấy sản phẩm;
+    không tìm thấy sản phẩm (404);
 endif
 
 stop
