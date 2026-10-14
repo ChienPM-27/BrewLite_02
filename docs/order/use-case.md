@@ -16,13 +16,11 @@
 
 ## 2. Pre-condition
 
-1. Khách hàng có thông tin `userId` hợp lệ để gửi trong request.
+1. Khách hàng đã đăng nhập vào hệ thống BrewLite và có Bearer JWT token hợp lệ trong header `Authorization`.
 2. Request chứa ít nhất một phần tử trong `items`; mỗi phần tử có `productId`, `quantity` và các trường tùy chọn phù hợp như `size`, `toppingIds`.
-3. Sản phẩm được yêu cầu tồn tại, đang khả dụng và có đủ tồn kho.
-4. Các topping được yêu cầu (nếu có) phải hợp lệ và đáp ứng điều kiện tồn kho.
-5. Dữ liệu đầu vào đáp ứng các quy tắc validation của backend.
-
-> **Lưu ý:** Điều kiện đăng nhập và JWT chỉ được bổ sung thành điều kiện bắt buộc sau khi xác nhận cấu hình xác thực của endpoint.
+3. Sản phẩm được yêu cầu tồn tại, đang khả dụng (`isAvailable = true`) và có đủ tồn kho (`stock >= quantity`).
+4. Các topping được yêu cầu (nếu có) phải tồn tại, đang khả dụng và đáp ứng điều kiện tồn kho.
+5. Dữ liệu đầu vào đáp ứng các quy tắc validation của backend (`CreateOrderDto`).
 
 ## 3. Post-condition
 
@@ -46,36 +44,34 @@
 | Bước | Tác nhân | Hành động |
 |---|---|---|
 | 1 | Khách hàng | Bấm “Đặt hàng” trên giao diện giỏ hàng. |
-| 2 | Frontend | Gửi request `POST /api/v1/orders` với `userId` và danh sách `items`. Mỗi phần tử có `productId`, `quantity` và các trường tùy chọn như `size`, `toppingIds`. |
-| 3 | Backend | Tiếp nhận request và kiểm tra dữ liệu đầu vào theo các quy tắc validation của API. |
+| 2 | Frontend | Gửi request `POST /api/v1/orders` kèm header `Authorization: Bearer <JWT>` và body `{ items: [{ productId, size, quantity, toppingIds }] }`. |
+| 3 | Backend | Tiếp nhận request, `JwtAuthGuard` xác thực token và trích xuất `userId = req.user.sub`; `ValidationPipe` kiểm tra dữ liệu đầu vào theo DTO. |
 | 4 | Backend | Kiểm tra thông tin người dùng, sản phẩm, topping và số lượng tồn kho theo yêu cầu đặt hàng. |
 | 5 | Backend | Tính giá phía server, bao gồm giá sản phẩm theo kích cỡ và giá topping; tính `lineTotal` cùng các giá trị tiền của đơn hàng. |
 | 6 | Backend | Mở transaction, cập nhật tồn kho sản phẩm và topping bằng các thao tác kiểm tra điều kiện tồn kho trước khi trừ số lượng. |
-| 7 | Backend | Tạo bản ghi `Order` ở trạng thái `PENDING`, các bản ghi `OrderItem` và lịch sử trạng thái ban đầu. |
+| 7 | Backend | Tạo bản ghi `Order` ở trạng thái `PENDING`, các bản ghi `OrderItem`, `OrderItemTopping` và lịch sử trạng thái ban đầu (`fromStatus: null, toStatus: PENDING`). |
 | 8 | Cơ sở dữ liệu | Commit transaction nếu các thao tác thành công; rollback các thay đổi thuộc transaction nếu có lỗi. |
-| 9 | Backend | Trả response `201 Created` chứa thông tin đơn hàng, bao gồm `id`, `status`, `totalAmount`, `discountAmount`, `finalAmount` và các dữ liệu liên quan. |
-| 10 | Frontend | Nhận kết quả tạo đơn và hiển thị thông tin đơn hàng; việc chuyển sang màn hình thanh toán phụ thuộc vào luồng tích hợp với feature Payment. |
+| 9 | Backend | Trả response `201 Created` chứa thông tin đơn hàng bọc qua `TransformInterceptor` (`id`, `orderNumber`, `status: PENDING`, `totalAmount`, `discountAmount`, `finalAmount`). |
+| 10 | Frontend | Nhận kết quả tạo đơn, xóa giỏ hàng local và chuyển sang màn hình thanh toán (feature Payment). |
 
 ## 5. Alternative / Error flow
 
 | Mã | Tại bước | Điều kiện | Xử lý | Kết quả |
 |---|---|---|---|---|
-| 3a | 3 | Chưa đăng nhập, JWT sai hoặc hết hạn | Trả `401` nếu endpoint được cấu hình yêu cầu xác thực và có cơ chế kiểm tra JWT | Frontend thông báo hoặc chuyển trang đăng nhập; giỏ hàng được giữ nguyên |
-| 4a | 4 | Dữ liệu đầu vào không hợp lệ, thiếu trường bắt buộc, `quantity < 1` hoặc `size` không hợp lệ | Từ chối request; dự kiến `400 Bad Request` theo quy tắc validation | Không tạo đơn hàng thành công |
-| 4b | 4 | Sản phẩm không tồn tại hoặc không khả dụng | Từ chối request; mã HTTP cụ thể phụ thuộc exception mà backend sử dụng | Không tạo đơn hàng thành công; frontend thông báo để khách hàng kiểm tra lại giỏ |
-| 4c | 4 | Topping không tồn tại hoặc không hợp lệ | Từ chối request theo xử lý của backend | Không tạo đơn hàng thành công |
+| 3a | 3 | Chưa đăng nhập, JWT sai hoặc hết hạn | Trả `401 Unauthorized` | Frontend thông báo phiên hết hạn và điều hướng tới trang đăng nhập; giỏ hàng được giữ nguyên |
+| 4a | 4 | Dữ liệu đầu vào không hợp lệ, thiếu trường bắt buộc, `quantity < 1` hoặc `size` không hợp lệ | Từ chối request; trả `400 Bad Request` kèm thông báo validation | Không tạo đơn hàng thành công |
+| 4b | 4 | Sản phẩm không tồn tại hoặc không khả dụng | Từ chối request; trả `400 Bad Request` (hoặc `404 Not Found`) | Không tạo đơn hàng thành công; frontend thông báo để khách hàng kiểm tra lại giỏ |
+| 4c | 4 | Topping không tồn tại hoặc không hợp lệ | Từ chối request; trả `400 Bad Request` | Không tạo đơn hàng thành công |
 | 5a | 5 | Lỗi khi tính giá hoặc dữ liệu giá không hợp lệ | Từ chối request theo quy tắc xử lý lỗi thực tế | Không tạo đơn hàng với giá không hợp lệ |
-| 6a | 6 | Tồn kho không đủ, hoặc cập nhật tồn kho có điều kiện thất bại | Backend phát sinh lỗi và transaction được rollback; service hiện tại sử dụng `BadRequestException` cho trường hợp cập nhật tồn kho thất bại | Không tạo đơn thành công; tồn kho không bị trừ dở dang |
-| 6b | 6 | Nhiều request cùng đặt sản phẩm có tồn kho giới hạn | Kiểm tra tính đúng đắn của cập nhật tồn kho có điều kiện và transaction; không giả định có `version` hoặc cơ chế retry nếu chưa được triển khai | Không bán vượt số lượng tồn kho; request thất bại được xử lý theo exception thực tế |
+| 6a | 6 | Tồn kho không đủ, hoặc cập nhật tồn kho có điều kiện thất bại | Backend phát sinh lỗi và transaction được rollback; trả `400 Bad Request` | Không tạo đơn thành công; tồn kho không bị trừ dở dang |
+| 6b | 6 | Nhiều request cùng đặt sản phẩm có tồn kho giới hạn | Cập nhật tồn kho có điều kiện bảo đảm tính nguyên tử; request không đủ hàng thất bại | Không bán vượt số lượng tồn kho; request thất bại được xử lý lỗi thích hợp |
 | 7a | 7 | Lỗi cơ sở dữ liệu khi tạo đơn hoặc chi tiết đơn | Transaction rollback nếu lỗi xảy ra trong transaction | Không để lại dữ liệu đơn hàng hoặc thay đổi tồn kho dở dang |
 
 ### Ghi chú
 
-- Các mã HTTP cần được xác nhận bằng cách kiểm tra exception thực tế và cơ chế xử lý exception của backend.
-- Chưa đưa lỗi mã khuyến mãi vào luồng chính vì `promoCode` và quy tắc áp dụng khuyến mãi chưa được xác nhận trong API hiện tại.
-- Cơ chế khóa theo `version` và retry tối đa 3 lần chỉ được bổ sung khi backend thực sự triển khai.
-- Việc giữ nguyên giỏ hàng là hành vi phía frontend; cần kiểm tra giao diện để xác nhận.
-- Với các lỗi tạo đơn, cần kiểm tra cả response API lẫn dữ liệu trong cơ sở dữ liệu.
+- Các mã HTTP tuân theo quy ước chung của `AllExceptionsFilter`.
+- Việc giữ nguyên giỏ hàng khi lỗi là hành vi phía frontend; sau khi tạo đơn thành công frontend mới dọn giỏ hàng.
+- Với các lỗi tạo đơn, kiểm tra bảo đảm tồn kho và dữ liệu không bị thay đổi dở dang.
 
 ## 6. Business rules
 
@@ -83,12 +79,12 @@
 |---|---|
 | BR-01 | Giá đơn hàng do **server tính toán** dựa trên dữ liệu và quy tắc giá ở backend; không tin tưởng giá do client gửi lên. |
 | BR-02 | Đơn hàng mới tạo có trạng thái `PENDING`; client không được tự chọn trạng thái khi tạo đơn. |
-| BR-03 | Request tạo đơn hiện sử dụng `userId` trong request body. Chỉ chuyển sang lấy `userId` từ JWT khi cơ chế xác thực và phân quyền được triển khai, xác nhận. |
+| BR-03 | **Xác thực JWT:** Request tạo đơn bắt buộc có Bearer JWT. `userId` được trích xuất từ `req.user.sub`; request body KHÔNG nhận `userId` để bảo đảm tính an toàn danh tính. |
 | BR-04 | Tồn kho sản phẩm và topping được cập nhật trong transaction cùng quá trình tạo đơn; nếu transaction thất bại, các thay đổi thuộc transaction phải được rollback. |
 | BR-05 | Quy tắc tự động hủy đơn `PENDING` hoặc `PAYMENT_FAILED` sau 15 phút và hoàn lại tồn kho chỉ áp dụng khi thời hạn hết hạn, scheduler và nghiệp vụ liên quan được triển khai, xác nhận. |
 | BR-06 | Backend tính và lưu các giá trị `totalAmount`, `discountAmount` và `finalAmount`. Quy tắc áp dụng mã khuyến mãi chỉ được bổ sung khi chức năng khuyến mãi được xác nhận. |
-| BR-07 | Các chuyển đổi trạng thái đơn hàng phải tuân theo State Machine đã thống nhất. Việc sử dụng hàm `assertTransition` là yêu cầu triển khai cần đối chiếu với mã nguồn thực tế. |
-| BR-08 | Một đơn hàng phải có ít nhất một phần tử trong `items`; mỗi `quantity` phải là số nguyên từ `1` trở lên và đáp ứng giới hạn validation của backend. |
+| BR-07 | Các chuyển đổi trạng thái đơn hàng phải tuân theo State Machine đã thống nhất. Sử dụng hàm `assertTransition` để chặn các chuyển đổi trái phép. |
+| BR-08 | Một đơn hàng phải có ít nhất một phần tử trong `items`; mỗi `quantity` phải là số nguyên từ `1` đến `100`. |
 
 ## 7. Acceptance criteria
 
@@ -123,10 +119,14 @@
 
 ### Tài liệu liên quan
 
-- `activity.md`
-- `state-machine.md`
-- `api-contract.md`
-- `test-cases.md`
+- `activity-order.puml` (Sơ đồ Activity PlantUML)
+- `usecase-order.puml` (Sơ đồ Use Case PlantUML)
+- `activity.md` (Đặc tả Activity flow)
+- `state-machine.md` (Đặc tả Order State Machine)
+- `api-contract.md` (Hợp đồng API)
+- `db-mapping-order.md` (Mapping cơ sở dữ liệu)
+- `fe-be-skeleton.md` (Bộ khung mã nguồn FE & BE mẫu)
+- `test-cases.md` (Bộ kịch bản test case)
 
 ## 9. Thống nhất liên feature — Cần xác nhận với các thành viên
 

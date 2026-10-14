@@ -5,13 +5,15 @@
 
 ## 1. Sơ đồ
 
+> Sơ đồ PlantUML chuẩn được đặt tại: [`activity-order.puml`](./activity-order.puml)
+
 ```mermaid
 flowchart TD
     S(["Bắt đầu"]) --> A["Khách hàng: bấm Đặt hàng"]
-    A --> B["Frontend: gửi POST /api/v1/orders với userId và items"]
-    B --> C{"Dữ liệu đầu vào hợp lệ?"}
+    A --> B["Frontend: gửi POST /api/v1/orders kèm Bearer JWT và body items"]
+    B --> C{"JwtAuthGuard & DTO hợp lệ?"}
 
-    C -- Không --> E400(["Kết thúc: request bị từ chối"])
+    C -- Không --> E400(["Kết thúc: trả lỗi 401 hoặc 400"])
     C -- Có --> D["Backend: kiểm tra user, sản phẩm, topping và tồn kho"]
 
     D --> F{"Thông tin và tồn kho hợp lệ?"}
@@ -24,13 +26,13 @@ flowchart TD
     I -- Không --> R["Rollback transaction"]
     R --> E2(["Kết thúc: tạo đơn thất bại"])
 
-    I -- Có --> J["Tạo Order PENDING, OrderItem và lịch sử trạng thái"]
+    I -- Có --> J["Tạo Order PENDING, OrderItem, Topping và lịch sử trạng thái"]
     J --> K{"Transaction thành công?"}
 
     K -- Không --> R
     K -- Có --> L["Commit transaction"]
-    L --> M["Backend: trả 201 Created và thông tin đơn hàng"]
-    M --> N["Frontend: hiển thị kết quả tạo đơn"]
+    L --> M["Backend: trả 201 Created bọc qua TransformInterceptor"]
+    M --> N["Frontend: hiển thị kết quả tạo đơn và chuyển thanh toán"]
     N --> T(["Kết thúc"])
 ```
 
@@ -39,9 +41,9 @@ flowchart TD
 | Làn | Trách nhiệm |
 |---|---|
 | Khách hàng | Kiểm tra giỏ hàng và nhấn nút “Đặt hàng”. |
-| Frontend | Gửi request `POST /api/v1/orders` với `userId` và danh sách `items`; nhận response; hiển thị kết quả hoặc thông báo lỗi phù hợp. |
-| Backend | Kiểm tra dữ liệu đầu vào, thông tin người dùng, sản phẩm, topping và tồn kho; tính giá phía server; tạo đơn hàng và xử lý lỗi trong quá trình thực hiện transaction. |
-| Cơ sở dữ liệu (CSDL) | Lưu thông tin `Order`, `OrderItem` và lịch sử trạng thái; cập nhật tồn kho; commit hoặc rollback các thay đổi thuộc transaction theo kết quả xử lý. |
+| Frontend | Gửi request `POST /api/v1/orders` kèm Header `Authorization: Bearer <JWT>` và danh sách `items`; nhận response; hiển thị kết quả hoặc thông báo lỗi phù hợp. |
+| Backend | Xác thực JWT (`req.user.sub`), kiểm tra dữ liệu đầu vào theo DTO, kiểm tra sản phẩm, topping và tồn kho; tính giá phía server; tạo đơn hàng trong transaction. |
+| Cơ sở dữ liệu (CSDL) | Lưu thông tin `Order`, `OrderItem`, `OrderItemTopping` và lịch sử trạng thái; cập nhật tồn kho; commit hoặc rollback các thay đổi thuộc transaction. |
 
 ### Ghi chú
 

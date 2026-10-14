@@ -8,18 +8,17 @@
 
 |     Mục      |                                  Nội dung                                   |
 |--------------|-----------------------------------------------------------------------------|
-|    Mô tả     | Tạo đơn hàng mới với trạng thái ban đầu `PENDING`, kiểm tra dữ liệu đặt hàng,  xác minh sản phẩm và topping, kiểm tra và cập nhật tồn kho trong transaction. |
-|     Auth     | Backend hiện tại nhận `userId` trong request body. Cơ chế xác thực JWT cần được xác minh và thống nhất với nhóm trước khi chốt. |
+|    Mô tả     | Tạo đơn hàng mới với trạng thái ban đầu `PENDING`, kiểm tra dữ liệu đặt hàng, xác minh sản phẩm và topping, kiểm tra và cập nhật tồn kho trong transaction. |
+|     Auth     | **Bắt buộc JWT** (`Authorization: Bearer <JWT>`). Backend trích xuất `userId` từ token (`req.user.sub`), không nhận `userId` từ request body nhằm bảo đảm an toàn. |
 | Content-Type | `application/json` |
 |   Endpoint   | `POST /api/v1/orders` |
 
 ### Request body
 
-Ví dụ theo DTO hiện tại:
+Cấu trúc request chuẩn gửi từ Client/Giỏ hàng:
 
 ```json
 {
-  "userId": "cmv5p022t0000mq44nt7fyszo",
   "items": [
     {
       "productId": "cmv5p023c0007mq44py7r5lut",
@@ -37,37 +36,27 @@ Ví dụ theo DTO hiện tại:
 
 |    Trường    |      Kiểu dữ liệu    |              Ý nghĩa                |
 |--------------|----------------------|-------------------------------------|
-|   `userId`   |        String        | ID người dùng đặt hàng              |
 |   `items`    |        Array         | Danh sách mặt hàng trong đơn        |
-|  `productId` |        String        | ID sản phẩm                         |
-|    `size`    |        String        | Kích cỡ sản phẩm: `S`, `M` hoặc `L` |
-|  `quantity`  |        Number        | Số lượng sản phẩm                   |
-| `toppingIds` |    Array of String   | Danh sách ID topping được chọn      |
+|  `productId` |        String        | ID sản phẩm (CUID)                  |
+|    `size`    |        String        | Kích cỡ sản phẩm: `S`, `M` hoặc `L` (mặc định `M`) |
+|  `quantity`  |        Number        | Số lượng sản phẩm (1..100)          |
+| `toppingIds` |    Array of String   | Danh sách ID topping được chọn (không trùng lặp) |
 
 **Quy tắc:** Giá sản phẩm, giá topping, tổng tiền và trạng thái đơn hàng do backend xác định. Client không được tự gửi giá cuối cùng hoặc trạng thái đơn để quyết định kết quả tạo đơn.
-
-**Phạm vi hiện tại:** `promoCode` chưa được xác nhận trong DTO tạo đơn hiện tại nên chưa đưa vào request chính thức.
 
 ### Quy tắc kiểm tra dữ liệu đầu vào
 
 | Trường | Kiểu dữ liệu | Bắt buộc | Quy tắc |
 |---|---|---|---|
-| `userId` | String | Có | ID người dùng; backend hiện nhận giá trị từ request body và kiểm tra người dùng theo logic nghiệp vụ. |
-| `items` | Array | Có | Danh sách mặt hàng không được rỗng. |
-| `items[].productId` | String | Có | ID sản phẩm; sản phẩm phải tồn tại và đáp ứng điều kiện đặt hàng. |
-| `items[].size` | String | Tùy DTO | Nếu được cung cấp, kích cỡ hợp lệ là `S`, `M` hoặc `L`. |
-| `items[].quantity` | Number | Có | Số nguyên từ `1` đến `100` theo logic nghiệp vụ hiện tại. |
-| `items[].toppingIds` | Array of String | Không | Danh sách ID topping; không chấp nhận ID trùng lặp và topping phải đáp ứng điều kiện đặt hàng. |
-
-**Lưu ý về xác thực và dữ liệu do client gửi:**
-
-- Backend hiện nhận `userId` từ request body. Chỉ chuyển sang lấy ID người dùng từ JWT sau khi cơ chế xác thực và phân quyền được nhóm thống nhất, triển khai.
-- Client không được quyết định giá sản phẩm, giá topping, tổng tiền hoặc trạng thái đơn hàng. Các giá trị này do backend xác định.
-- Bảng trên mô tả các quy tắc nghiệp vụ đã được ghi nhận. Cần đối chiếu `CreateOrderDto` để xác nhận chính xác các decorator `class-validator` đang được sử dụng.
+| `items` | Array | Có | Danh sách mặt hàng không được rỗng (`@ArrayNotEmpty()`). |
+| `items[].productId` | String | Có | ID sản phẩm tồn tại và khả dụng (`isAvailable = true`). |
+| `items[].size` | String | Không | Kích cỡ hợp lệ thuộc enum `ProductSize`: `S`, `M` hoặc `L`. |
+| `items[].quantity` | Number | Có | Số nguyên từ `1` đến `100` (`@IsInt()`, `@Min(1)`, `@Max(100)`). |
+| `items[].toppingIds` | Array of String | Không | Danh sách ID topping; không chấp nhận ID trùng lặp (`@ArrayUnique()`) và topping phải khả dụng. |
 
 ### Response 201 Created
 
-> Response dưới đây minh họa theo cấu trúc backend hiện tại. Giá trị cụ thể cần đối chiếu với kết quả thực tế từ Postman.
+Response mẫu bọc tự động qua `TransformInterceptor`:
 
 ```json
 {
@@ -75,25 +64,25 @@ Ví dụ theo DTO hiện tại:
   "statusCode": 201,
   "data": {
     "id": "cmv5t0qeq0000mq6wzi4wzbl2",
-    "orderNumber": 2,
+    "orderNumber": 1042,
     "userId": "cmv5p022t0000mq44nt7fyszo",
     "status": "PENDING",
-    "totalAmount": "90000",
-    "discountAmount": "0",
-    "finalAmount": "90000",
+    "totalAmount": 90000,
+    "discountAmount": 0,
+    "finalAmount": 90000,
     "items": [
       {
         "productId": "cmv5p023c0007mq44py7r5lut",
         "size": "M",
         "quantity": 2,
-        "unitPrice": "40000",
-        "lineTotal": "90000"
+        "unitPrice": 40000,
+        "lineTotal": 90000
       }
     ],
     "payments": [],
     "statusHistory": [
       {
-        "fromStatus": "PENDING",
+        "fromStatus": null,
         "toStatus": "PENDING",
         "changedBy": "system",
         "reason": "Order created"
@@ -144,13 +133,14 @@ Cấu trúc JSON lỗi chính thức cần được đối chiếu với `AllExc
 ### 3.1. Mapping Order
 
 |     Nguồn (request / hệ thống)     |     Đích    |               Ghi chú                     |
-|----------------------------------------------------------------------------------------------|
-*| `request.userId` | `Order.userId` | Backend hiện nhận `userId` từ request body; cần xác nhận cơ chế JWT trước khi chuyển sang lấy từ `JWT.sub`. |
-*| (hệ thống) | `Order.status = PENDING` | Trạng thái ban đầu của đơn hàng. |
-*| (hệ thống) | `Order.createdAt` | Thời điểm tạo đơn, theo cơ chế quản lý thời gian của backend/database. |
-*| Tổng tiền các dòng hàng | `Order.totalAmount` | Backend tính giá phía server. |
-*| (hệ thống) | `Order.discountAmount` | Giá trị giảm giá; cần xác nhận quy tắc áp dụng với nhóm nếu có khuyến mãi. |
-*| Tổng tiền sau giảm giá | `Order.finalAmount` | Tổng tiền cuối cùng được lưu cho đơn hàng. |
+|---|---|---|
+| `req.user.sub` (Bearer JWT) | `Order.userId` | Backend trích xuất từ JWT token qua `JwtAuthGuard`; không nhận từ client body. |
+| (hệ thống) | `Order.status = PENDING` | Trạng thái ban đầu của đơn hàng. |
+| (hệ thống sinh tự động) | `Order.orderNumber` | Mã số đơn hiển thị (Int, autoincrement). |
+| (hệ thống) | `Order.createdAt` | Thời điểm tạo đơn, theo cơ chế quản lý thời gian của backend/database. |
+| Tổng tiền các dòng hàng | `Order.totalAmount` | Backend tính giá phía server. |
+| (hệ thống) | `Order.discountAmount` | Giá trị giảm giá; mặc định 0 nếu không có promotion. |
+| Tổng tiền sau giảm giá | `Order.finalAmount` | Tổng tiền cuối cùng được lưu cho đơn hàng (= totalAmount - discountAmount). |
 
 ### 3.2. Mapping OrderItem
 
