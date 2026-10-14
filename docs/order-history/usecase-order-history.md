@@ -208,37 +208,41 @@ Khi khách hàng chọn một mục:
   {
     "success": true,
     "statusCode": 200,
-    "data": [
-      {
-        "id": "ord_01J8K4QZ6W2A",
-        "orderCode": "BL-2026-00125",
-        "status": "PREPARING",
-        "createdAt": "2026-10-09T08:30:00.000Z",
-        "total": 125000,
-        "currency": "VND",
-        "itemCount": 2
-      },
-      {
-        "id": "ord_01J8JZP7M5NB",
-        "orderCode": "BL-2026-00118",
-        "status": "COMPLETED",
-        "createdAt": "2026-10-08T12:15:00.000Z",
-        "total": 89000,
-        "currency": "VND",
-        "itemCount": 1
+    "data": {
+      "items": [
+        {
+          "id": "cmv5t0qeq0000mq6wzi4wzbl2",
+          "orderNumber": 1042,
+          "status": "PREPARING",
+          "totalAmount": 125000,
+          "discountAmount": 0,
+          "finalAmount": 125000,
+          "createdAt": "2026-10-09T08:30:00.000Z",
+          "itemCount": 2
+        },
+        {
+          "id": "cmv5t0qeq0000mq6wzi4wzbl1",
+          "orderNumber": 1041,
+          "status": "COMPLETED",
+          "totalAmount": 89000,
+          "discountAmount": 0,
+          "finalAmount": 89000,
+          "createdAt": "2026-10-08T12:15:00.000Z",
+          "itemCount": 1
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 2,
+        "totalPages": 1,
+        "hasNextPage": false
       }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "totalItems": 2,
-      "totalPages": 1,
-      "hasNextPage": false
     },
     "timestamp": "2026-10-09T08:35:00.000Z"
   }
   ```
-  Các key bắt buộc theo `TransformInterceptor` là `success`, `statusCode`, `data`, `timestamp`. Vì đây là response danh sách, `data` luôn là mảng; metadata phân trang được đặt tại key top-level `pagination` để không bọc danh sách thành object. Khi không có đơn phù hợp, `data` là `[]`, `pagination.totalItems`/`pagination.totalPages` là `0`, `pagination.hasNextPage` là `false`.
+  Các key bắt buộc theo `TransformInterceptor` là `success`, `statusCode`, `data`, `timestamp`. Dữ liệu controller trả về được bọc trong `data` gồm mảng `items` và metadata `pagination`. Khi không có đơn phù hợp, `items` là `[]`, `pagination.total`/`pagination.totalPages` là `0`, `pagination.hasNextPage` là `false`.
 * **Response lỗi:**
 
 | HTTP Status | `error` | `message` quy ước | Xử lý |
@@ -306,20 +310,30 @@ Endpoint này hỗ trợ mapping từ một item History tới dữ liệu Order
     "success": true,
     "statusCode": 200,
     "data": {
-      "id": "ord_01J8K4QZ6W2A",
-      "orderCode": "BL-2026-00125",
+      "id": "cmv5t0qeq0000mq6wzi4wzbl2",
+      "orderNumber": 1042,
       "status": "PREPARING",
+      "totalAmount": 125000,
+      "discountAmount": 0,
+      "finalAmount": 125000,
       "createdAt": "2026-10-09T08:30:00.000Z",
-      "total": 125000,
-      "currency": "VND",
       "items": [
         {
           "id": "item_01J8K4QZ",
-          "productId": "prod_espresso",
+          "productId": "cmv5p023c0007mq44py7r5lut",
           "name": "Cà phê sữa đá",
           "size": "M",
-          "qty": 2,
-          "lineTotal": 125000
+          "quantity": 2,
+          "unitPrice": 40000,
+          "lineTotal": 125000,
+          "toppings": [
+            {
+              "id": "oit_01J8K4QZ",
+              "toppingId": "cmv5p02340003mq449hok5wj6",
+              "name": "Trân châu đen",
+              "price": 10000
+            }
+          ]
         }
       ]
     },

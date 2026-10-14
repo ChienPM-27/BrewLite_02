@@ -19,18 +19,18 @@ Order History chỉ đọc dữ liệu. Việc truy vấn không được làm t
 
 | Prisma field | Database column | Kiểu dữ liệu / Ý nghĩa |
 |---|---|---|
-| `id` | `id` | String, khóa chính; định danh chuẩn dùng làm `orderId` khi mở chi tiết |
-| `orderNumber` | `order_number` | Int, mã đơn hiển thị; unique, có thể format thành `#1001` hoặc `BL-2026-00125` theo quy ước UI |
+| `id` | `id` | String, khóa chính CUID; định danh chuẩn dùng làm `orderId` khi mở chi tiết |
+| `orderNumber` | `order_number` | Int, mã đơn tự tăng (`orders.order_number`); UI format `#1042` |
 | `userId` | `user_id` | String, khóa ngoại tới `users.id`; dùng giới hạn dữ liệu theo JWT |
 | `status` | `status` | Enum `PENDING`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `PAYMENT_FAILED`, `CANCELLED` |
 | `createdAt` | `created_at` | DateTime, thời điểm tạo đơn theo ISO-8601 |
-| `finalAmount` | `final_amount` | Decimal(12,0), số tiền khách thực trả; ánh xạ response `total` |
+| `totalAmount` | `total_amount` | Decimal(12,0), tổng tiền hàng trước giảm giá |
+| `discountAmount` | `discount_amount` | Decimal(12,0), số tiền giảm giá |
+| `finalAmount` | `final_amount` | Decimal(12,0), số tiền khách thực trả |
 
 Tên bảng trong database: `orders`.
 
-`currency` trong response (`VND`) là giá trị quy ước của API/UI, không phải cột
-trong bảng `orders`. `itemCount` không phải cột lưu sẵn; nếu được trả về, Backend
-tính từ tổng `OrderItem.quantity` của các dòng thuộc đơn.
+`currency` (`VND`) là quy ước hiển thị tiền tệ phía Frontend, không phải cột trong bảng `orders`. `itemCount` là giá trị tổng hợp `SUM(OrderItem.quantity)` của các dòng thuộc đơn hàng.
 
 ### 2.2. Trường chi tiết đơn hàng
 
@@ -40,14 +40,15 @@ tính từ tổng `OrderItem.quantity` của các dòng thuộc đơn.
 | `OrderItem.orderId` | `order_items.order_id` | String, khóa ngoại tới `orders.id` |
 | `OrderItem.productId` | `order_items.product_id` | String, khóa ngoại tới `products.id` |
 | `OrderItem.size` | `order_items.size` | Enum size `S`, `M`, `L` |
-| `OrderItem.quantity` | `order_items.quantity` | Int, số lượng sản phẩm; ánh xạ response `qty` |
+| `OrderItem.quantity` | `order_items.quantity` | Int, số lượng sản phẩm đặt |
 | `OrderItem.unitPrice` | `order_items.unit_price` | Decimal(12,0), đơn giá đã chốt tại thời điểm đặt |
 | `OrderItem.lineTotal` | `order_items.line_total` | Decimal(12,0), thành tiền của dòng |
-| `Product.name` | `products.name` | String, tên sản phẩm hiển thị nếu API detail hỗ trợ |
+| `Product.name` | `products.name` | String, tên sản phẩm hiển thị |
 | `OrderItemTopping.id` | `order_item_toppings.id` | String, khóa chính dòng topping |
 | `OrderItemTopping.orderItemId` | `order_item_toppings.order_item_id` | String, khóa ngoại tới `order_items.id` |
 | `OrderItemTopping.toppingId` | `order_item_toppings.topping_id` | String, khóa ngoại tới `toppings.id` |
 | `OrderItemTopping.price` | `order_item_toppings.price` | Decimal(12,0), giá topping được chốt trong đơn |
+| `Topping.name` | `toppings.name` | String, tên topping hiển thị |
 
 Tên bảng chính: `order_items`; bảng liên kết topping: `order_item_toppings`.
 
@@ -88,17 +89,18 @@ Quan hệ sử dụng trong Order History:
 
 | API field | Nguồn dữ liệu | Quy tắc |
 |---|---|---|
-| `id` | `orders.id` | Khóa chuẩn để điều hướng tới detail |
-| `orderCode` | `orders.order_number` | Mã hiển thị; không dùng thay thế `id` khi truy vấn |
-| `status` | `orders.status` | Trạng thái hiện tại, không đọc từ lịch sử trạng thái |
-| `createdAt` | `orders.created_at` | Trả chuỗi ISO-8601 có timezone |
-| `total` | `orders.final_amount` | Trả số tiền thực trả, không tin giá trị từ Client |
-| `currency` | Hằng số API/UI | `VND`; không có cột tương ứng trong `orders` |
-| `itemCount` | `SUM(order_items.quantity)` | Trường tùy chọn; chỉ trả khi Backend hỗ trợ |
+| `id` | `orders.id` | Khóa CUID chuẩn để điều hướng tới detail |
+| `orderNumber` | `orders.order_number` | Mã số đơn hiển thị (`Int`); UI format `#1042` |
+| `status` | `orders.status` | Trạng thái hiện tại thuộc enum `OrderStatus` |
+| `totalAmount` | `orders.total_amount` | Tổng tiền hàng |
+| `discountAmount` | `orders.discount_amount` | Số tiền giảm giá |
+| `finalAmount` | `orders.final_amount` | Số tiền thực trả |
+| `createdAt` | `orders.created_at` | Chuỗi ISO-8601 có timezone |
+| `itemCount` | `SUM(order_items.quantity)` | Tổng số lượng món trong đơn |
 
-Response thành công giữ envelope của use case: `data` luôn là mảng và
-`pagination` nằm ở top-level. Khi không có dữ liệu, trả `200 OK` với
-`data: []`, không coi đó là lỗi.
+Response thành công giữ envelope chuẩn của `TransformInterceptor`:
+`{ success: true, statusCode: 200, data: { items: [...], pagination: { page, limit, total, totalPages, hasNextPage } }, timestamp: "..." }`.
+Khi không có dữ liệu, trả `200 OK` với `items: []`, `total: 0`.
 
 ### `GET /api/v1/orders/:id` (đề xuất)
 

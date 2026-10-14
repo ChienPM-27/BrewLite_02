@@ -1,4 +1,4 @@
-﻿# API Contract – Order History
+# API Contract – Order History
 
 ## 1. Phạm vi chức năng
 
@@ -130,47 +130,51 @@ hoặc `status` ngoài enum phải bị từ chối trước khi truy vấn repo
 
 **HTTP status:** `200 OK`
 
+Response bọc tự động qua `TransformInterceptor` (dữ liệu trả về từ controller nằm trong `data` gồm mảng `items` và object `pagination`):
+
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "data": [
-    {
-      "id": "ord_01J8K4QZ6W2A",
-      "orderCode": "BL-2026-00125",
-      "status": "PREPARING",
-      "createdAt": "2026-10-09T08:30:00.000Z",
-      "total": 125000,
-      "currency": "VND",
-      "itemCount": 2
+  "data": {
+    "items": [
+      {
+        "id": "cmv5t0qeq0000mq6wzi4wzbl2",
+        "orderNumber": 1042,
+        "status": "PREPARING",
+        "totalAmount": 125000,
+        "discountAmount": 0,
+        "finalAmount": 125000,
+        "createdAt": "2026-10-09T08:30:00.000Z",
+        "itemCount": 2
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "totalPages": 1,
+      "hasNextPage": false
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "totalItems": 1,
-    "totalPages": 1,
-    "hasNextPage": false
   },
   "timestamp": "2026-10-09T08:35:00.000Z"
 }
 ```
 
-`pagination` là metadata ở top-level để giữ `data` là mảng theo checklist
-review. Khi không có kết quả, `data` là `[]`, `totalItems` và `totalPages`
-bằng `0`, `hasNextPage` bằng `false`.
+Khi không có kết quả, `items` là `[]`, `total` và `totalPages` bằng `0`, `hasNextPage` bằng `false`.
 
 ### 3.6. Schema item lịch sử
 
 | Trường | Kiểu | Bắt buộc | Quy tắc |
 |---|---|:---:|---|
-| `id` | string | Có | ID ổn định của Order, dùng để gọi API chi tiết. |
-| `orderCode` | string | Có | Mã đơn hiển thị cho người dùng. |
-| `status` | enum string | Có | Trạng thái hiện tại của Order. |
-| `createdAt` | string (ISO-8601) | Có | Thời điểm tạo Order. |
-| `total` | integer | Có | Tổng tiền lấy từ dữ liệu Backend. |
-| `currency` | string | Có | Mã tiền tệ, hiện tại là `VND`. |
-| `itemCount` | integer | Có | Tổng số lượng item trong Order; bằng `0` nếu không có item. |
+| `id` | string | Có | ID định danh chuẩn của Order (CUID), dùng để điều hướng API chi tiết. |
+| `orderNumber` | integer | Có | Mã số đơn hàng tự tăng từ DB (`Order.orderNumber`); UI format `#1042`. |
+| `status` | enum string | Có | Trạng thái hiện tại thuộc enum `OrderStatus`. |
+| `totalAmount` | integer | Có | Tổng tiền hàng trước giảm giá. |
+| `discountAmount` | integer | Có | Số tiền giảm giá (mặc định 0). |
+| `finalAmount` | integer | Có | Tiền thực tế thanh toán từ `Order.finalAmount`. |
+| `createdAt` | string (ISO-8601) | Có | Thời điểm tạo đơn hàng. |
+| `itemCount` | integer | Có | Tổng số lượng ly/món trong đơn hàng (`SUM(quantity)`). |
 
 ## 4. API lấy chi tiết đơn hàng
 
@@ -178,27 +182,24 @@ bằng `0`, `hasNextPage` bằng `false`.
 
 - **Method:** `GET`
 - **URL:** `/api/v1/orders/:id`
-- **Authentication:** Bắt buộc JWT
+- **Authentication:** Bắt buộc JWT (`Authorization: Bearer <token>`)
 - **Request body:** Không có
 
-`id` phải là ID lấy từ trường `data[n].id` của API lịch sử. Không dùng vị trí
-phần tử trong mảng hoặc `orderCode` để truy vấn.
+`id` phải là ID CUID lấy từ trường `items[n].id` của API lịch sử.
 
 ### 4.2. Request
 
 ```http
-GET /api/v1/orders/ord_01J8K4QZ6W2A
+GET /api/v1/orders/cmv5t0qeq0000mq6wzi4wzbl2
 Authorization: Bearer <access-token>
 Accept: application/json
 ```
 
 | Path parameter | Kiểu | Bắt buộc | Mô tả |
 |---|---|:---:|---|
-| `id` | string | Có | ID của Order cần xem chi tiết. |
+| `id` | string | Có | ID CUID của Order cần xem chi tiết. |
 
-Backend phải validate `id`, sau đó truy vấn theo đồng thời `id` và `userId`
-trong JWT. Không được truy vấn theo `id` rồi trả dữ liệu trước khi kiểm tra
-quyền sở hữu.
+Backend validate `id`, sau đó truy vấn theo đồng thời `id` và `userId` trong JWT (`order.userId === req.user.sub`). Nếu không tìm thấy hoặc đơn thuộc user khác, trả `404 Not Found` để không làm lộ dữ liệu.
 
 ### 4.3. Response thành công
 
@@ -209,20 +210,30 @@ quyền sở hữu.
   "success": true,
   "statusCode": 200,
   "data": {
-    "id": "ord_01J8K4QZ6W2A",
-    "orderCode": "BL-2026-00125",
+    "id": "cmv5t0qeq0000mq6wzi4wzbl2",
+    "orderNumber": 1042,
     "status": "PREPARING",
+    "totalAmount": 125000,
+    "discountAmount": 0,
+    "finalAmount": 125000,
     "createdAt": "2026-10-09T08:30:00.000Z",
-    "total": 125000,
-    "currency": "VND",
     "items": [
       {
         "id": "item_01J8K4QZ",
-        "productId": "prod_espresso",
+        "productId": "cmv5p023c0007mq44py7r5lut",
         "name": "Cà phê sữa đá",
         "size": "M",
-        "qty": 2,
-        "lineTotal": 125000
+        "quantity": 2,
+        "unitPrice": 40000,
+        "lineTotal": 125000,
+        "toppings": [
+          {
+            "id": "oit_01J8K4QZ",
+            "toppingId": "cmv5p02340003mq449hok5wj6",
+            "name": "Trân châu đen",
+            "price": 10000
+          }
+        ]
       }
     ]
   },
@@ -232,17 +243,22 @@ quyền sở hữu.
 
 ### 4.4. Schema chi tiết
 
-Các trường `id`, `orderCode`, `status`, `createdAt`, `total`, `currency` có
-quy tắc giống item lịch sử. `items` là mảng OrderItem:
+Các trường cấp đơn hàng (`id`, `orderNumber`, `status`, `totalAmount`, `discountAmount`, `finalAmount`, `createdAt`) có quy tắc giống item lịch sử. Trường `items` là mảng các `OrderItem`:
 
 | Trường | Kiểu | Bắt buộc | Quy tắc |
 |---|---|:---:|---|
-| `id` | string | Có | ID của OrderItem. |
-| `productId` | string | Có | ID sản phẩm tại thời điểm đặt. |
-| `name` | string | Có | Tên snapshot để hiển thị; không dùng để phân quyền. |
-| `size` | string \| null | Có | Kích thước hoặc `null` nếu sản phẩm không có size. |
-| `qty` | integer | Có | Số lượng, lớn hơn `0`. |
-| `lineTotal` | integer | Có | Thành tiền của item do Backend tính/lưu. |
+| `id` | string | Có | ID của OrderItem (`OrderItem.id`). |
+| `productId` | string | Có | ID sản phẩm (`OrderItem.productId`). |
+| `name` | string | Có | Tên sản phẩm hiển thị (`Product.name`). |
+| `size` | string | Có | Kích thước: `S`, `M`, `L`. |
+| `quantity` | integer | Có | Số lượng đặt (`OrderItem.quantity`), tối thiểu 1. |
+| `unitPrice` | integer | Có | Đơn giá sản phẩm theo size tại thời điểm đặt. |
+| `lineTotal` | integer | Có | Thành tiền dòng món: `(unitPrice + toppings) * quantity`. |
+| `toppings` | array | Có | Danh sách topping kèm theo (`OrderItemTopping`). Mảng rỗng nếu không có topping. |
+| `toppings[].id` | string | Có | ID bản ghi OrderItemTopping. |
+| `toppings[].toppingId` | string | Có | ID topping. |
+| `toppings[].name` | string | Có | Tên topping (`Topping.name`). |
+| `toppings[].price` | integer | Có | Đơn giá topping tại thời điểm đặt. |
 
 Chi tiết đơn hàng không trả password, token, thông tin thẻ/tài khoản, secret,
 `idempotencyKey` hoặc dữ liệu của người dùng khác.

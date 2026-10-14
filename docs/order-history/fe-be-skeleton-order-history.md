@@ -90,22 +90,30 @@ export interface OrderHistoryItem {
   orderNumber: number;
   status: OrderStatus;
   createdAt: string;
+  totalAmount: number;
+  discountAmount: number;
   finalAmount: number;
-  currency: string;
   itemCount?: number;
 }
 
 export interface OrderPagination {
   page: number;
   limit: number;
-  totalItems: number;
+  total: number;
   totalPages: number;
   hasNextPage: boolean;
 }
 
-export interface OrderHistoryResponse {
-  data: OrderHistoryItem[];
+export interface OrderHistoryData {
+  items: OrderHistoryItem[];
   pagination: OrderPagination;
+}
+
+export interface OrderItemToppingDetail {
+  id: string;
+  toppingId: string;
+  name: string;
+  price: number;
 }
 
 export interface OrderItemDetail {
@@ -114,7 +122,9 @@ export interface OrderItemDetail {
   name?: string;
   size: 'S' | 'M' | 'L';
   quantity: number;
+  unitPrice: number;
   lineTotal: number;
+  toppings: OrderItemToppingDetail[];
 }
 
 export interface OrderDetail extends OrderHistoryItem {
@@ -143,18 +153,14 @@ export interface GetOrderHistoryParams {
   status?: OrderStatus;
 }
 
-interface OrderHistoryApiResponse {
-  data: OrderHistoryItem[];
-  pagination: OrderPagination;
-}
-
 /**
  * Lấy lịch sử đơn hàng của user hiện tại.
  * Backend lấy userId từ JWT trong Authorization header.
+ * fetchApi tự động unwrap trường data: { items, pagination }.
  */
 export const getOrderHistory = async (
   params: GetOrderHistoryParams = {},
-): Promise<OrderHistoryApiResponse> => {
+): Promise<OrderHistoryData> => {
   const searchParams = new URLSearchParams();
   searchParams.set('page', String(params.page ?? 1));
   searchParams.set('limit', String(params.limit ?? 20));
@@ -162,7 +168,7 @@ export const getOrderHistory = async (
     searchParams.set('status', params.status);
   }
 
-  return fetchApi<OrderHistoryApiResponse>(
+  return fetchApi<OrderHistoryData>(
     `/orders/me?${searchParams.toString()}`,
   );
 };
@@ -458,19 +464,20 @@ export class OrdersService {
 
     const totalPages = Math.ceil(totalItems / limit);
     return {
-      data: orders.map((order) => ({
+      items: orders.map((order) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
         createdAt: order.createdAt,
+        totalAmount: Number(order.totalAmount),
+        discountAmount: Number(order.discountAmount),
         finalAmount: Number(order.finalAmount),
-        currency: 'VND',
         itemCount: order._count.items,
       })),
       pagination: {
         page,
         limit,
-        totalItems,
+        total: totalItems,
         totalPages,
         hasNextPage: page < totalPages,
       },
@@ -482,7 +489,12 @@ export class OrdersService {
       where: { id, userId },
       include: {
         items: {
-          include: { product: { select: { name: true } } },
+          include: {
+            product: { select: { name: true } },
+            toppings: {
+              include: { topping: { select: { name: true } } },
+            },
+          },
         },
       },
     });
@@ -496,8 +508,9 @@ export class OrdersService {
       orderNumber: order.orderNumber,
       status: order.status,
       createdAt: order.createdAt,
+      totalAmount: Number(order.totalAmount),
+      discountAmount: Number(order.discountAmount),
       finalAmount: Number(order.finalAmount),
-      currency: 'VND',
       itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
       items: order.items.map((item) => ({
         id: item.id,
@@ -505,7 +518,14 @@ export class OrdersService {
         name: item.product.name,
         size: item.size,
         quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.lineTotal),
+        toppings: item.toppings.map((t) => ({
+          id: t.id,
+          toppingId: t.toppingId,
+          name: t.topping.name,
+          price: Number(t.price),
+        })),
       })),
     };
   }
