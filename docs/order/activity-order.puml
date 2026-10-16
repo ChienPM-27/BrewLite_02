@@ -7,17 +7,17 @@ start
 
 |Frontend|
 :Hiển thị trạng thái xử lý (loading spinner);
-:Gửi POST /api/v1/orders\nHeaders: Authorization: Bearer <JWT>\nBody: { items: [{ productId, size, quantity, toppingIds }] };
+:Gửi POST /api/v1/orders\nHeaders: Authorization: Bearer <JWT>\nBody: { items: [{ productId, size, quantity, toppingIds }], promotionCode? };
 
 |Backend|
 if (JwtAuthGuard: Token hợp lệ?) then (không)
   :Trả về 401 Unauthorized;
   |Frontend|
-  :Thông báo phiên hết hạn, điều hướng Đăng nhập;
+  :Thông báo phiên hết hạn (giữ nguyên giỏ hàng),\nđiều hướng sang trang Đăng nhập;
   stop
 else (có)
-  :Trích xuất userId = req.user.sub;
-  if (ValidationPipe: Cấu trúc request hợp lệ?\n(items không rỗng, quantity 1..100, size hợp lệ)) then (không)
+  :Trích xuất userId = req.user.sub (Quyết định D4);
+  if (ValidationPipe: Cấu trúc request hợp lệ?\n(items không rỗng, quantity 1..99, size hợp lệ)) then (không)
     :Trả về 400 Bad Request\n(Thông báo lỗi validation);
     |Frontend|
     :Hiển thị lỗi dữ liệu không hợp lệ;
@@ -36,13 +36,13 @@ else (có)
         :Thông báo hết hàng, cập nhật lại giỏ;
         stop
       else (có)
-        :Tính giá phía Server:\nunitPrice = basePrice + priceAdjustment(size)\nlineTotal = (unitPrice + Σ toppingPrice) * quantity\ntotalAmount = Σ lineTotal;
+        :Tính giá phía Server:\nunitPrice = basePrice + priceAdjustment(size)\nlineTotal = (unitPrice + Σ toppingPrice) * quantity\ntotalAmount = Σ lineTotal\nfinalAmount = totalAmount - discountAmount (nếu có promotionCode - Quyết định D7);
 
         |Cơ sở dữ liệu|
         :Bắt đầu Transaction (Prisma $transaction);
-        :Trừ tồn kho Product có điều kiện\n(WHERE id = product.id AND stock >= qty);
-        :Trừ tồn kho Toppings có điều kiện\n(WHERE id = topping.id AND stock >= qty);
-        :Tạo bản ghi Order (status = PENDING, totalAmount, finalAmount);\nSinh tự động orderNumber (Int);
+        :Trừ tồn kho Product dùng Optimistic Lock\n(WHERE id = product.id AND stock >= qty AND version = product.version, version + 1 - Quyết định D3);\nNếu 0 dòng update -> Rollback & trả 400;
+        :Trừ tồn kho Toppings có điều kiện\n(WHERE id = topping.id AND stock >= qty - Quyết định D3);\nNếu 0 dòng update -> Rollback & trả 400;
+        :Tạo bản ghi Order (status = PENDING, totalAmount, discountAmount, finalAmount);\nSinh tự động orderNumber (Int);
         :Tạo các bản ghi OrderItem và OrderItemTopping;
         :Tạo bản ghi OrderStatusHistory\n(fromStatus: null, toStatus: PENDING, reason: "Order created");
 
@@ -51,7 +51,7 @@ else (có)
           |Cơ sở dữ liệu|
           :Rollback Transaction;
           |Backend|
-          :Trả về 500 Internal Server Error\n(hoặc exception tương ứng);
+          :Trả về 500 Internal Server Error\n(hoặc 400 nếu do hết hàng đồng thời);
           |Frontend|
           :Hiển thị thông báo lỗi tạo đơn thất bại, cho phép thử lại;
           stop
@@ -61,7 +61,7 @@ else (có)
           |Backend|
           :Trả về 201 Created bọc qua TransformInterceptor\n{ success: true, statusCode: 201, data: Order, timestamp };
           |Frontend|
-          :Lưu mã đơn hàng, xóa giỏ hàng local;\nĐiều hướng sang màn hình Thanh toán (Payment);
+          :Lưu pendingOrderId vào giỏ hàng local (giữ nguyên giỏ hàng, KHÔNG xóa giỏ - Quyết định D2);\nĐiều hướng sang màn hình Thanh toán (Payment);
           stop
         endif
       endif
