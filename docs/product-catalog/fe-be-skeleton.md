@@ -322,6 +322,13 @@ export class ProductsService {
       throw new NotFoundException(`Không tìm thấy sản phẩm với ID: ${id}`);
     }
 
+    // Quyết định D3: Lấy toàn bộ topping khả dụng (isAvailable && stock > 0)
+    const availableToppings = await this.prisma.topping.findMany({
+      where: { isAvailable: true, stock: { gt: 0 } },
+      select: { id: true, name: true, price: true },
+      orderBy: { price: 'asc' },
+    });
+
     return {
       id: product.id,
       name: product.name,
@@ -332,8 +339,15 @@ export class ProductsService {
         size: sp.size,
         priceAdjustment: Number(sp.priceAdjustment),
       })),
-      toppings: [], // Tạm thời trả rỗng chờ bảng ProductTopping ở Sprint 2
+      toppings: availableToppings.map((t) => ({
+        id: t.id,
+        name: t.name,
+        price: Number(t.price),
+      })),
     };
   }
 }
 ```
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D3 (ngày 2026-10-16).*
