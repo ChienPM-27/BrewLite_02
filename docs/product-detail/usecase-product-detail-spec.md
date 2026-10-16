@@ -429,19 +429,15 @@ Các điểm sau được ghi nhận trong `api-contract.md`:
 
 ### [Q1] Số lượng Topping tối đa mỗi lần đặt
 
-**ĐỀ XUẤT – cần nhóm xác nhận.**
-
-- Đề xuất mặc định: **tối đa 3 topping** mỗi item.
-- Lý do: tránh UI bị quá tải, phù hợp với quy mô POS nhỏ.
-- Hệ quả nếu chốt: cần thêm rule vào DTO backend và validation frontend.
+**Đã chốt**:
+- Thống nhất: **tối đa 3 topping** mỗi item (khớp với số lượng topping trong seed hiện tại gồm 3 loại: Trân châu trắng, Kem Cheese, Đào miếng).
+- Hệ quả: Áp dụng validation `@ArrayMaxSize(3)` vào `CreateOrderItemDto` của Order module và Cart module, đồng thời chặn trên giao diện Product Detail / Cart khi người dùng đã chọn đủ 3 topping.
 
 ### [Q2] Cho phép chọn cùng một Topping nhiều lần không?
 
-**ĐỀ XUẤT – cần nhóm xác nhận.**
-
-- Đề xuất mặc định: **không cho chọn trùng** (mỗi loại topping chỉ chọn 1 lần).
-- Lý do: đơn giản hóa logic giỏ hàng; nếu muốn tăng số lượng, nên tách thành `quantity` riêng cho topping.
-- Hệ quả nếu chốt: `toppingIds` phải là mảng các ID unique.
+**Đã chốt**:
+- Thống nhất: **không cho chọn trùng** (mỗi loại topping chỉ chọn tối đa 1 lần trên mỗi ly đồ uống).
+- Hệ quả: `toppingIds` phải là mảng các ID unique, được kiểm tra bằng `@ArrayUnique()` trong DTO và UI dùng checkbox (bật/tắt) cho từng loại topping.
 
 ### [Q3] Quan hệ Product–Topping
 
