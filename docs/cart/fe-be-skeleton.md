@@ -34,12 +34,14 @@ export interface CartState {
   items: CartItem[];
   totalAmount: number; // Tổng tiền tạm tính toàn bộ giỏ hàng
   badgeCount: number;  // Tổng số lượng ly hiển thị trên Badge icon
+  pendingOrderId: string | null; // ID đơn hàng PENDING đang chờ thanh toán (Quyết định D2)
 
   // Actions
   addItem: (item: Omit<CartItem, 'id'>) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
-  clearCart: () => void;
+  setPendingOrderId: (orderId: string | null) => void;
+  clearCart: () => void; // Chỉ gọi khi đơn thanh toán PAID thành công (Quyết định D2)
 }
 
 export const useCartStore = create<CartState>()(
@@ -48,6 +50,9 @@ export const useCartStore = create<CartState>()(
       items: [],
       totalAmount: 0,
       badgeCount: 0,
+      pendingOrderId: null,
+
+      setPendingOrderId: (orderId) => set({ pendingOrderId: orderId }),
 
       addItem: (newItem) => {
         // Sinh composite key duy nhất dựa trên productId, size và danh sách topping đã sắp xếp
@@ -104,7 +109,7 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [], totalAmount: 0, badgeCount: 0 });
+        set({ items: [], totalAmount: 0, badgeCount: 0, pendingOrderId: null });
       },
     }),
     {
@@ -173,6 +178,7 @@ import {
   IsString,
   IsInt,
   Min,
+  Max,
   IsIn,
   IsOptional,
 } from 'class-validator';
@@ -194,6 +200,7 @@ export class CreateOrderItemDto {
 
   @IsInt({ message: 'Số lượng (quantity) phải là số nguyên' })
   @Min(1, { message: 'Số lượng mỗi món phải lớn hơn hoặc bằng 1' })
+  @Max(99, { message: 'Số lượng mỗi món không được vượt quá 99' })
   quantity: number;
 }
 
@@ -209,3 +216,6 @@ export class CreateOrderDto {
   promotionCode?: string;
 }
 ```
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D2, D5, D7 (ngày 2026-10-16).*

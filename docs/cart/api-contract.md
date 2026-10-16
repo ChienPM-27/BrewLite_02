@@ -43,13 +43,17 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
 }
 ```
 
+> [!IMPORTANT]
+> **Lưu ý kỹ thuật về DTO (`forbidNonWhitelisted` - Quyết định D7):**
+> Do NestJS áp dụng `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`, backend `CreateOrderDto` bắt buộc phải khai báo trường `promotionCode?: string` (@IsOptional @IsString). Nếu không khai báo trong DTO, toàn bộ request gửi kèm mã khuyến mãi từ giỏ hàng sẽ bị từ chối với lỗi `400 Bad Request` ("property promotionCode should not exist").
+
 ---
 
 ## 3. Cấu trúc Response (Tuân thủ chuẩn TransformInterceptor & AllExceptionsFilter)
 
 ### 3.1. Kịch bản Thành công (Tạo đơn thành công)
 * **Status Code:** `201 Created`
-* **Mô tả:** Backend lưu đơn thành công vào cơ sở dữ liệu, trả về mã `id` (mã đơn hàng) và `orderNumber` để Frontend làm rỗng giỏ hàng và điều hướng sang màn hình Thanh toán.
+* **Mô tả:** Backend lưu đơn thành công vào cơ sở dữ liệu, trả về mã `id` (mã đơn hàng) và `orderNumber`. Frontend **KHÔNG** làm rỗng giỏ hàng tại bước này mà lưu `pendingOrderId` vào `useCartStore` (giữ nguyên các món trong giỏ hàng - Quyết định D2) và điều hướng sang màn hình Thanh toán. Chỉ gọi `clearCart()` và xóa `pendingOrderId` khi đơn hàng thanh toán thành công (`PAID`).
 
 ```json
 {
@@ -69,7 +73,7 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
 
 ### 3.2. Kịch bản Lỗi Validation DTO (Dữ liệu đầu vào sai định dạng)
 * **Status Code:** `400 Bad Request`
-* **Mô tả:** Dữ liệu Frontend gửi lên không hợp lệ (số lượng `< 1`, thiếu `productId`, sai enum `size`, hoặc giỏ hàng rỗng). Bị chặn ngay tại `ValidationPipe` cấp Controller, chưa truy vấn CSDL.
+* **Mô tả:** Dữ liệu Frontend gửi lên không hợp lệ (số lượng `< 1` hoặc `> 99` theo Quyết định D5, thiếu `productId`, sai enum `size`, hoặc giỏ hàng rỗng). Bị chặn ngay tại `ValidationPipe` cấp Controller, chưa truy vấn CSDL.
 
 ```json
 {
@@ -78,6 +82,7 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
   "error": "Bad Request",
   "message": [
     "Số lượng mỗi món phải lớn hơn hoặc bằng 1",
+    "Số lượng mỗi món không được vượt quá 99",
     "Kích cỡ món (size) bắt buộc phải là một trong các giá trị: S, M, L"
   ],
   "timestamp": "2026-10-12T13:45:00.000Z",
@@ -115,3 +120,6 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
 }
 ```
 * **Frontend Handling:** Frontend giữ nguyên trạng thái giỏ hàng trong LocalStorage, hiển thị Toast cảnh báo và điều hướng người dùng tới trang Đăng nhập (`/auth/login?redirect=/cart`).
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D2, D5, D7 (ngày 2026-10-16).*
