@@ -96,7 +96,7 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
 1. Client gửi request kèm Header: `Authorization: Bearer <accessToken>`.
 2. NestJS `JwtAuthGuard` chặn request trước khi vào Controller.
 3. Guard giải mã Token, kiểm tra chữ ký HMAC-SHA256 và kiểm tra ngày hết hạn (`exp`).
-4. Nếu hợp lệ, Guard gắn thông tin user vào request object: `req.user = { userId, email }`.
+4. Nếu hợp lệ, Guard gắn thông tin user vào request object: `req.user = { sub, email }` (theo Quyết định D4, trích xuất từ payload của Token).
 5. Nếu Token không tồn tại, hết hạn hoặc sai chữ ký $\rightarrow$ Trả về `401 Unauthorized: "Vui lòng đăng nhập để tiếp tục"`.
 
 ---
@@ -108,6 +108,7 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
 3. **BR-AUTH-03 (Tích lũy Loyalty ban đầu):** Người dùng đăng ký mới có điểm tích lũy khởi điểm là 0 (`loyalty_points = 0`).
 4. **BR-AUTH-04 (Bảo vệ Route):** Các API bắt buộc phải có `JwtAuthGuard`:
    - `POST /api/v1/orders` (Tạo đơn hàng)
+   - `POST /api/v1/orders/:id/cancel` (Hủy đơn hàng - Quyết định D6)
    - `GET /api/v1/orders/me` (Lịch sử đơn cá nhân)
    - `POST /api/v1/payments` (Thanh toán đơn hàng)
 
@@ -167,3 +168,6 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
     "timestamp": "2026-10-06T16:00:00.000Z"
   }
   ```
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D4, D6 (ngày 2026-10-16).*
