@@ -99,6 +99,7 @@
 | **BR-CART-05** | Tổng tiền do Backend tính toán lại | Đơn giá (`estimatedUnitPrice`) và tổng tiền (`totalAmount`) tại Frontend chỉ mang tính chất hiển thị tạm tính cho người dùng. Khi gửi request tạo đơn, client KHÔNG gửi giá tiền. Backend bắt buộc truy vấn CSDL để lấy giá gốc (`Product.basePrice`), phụ thu kích cỡ (`ProductSizePrice.priceAdjustment`), giá từng topping (`Topping.price`) và tính toán lại toàn bộ `totalAmount`, `discountAmount`, `finalAmount`. |
 | **BR-CART-06** | Không tin cậy giá từ Client (Zero Trust Pricing) | Backend tuyệt đối không tin tưởng bất kỳ thông tin đơn giá nào do Client gửi lên nhằm phòng chống tấn công thao túng giá (price tampering). Mọi đơn giá, phụ phí và chiết khấu đều phải được xác thực từ CSDL và Promotion Engine tại máy chủ. |
 | **BR-CART-07** | Giới hạn số lượng tối đa mỗi món | Giới hạn số lượng cho mỗi dòng sản phẩm trong giỏ hàng và payload đặt hàng là từ 1 đến 99 ly (`1 <= quantity <= 99`) nhằm tránh lỗi tràn số, đơn hàng ảo hoặc sự cố vận hành tại quầy. DTO Backend kiểm tra bằng `@Min(1)` và `@Max(99)`. |
+| **BR-CART-08** | Giới hạn số lượng topping mỗi món | Mỗi món đồ uống được chọn tối đa 3 loại topping không trùng lặp (khớp với seed data gồm 3 topping khả dụng). DTO Backend kiểm tra bằng `@ArrayMaxSize(3)` và `@ArrayUnique()`. |
 
 ---
 
@@ -113,6 +114,11 @@
 
 **Đã chốt (Quyết định D1, D6)**:
 - Đã chuẩn hóa trường mã đơn hàng trong response `POST /api/v1/orders` thành `id` theo đúng `docs/naming-convention.md` (Primary Key luôn là `id`). Phân hệ Payment và Order đều sử dụng `orderId` trong quan hệ và `id` trong khóa chính.
+
+### [Q3] Giới hạn topping cho mỗi món trong giỏ hàng
+
+**Đã chốt**:
+- Mỗi món chỉ được chọn tối đa 3 loại topping không trùng lặp, xác thực bằng `@ArrayMaxSize(3)` và `@ArrayUnique()` trong DTO.
 
 ---
 > *Tài liệu cập nhật v1.1 – áp dụng quyết định D2, D5 (ngày 2026-10-16).*

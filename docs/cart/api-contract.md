@@ -83,7 +83,9 @@ Tài liệu này là "Hợp đồng giao tiếp" chính thức giữa Cart (Fron
   "message": [
     "Số lượng mỗi món phải lớn hơn hoặc bằng 1",
     "Số lượng mỗi món không được vượt quá 99",
-    "Kích cỡ món (size) bắt buộc phải là một trong các giá trị: S, M, L"
+    "Kích cỡ món (size) bắt buộc phải là một trong các giá trị: S, M, L",
+    "Mỗi món chỉ được chọn tối đa 3 loại topping",
+    "Danh sách topping không được chứa ID trùng lặp"
   ],
   "timestamp": "2026-10-12T13:45:00.000Z",
   "path": "/api/v1/orders"

@@ -173,6 +173,7 @@ Bộ Data Transfer Object (DTO) nhận request từ giỏ hàng để tạo đơ
 import {
   IsArray,
   ArrayNotEmpty,
+  ArrayMaxSize,
   ArrayUnique,
   ValidateNested,
   IsString,
@@ -195,6 +196,7 @@ export class CreateOrderItemDto {
 
   @IsArray({ message: 'toppingIds phải là một mảng danh sách ID' })
   @ArrayUnique({ message: 'toppingIds không được chứa giá trị trùng lặp' })
+  @ArrayMaxSize(3, { message: 'Mỗi món chỉ được chọn tối đa 3 loại topping' })
   @IsString({ each: true, message: 'Mỗi toppingId phải là một chuỗi hợp lệ' })
   toppingIds: string[];
 
