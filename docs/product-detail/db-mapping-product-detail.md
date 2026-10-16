@@ -109,6 +109,8 @@ Ràng buộc `@@unique([productId, size])` bảo đảm mỗi sản phẩm khôn
 | `stock` | `Int` | Tồn kho, mặc định `100` |
 | `isAvailable` | `Boolean` | Trạng thái cung cấp, mặc định `true` |
 
+> **Lưu ý kỹ thuật về trừ kho (Quyết định D3):** `Topping` KHÔNG có cột `version` như `Product`. Do đó khi trừ tồn kho topping trong transaction đặt hàng, backend sử dụng cập nhật có điều kiện `updateMany({ where: { id: toppingId, stock: { gte: qty } }, data: { stock: { decrement: qty } } })`. Nếu số dòng cập nhật = 0 -> ném `400 Bad Request` ("Topping đã hết hàng").
+
 ---
 
 ### 3.4. Category — Danh mục sản phẩm
@@ -140,7 +142,7 @@ Ràng buộc `@@unique([productId, size])` bảo đảm mỗi sản phẩm khôn
 | `data.sizePrices[]` | `Product.sizePrices` | **Quyết định 1:** Dùng `sizePrices` thay cho `sizes` |
 | `data.sizePrices[].size` | `ProductSizePrice.size` | Giá trị `'S'`, `'M'`, `'L'` |
 | `data.sizePrices[].priceAdjustment` | `ProductSizePrice.priceAdjustment` | Phụ phí kích cỡ |
-| `data.toppings[]` | Tạm thời trả `[]` | Chờ bảng trung gian `ProductTopping` ở Sprint 2 |
+| `data.toppings[]` | `Topping (isAvailable && stock > 0)` | **Quyết định D3:** Không dùng bảng trung gian `ProductTopping`. Trả về toàn bộ Topping khả dụng gồm `id`, `name`, `price` (convert `Decimal` sang `Number`). Không trả `stock` ra ngoài API. |
 
 ---
 
@@ -156,3 +158,6 @@ Thành tiền = unitPrice × quantity
 * `basePrice` lấy từ `Product.basePrice`.
 * `priceAdjustment` lấy từ `sizePrices[].priceAdjustment` ứng với kích cỡ được chọn.
 * Backend xác thực các lựa chọn trước khi tạo đơn; không tin cậy giá từ Client.
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D3 (ngày 2026-10-16).*

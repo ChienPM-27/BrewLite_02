@@ -113,7 +113,7 @@ backend/src/modules/products/
 | `sizePrices` | `ProductSizePrice` | **Quyết định 1:** Dùng `sizePrices` thay cho `sizes` |
 | `sizePrices[].size` | `ProductSizePrice.size` | Enum `'S'`, `'M'`, `'L'` |
 | `sizePrices[].priceAdjustment` | `ProductSizePrice.priceAdjustment` | Phụ phí kích cỡ |
-| `toppings` | Tạm thời `[]` | Chờ bảng trung gian `ProductTopping` ở Sprint 2 |
+| `toppings` | `Topping (isAvailable && stock > 0)` | **Quyết định D3:** Trả toàn bộ topping khả dụng (id, name, price). Không dùng bảng `ProductTopping` |
 
 ---
 
@@ -126,3 +126,6 @@ backend/src/modules/products/
 | Not Found (404) | Thông báo không tìm thấy sản phẩm |
 | Error (500) | Hiển thị thông báo lỗi và nút thử lại |
 | Unavailable / Out of Stock | Khi `isAvailable === false`, hiển thị huy hiệu "Hết hàng" và khóa nút thêm vào giỏ |
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D3 (ngày 2026-10-16).*

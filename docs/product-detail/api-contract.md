@@ -73,7 +73,23 @@ Ví dụ phản hồi chuẩn:
         "priceAdjustment": 10000
       }
     ],
-    "toppings": []
+    "toppings": [
+      {
+        "id": "cmv19top000194rc6vgebmp1",
+        "name": "Trân châu trắng",
+        "price": 5000
+      },
+      {
+        "id": "cmv19top000294rc6vgebmp2",
+        "name": "Kem Cheese",
+        "price": 10000
+      },
+      {
+        "id": "cmv19top000394rc6vgebmp3",
+        "name": "Đào miếng",
+        "price": 8000
+      }
+    ]
   },
   "timestamp": "2026-10-13T08:39:03.235Z"
 }
@@ -93,7 +109,7 @@ Ví dụ phản hồi chuẩn:
   * `sizePrices`: Danh sách kích cỡ và phụ phí tương ứng, lấy từ bảng `ProductSizePrice` (Quyết định 1).
     * `size`: Kích cỡ đồ uống theo enum `ProductSize` (`'S'`, `'M'`, `'L'`).
     * `priceAdjustment`: Mức giá phụ thu kích cỡ (VND: `0`, `5000`, `10000`).
-  * `toppings`: Danh sách topping được phép chọn (tạm thời để `[]` chờ bảng trung gian `ProductTopping` ở Sprint 2).
+  * `toppings`: Danh sách topping khả dụng cho sản phẩm (Quyết định D3). Hệ thống không dùng bảng liên kết `ProductTopping` mà trả về toàn bộ `Topping` có `isAvailable = true` và `stock > 0`. Mỗi phần tử gồm `id` (chuỗi CUID), `name` (tên topping), `price` (số nguyên VND). Không trả trường `stock` ra ngoài API.
 * `timestamp`: Thời điểm tạo phản hồi theo ISO-8601.
 
 > **Ghi chú về `stock` (Quyết định 5 của Nhóm trưởng):** Không trả trường `stock` ra ngoài API để bảo mật dữ liệu kho. Tính khả dụng được thể hiện trọn vẹn qua trường `isAvailable`.
@@ -168,7 +184,7 @@ Tất cả phản hồi lỗi tuân theo định dạng `AllExceptionsFilter` tr
 | `sizePrices` | `ProductSizePrice` | Lấy danh sách kích cỡ theo sản phẩm (Quyết định 1) |
 | `sizePrices[].size` | `ProductSizePrice.size` | Enum gồm `'S'`, `'M'`, `'L'` |
 | `sizePrices[].priceAdjustment` | `ProductSizePrice.priceAdjustment` | Phụ phí kích cỡ |
-| `toppings` | `Topping` | Schema hiện chưa có quan hệ trực tiếp Product–Topping |
+| `toppings` | `Topping` | Toàn bộ `Topping` có `isAvailable = true` và `stock > 0` (Quyết định D3) |
 | `description` | Chưa có nguồn dữ liệu | Model `Product` hiện chưa có trường này |
 
 ---
@@ -182,3 +198,6 @@ Frontend có trách nhiệm:
 * Khi `isAvailable === false`: Hiển thị huy hiệu "Hết hàng" và khóa thao tác thêm vào giỏ.
 * Tính giá ước tính khi người dùng thay đổi kích cỡ hoặc topping.
 * Xử lý trường `imageUrl` có giá trị `null` bằng ảnh placeholder.
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D3, D5 (ngày 2026-10-16).*

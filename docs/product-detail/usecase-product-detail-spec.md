@@ -38,7 +38,7 @@ Các trường trong đặc tả này phải khớp với `api-contract.md`:
 - Các trường trong `data`: `id`, `name`, `imageUrl`, `basePrice`, `currency`, `isAvailable`, `sizePrices`, `toppings`.
 - `id` là chuỗi CUID; `imageUrl` có thể là `null`.
 - `sizePrices[]` hiện có `size` (`S`, `M`, `L`) và `priceAdjustment`.
-- Hợp đồng hiện chưa xác định cấu trúc phần tử `toppings[]`; ví dụ API có `toppings: []`.
+- `toppings[]` gồm danh sách toàn bộ `Topping` có `isAvailable = true` và `stock > 0`, mỗi phần tử gồm `{ id, name, price }` (Quyết định D3).
 - Hợp đồng hiện chưa có `description`, mảng `images`, `sizeId`, `toppingIds` hoặc trạng thái khả dụng riêng cho từng size/topping. Không được giả định các trường này tồn tại trong response hiện tại.
 - Trạng thái bán cấp sản phẩm dùng `isAvailable`, ánh xạ từ `Product.isAvailable`; không dùng `status: "available"` trong response theo hợp đồng hiện tại.
 - API contract chưa xác định API riêng để kiểm tra tồn kho theo thời gian thực. `Product.stock` tồn tại trong database nhưng chưa được đưa vào response; quy tắc hiển thị hết hàng dựa vào `available` cho đến khi nhóm chốt cách biểu diễn tồn kho.
@@ -108,11 +108,11 @@ Các trường trong đặc tả này phải khớp với `api-contract.md`:
 
 - **E1 — Không có size:** Nếu `sizePrices` rỗng hoặc không có lựa chọn hợp lệ, Frontend thông báo không có size khả dụng và khóa thêm vào Cart.
 - **E2 — Chưa chọn size:** Nếu nghiệp vụ yêu cầu chọn size nhưng chưa có lựa chọn, yêu cầu khách chọn trước khi thêm vào Cart.
-- **E3 — Topping chưa có schema rõ ràng:** Nếu API chỉ trả `toppings: []` hoặc phần tử không có định danh/giá theo hợp đồng được thống nhất, Frontend không tự tạo topping giả; chỉ hiển thị trạng thái không có topping hoặc khóa chức năng chọn topping cho đến khi API contract được bổ sung.
+- **E3 — Topping không khả dụng:** Nếu sản phẩm không có topping nào khả dụng (`toppings: []` do tất cả topping đều hết hàng), Frontend ẩn phần chọn topping hoặc hiển thị thông báo tạm hết topping.
 - **E4 — Tùy chọn không còn trong response mới nhất:** Không gửi lựa chọn cũ không còn hợp lệ sang Cart. Tải lại dữ liệu nếu có thể và yêu cầu khách chọn lại.
 - **E5 — Không khả dụng cấp sản phẩm:** Nếu `isAvailable: false`, không cho tiếp tục thêm cấu hình vào Cart.
 
-> **Điểm cần nhóm xác nhận:** `api-contract.md` chưa mô tả phần tử `toppings[]`, quan hệ Product–Topping, giá topping hoặc trạng thái khả dụng riêng của size/topping. Vì vậy các chi tiết đó chưa thể coi là API contract đã chốt.
+> **Đã chốt theo Quyết định D3:** Không dùng bảng `ProductTopping`, API trả về toàn bộ `Topping` có `isAvailable = true` và `stock > 0`. Khách hàng có thể chọn bất kỳ topping nào khả dụng.
 
 ---
 
@@ -274,7 +274,7 @@ Thành tiền = (basePrice + priceAdjustment(size) + Σ giá topping) × quantit
 | 5 | S | Kem Cheese (10.000 đ) | 1 | (35.000 + 0 + 10.000) × 1 | **45.000 đ** | **45.000 đ** |
 | 6 | L | Trân châu trắng (5.000 đ) + Kem Cheese (10.000 đ) | 3 | (35.000 + 10.000 + 5.000 + 10.000) × 3 | **60.000 đ** | **180.000 đ** |
 
-> **Lưu ý:** Ví dụ #3–6 có topping chỉ áp dụng khi blocker `ProductTopping` được giải quyết (xem mục Giả định / Câu hỏi mở). Hiện tại `toppings: []` trong API response.
+> **Lưu ý:** Ví dụ #3–6 có topping áp dụng chính thức theo Quyết định D3 (Topping có sẵn từ seed: Trân châu trắng 5.000 đ, Kem Cheese 10.000 đ, Đào miếng 8.000 đ).
 
 #### Quy tắc làm tròn
 
@@ -305,23 +305,40 @@ Chưa xác định. `seed.ts` dùng đơn vị đồng nguyên (VND không có p
   "success": true,
   "statusCode": 200,
   "data": {
-    "id": "clproduct001",
-    "name": "Latte",
-    "imageUrl": "/images/latte.jpg",
+    "id": "cmv19kpye000794rc6vgebmpz",
+    "name": "Cà phê sữa đá",
+    "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600",
     "basePrice": 35000,
     "currency": "VND",
-    \"isAvailable\": true,
+    "isAvailable": true,
     "sizePrices": [
-      { "size": "M", "priceAdjustment": 0 },
+      { "size": "S", "priceAdjustment": 0 },
+      { "size": "M", "priceAdjustment": 5000 },
       { "size": "L", "priceAdjustment": 10000 }
     ],
-    "toppings": []
+    "toppings": [
+      {
+        "id": "cmv19top000194rc6vgebmp1",
+        "name": "Trân châu trắng",
+        "price": 5000
+      },
+      {
+        "id": "cmv19top000294rc6vgebmp2",
+        "name": "Kem Cheese",
+        "price": 10000
+      },
+      {
+        "id": "cmv19top000394rc6vgebmp3",
+        "name": "Đào miếng",
+        "price": 8000
+      }
+    ]
   },
-  "timestamp": "2026-10-09T14:00:00.000Z"
+  "timestamp": "2026-10-13T08:39:03.235Z"
 }
 ```
 
-Dữ liệu minh họa; danh sách size, giá và topping phải đến từ nguồn dữ liệu thực tế. `imageUrl` có thể là `null`. Response hiện không có `description`, `images[]`, `status`, `sizeId`, `toppingIds`, `stock` hoặc trường `isAvailable` riêng cho từng size/topping.
+Dữ liệu minh họa; danh sách size, giá và topping lấy từ CSDL thực tế (Quyết định D3). `imageUrl` có thể là `null`. Response hiện không có `description`, `images[]`, `status`, `sizeId`, `stock` hoặc trường `isAvailable` riêng cho từng size/topping.
 
 #### Response lỗi
 
@@ -397,9 +414,9 @@ Lỗi `400` áp dụng khi ID sai định dạng theo API contract. Error respon
 
 ## 7. CÁC ĐIỂM CẦN XÁC NHẬN TRƯỚC KHI CHỐT CONTRACT
 
-Các điểm sau được ghi nhận trong `api-contract.md` và chưa nên xem là đã giải quyết:
+Các điểm sau được ghi nhận trong `api-contract.md`:
 
-1. **Topping schema:** Cấu trúc `toppings[]`, ID, giá và quan hệ Product–Topping chưa được xác định đầy đủ.
+1. **Topping schema:** Đã chốt theo Quyết định D3 — Topping khả dụng gồm `{ id, name, price }` lấy từ bảng `Topping` với `isAvailable = true` và `stock > 0`.
 2. **Mô tả sản phẩm:** `Product` hiện chưa có `description`; không đưa trường này vào response cho đến khi schema/nguồn dữ liệu được thống nhất.
 3. **Tồn kho:** Đã được chốt theo Quyết định 5 của Nhóm trưởng — Tuyệt đối không trả `stock` ra ngoài API; Backend tự động tính `isAvailable = (Product.isAvailable && stock > 0)`. Frontend hiển thị hết hàng khi `isAvailable === false`.
 4. **Khả dụng size/topping:** Response chưa có `available` riêng cho từng size/topping. Không thể nghiệm thu trạng thái hết hàng riêng từng lựa chọn cho đến khi contract bổ sung.
@@ -409,8 +426,6 @@ Các điểm sau được ghi nhận trong `api-contract.md` và chưa nên xem 
 ---
 
 ## 8. GIẢ ĐỊNH / CÂU HỎI MỞ
-
-> Các mục dưới đây **chưa được chốt**. Mỗi mục được đánh dấu **ĐỀ XUẤT – cần nhóm xác nhận** trước khi đưa vào implementation.
 
 ### [Q1] Số lượng Topping tối đa mỗi lần đặt
 
@@ -428,15 +443,12 @@ Các điểm sau được ghi nhận trong `api-contract.md` và chưa nên xem 
 - Lý do: đơn giản hóa logic giỏ hàng; nếu muốn tăng số lượng, nên tách thành `quantity` riêng cho topping.
 - Hệ quả nếu chốt: `toppingIds` phải là mảng các ID unique.
 
-### [Q3] Blocker — Thiếu quan hệ Product–Topping trong schema hiện tại
+### [Q3] Quan hệ Product–Topping
 
-**Đây là blocker kỹ thuật, chưa thể tự chốt.**
-
-- `schema.prisma` hiện định nghĩa `Topping` là model độc lập, **không có quan hệ với `Product`** (không có bảng `ProductTopping` hay trường `productId` trong `Topping`).
-- Hệ quả: API `GET /api/v1/products/:id` **không thể trả về danh sách topping theo từng sản phẩm**; contract hiện để `toppings: []`.
-- Ví dụ tính giá có topping (mục 3.1) **chỉ có giá trị minh họa** cho khi blocker được giải quyết.
-- **Đề xuất cho Sprint 2:** Tạo bảng trung gian `ProductTopping` với quan hệ `Product ↔ Topping` (many-to-many).
-- Cần nhóm xác nhận hướng xử lý trước khi implement tính năng topping.
+**Đã chốt (Quyết định D3)**:
+- Không làm bảng `ProductTopping`. `GET /api/v1/products/:id` trả về danh sách `toppings: [{ id, name, price }]` gồm toàn bộ Topping có `isAvailable = true` và `stock > 0` (price là number, không trả stock).
+- Khách hàng có thể chọn bất kỳ topping khả dụng nào cho đồ uống.
+- Trừ kho Topping trong đơn hàng dùng cập nhật có điều kiện `stock >= qty` (Topping không có cột `version`).
 
 ### [Q4] Quy tắc làm tròn giá
 
@@ -445,3 +457,6 @@ Các điểm sau được ghi nhận trong `api-contract.md` và chưa nên xem 
 - `seed.ts` dùng đơn vị VND nguyên (không có phần thập phân thực tế).
 - Đề xuất: **không làm tròn**; hiển thị số nguyên đồng.
 - Nếu có khuyến mãi theo % trong tương lai, cần chốt rule làm tròn (ví dụ: làm tròn lên đến hàng nghìn đ).
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D3, D5 (ngày 2026-10-16).*
