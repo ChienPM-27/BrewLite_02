@@ -74,9 +74,14 @@ flowchart TD
 
 ## 4. Ghi chú
 
-- **Xử lý transaction:** Việc cập nhật tồn kho và tạo dữ liệu đơn hàng phải được xử lý nhất quán trong transaction. Nếu xảy ra lỗi, các thay đổi thuộc transaction cần được rollback theo thiết kế.
-- **Xử lý tồn kho:** Backend sử dụng cập nhật tồn kho có điều kiện để hạn chế tình trạng bán vượt số lượng hiện có. Cơ chế optimistic locking bằng `Product.version` và số lần thử lại chỉ được mô tả khi đã xác nhận có triển khai trong schema và backend.
-- **Mã lỗi HTTP:** Mã lỗi cụ thể phụ thuộc vào exception và cơ chế xử lý lỗi thực tế. Không mặc định mọi trường hợp hết hàng hoặc xung đột đồng thời đều trả về `409`.
-- **Lỗi hệ thống:** Nếu quá trình tạo đơn thất bại, cần kiểm tra transaction đã rollback và không để lại dữ liệu hoặc cập nhật tồn kho dở dang. Mã `500` chỉ được ghi nhận khi phù hợp với cách backend xử lý lỗi.
-- **Hết hạn đơn hàng:** Quy tắc tự động chuyển `PENDING` hoặc `PAYMENT_FAILED` sang `CANCELLED` sau 15 phút chỉ áp dụng khi trường thời hạn và cơ chế tự động xử lý đã được triển khai.
-- **Phạm vi Activity Diagram:** Sơ đồ tập trung vào luồng tạo đơn hàng, kết thúc khi Frontend nhận kết quả tạo đơn. Thanh toán, hủy đơn và hết hạn đơn được mô tả riêng trong `state-machine.md` và các tài liệu liên quan.
+- **Xử lý transaction:** Việc cập nhật tồn kho (Optimistic Lock với Product, conditional update với Topping) và tạo dữ liệu đơn hàng phải được xử lý nhất quán trong transaction. Nếu xảy ra lỗi, các thay đổi thuộc transaction được rollback theo thiết kế.
+- **Xử lý tồn kho:** Backend sử dụng Optimistic Locking (`Product.version`) để chặn hoàn toàn tình trạng bán vượt số lượng tồn kho khi có request đồng thời. Hết hàng trả về `400 Bad Request`.
+- **Duy trì giỏ hàng (D2):** Frontend không xóa giỏ hàng khi nhận kết quả `201 Created` của `POST /orders`. Frontend lưu `pendingOrderId` và chỉ xóa giỏ hàng khi đơn hàng đạt trạng thái `PAID`.
+- **Hủy đơn hàng (D6):** Khách hàng chủ động hủy đơn qua `POST /orders/:id/cancel` (áp dụng cho đơn `PENDING` hoặc `PAYMENT_FAILED`). Hoàn tồn kho trong cùng transaction. MVP không cài đặt scheduler tự động hủy 15 phút.
+- **Khuyến mãi (D7):** `POST /orders` hỗ trợ trường tùy chọn `promotionCode?: string` để áp dụng mã giảm giá.
+- **Phạm vi Activity Diagram:** Sơ đồ tập trung vào luồng tạo đơn hàng, kết thúc khi Frontend nhận kết quả tạo đơn và chuyển tiếp sang bước thanh toán.
+
+## 5. Lịch sử thay đổi
+- v1.0 (2026-10-10): Khởi tạo tài liệu Activity Diagram Order.
+- v1.1 – áp dụng quyết định D1, D2, D4, D6, D7 (ngày 2026-10-16).
+

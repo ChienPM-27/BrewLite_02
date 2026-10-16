@@ -49,7 +49,7 @@ Module Order tương tác trực tiếp với 4 bảng dữ liệu cốt lõi tr
 | `Order.id` vừa tạo | `orderId` | `order_id` | `String` | Foreign Key -> `orders.id` (onDelete: Cascade) |
 | `items[].productId` | `productId` | `product_id` | `String` | Foreign Key -> `products.id` |
 | `items[].size` | `size` | `size` | `ProductSize` | Enum `S`, `M`, `L` (mặc định `M`) |
-| `items[].quantity` | `quantity` | `quantity` | `Int` | Số lượng đặt (1..100) |
+| `items[].quantity` | `quantity` | `quantity` | `Int` | Số lượng đặt (1..99) (D5) |
 | `Product.basePrice + sizePrice` | `unitPrice` | `unit_price` | `Decimal(12, 0)` | Đơn giá sản phẩm theo size tại thời điểm đặt |
 | `(unitPrice + toppings) * qty` | `lineTotal` | `line_total` | `Decimal(12, 0)` | Thành tiền của dòng món |
 
@@ -68,10 +68,10 @@ Module Order tương tác trực tiếp với 4 bảng dữ liệu cốt lõi tr
 | :--- | :--- | :--- | :--- | :--- |
 | Hệ thống sinh | `id` | `id` | `String` (cuid) | Primary Key |
 | `Order.id` | `orderId` | `order_id` | `String` | Foreign Key -> `orders.id` |
-| Trạng thái trước | `fromStatus` | `from_status` | `OrderStatus?` | Ban đầu là `null` hoặc gán PENDING khi tạo mới |
+| Trạng thái trước | `fromStatus` | `from_status` | `OrderStatus` | Trạng thái trước đó (Xem Open Item bên dưới) |
 | Trạng thái sau | `toStatus` | `to_status` | `OrderStatus` | `PENDING`, `PAID`, `CANCELLED`, v.v. |
 | Tác nhân thay đổi | `changedBy` | `changed_by` | `String?` | `system`, `customer`, `barista` |
-| Lý do | `reason` | `reason` | `String?` | Ví dụ: "Order created", "Payment success" |
+| Lý do | `reason` | `reason` | `String?` | Ví dụ: "Order created", "Payment success", "Customer cancelled" |
 | Thời điểm ghi nhận | `createdAt` | `created_at` | `DateTime` | Timestamp sự kiện |
 
 ---
@@ -85,11 +85,32 @@ Module Order tương tác trực tiếp với 4 bảng dữ liệu cốt lõi tr
 
 2. **Công thức tính tổng đơn hàng (`totalAmount` & `finalAmount`):**
    $$\text{totalAmount} = \sum \text{lineTotal}$$
-   $$\text{finalAmount} = \text{totalAmount} - \text{discountAmount}$$
+   $$\text{finalAmount} = \max(0, \text{totalAmount} - \text{discountAmount})$$
 
 3. **Transaction Boundary (Prisma `$transaction`):**
-   Toàn bộ các thao tác sau bắt buộc phải thực thi nguyên tử (atomic) trong một transaction:
-   - Cập nhật trừ tồn kho `Product.stock` có điều kiện.
-   - Cập nhật trừ tồn kho `Topping.stock` có điều kiện.
-   - `Order.create` kèm các dòng `OrderItem`, `OrderItemTopping` và `OrderStatusHistory`.
-   - Nếu bất kỳ bước nào thất bại, toàn bộ transaction được rollback và trả lỗi thích hợp.
+   - **Tạo đơn hàng:**
+     + Trừ tồn kho `Product.stock` bằng Optimistic Locking (`version: currentVersion, stock: { gte: quantity }`).
+     + Trừ tồn kho `Topping.stock` có điều kiện (`stock: { gte: 1 }`).
+     + `Order.create` kèm các dòng `OrderItem`, `OrderItemTopping` và bản ghi khởi tạo `OrderStatusHistory`.
+     + Rollback toàn bộ nếu bất kỳ bước nào thất bại.
+   - **Hủy đơn hàng (`POST /orders/:id/cancel` - D6):**
+     + Chỉ cho phép khi đơn ở `PENDING` hoặc `PAYMENT_FAILED`.
+     + Hoàn tồn kho `Product.stock` (+quantity, +1 version) và `Topping.stock` (+1) trong cùng transaction.
+     + Cập nhật `Order.status = CANCELLED` và tạo `OrderStatusHistory`.
+   - **Cộng điểm thưởng Loyalty (D9):**
+     + Khi chuyển đơn sang `PAID`: tính `points = Math.floor(finalAmount / 1000)`.
+     + Cập nhật `Order.pointsEarned`, tăng `User.loyaltyPoints` và tạo bản ghi `LoyaltyTransaction` loại `EARNED` trong cùng transaction với transition sang `PAID`.
+
+---
+
+## 4. Điểm cần xử lý (Open Item)
+
+- **Lệch schema tại `OrderStatusHistory.fromStatus`:**
+  - Trong `schema.prisma`, trường `fromStatus OrderStatus` là bắt buộc (không nullable).
+  - Tuy nhiên, khi tạo đơn hàng mới (`(start) → PENDING`), trạng thái ban đầu chưa có trạng thái trước (`fromStatus: null`).
+  - **Đề xuất giải pháp:** Giữ nguyên schema hiện tại trong tài liệu này; Backend Owner sẽ tạo một migration riêng để sửa trường này thành nullable (`fromStatus OrderStatus?`). Không sửa schema trong nhánh tài liệu.
+
+## 5. Lịch sử thay đổi
+- v1.0 (2026-10-10): Khởi tạo tài liệu DB Mapping Order.
+- v1.1 – áp dụng quyết định D1, D3, D5, D6, D7, D9 (ngày 2026-10-16).
+

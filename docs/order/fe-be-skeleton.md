@@ -41,7 +41,7 @@ export class CreateOrderItemDto {
 
   @IsInt({ message: 'quantity phải là số nguyên' })
   @Min(1, { message: 'quantity tối thiểu là 1' })
-  @Max(100, { message: 'quantity tối đa là 100 cho mỗi dòng món' })
+  @Max(99, { message: 'quantity tối đa là 99 cho mỗi dòng món' })
   quantity: number;
 
   @IsOptional()
@@ -57,6 +57,10 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+  @IsOptional()
+  @IsString({ message: 'Mã khuyến mãi phải là chuỗi ký tự' })
+  promotionCode?: string;
 }
 ```
 
@@ -75,6 +79,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -82,18 +87,28 @@ import { CreateOrderDto } from './dto/create-order.dto';
 // import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('orders')
-// @UseGuards(JwtAuthGuard) // Bắt buộc đăng nhập để tạo đơn
+// @UseGuards(JwtAuthGuard) // Bắt buộc đăng nhập để tạo hoặc hủy đơn
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Req() req: any, // req.user.sub lấy từ JwtAuthGuard
+    @Req() req: any, // req.user.sub lấy từ JwtAuthGuard (D4)
     @Body() dto: CreateOrderDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.ordersService.create(userId, dto);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancel(
+    @Req() req: any,
+    @Param('id') id: string,
+  ) {
+    const userId = req.user?.sub;
+    return this.ordersService.cancel(id, userId);
   }
 }
 ```
@@ -115,7 +130,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ProductSize, OrderStatus, Prisma } from '@prisma/client';
 
-// Bảng ma trận chuyển đổi trạng thái hợp lệ
+// Bảng ma trận chuyển đổi trạng thái hợp lệ (đủ 10 chuyển tiếp chuẩn PDF)
 const VALID_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   [OrderStatus.PENDING]: [
     OrderStatus.PAID,
@@ -128,7 +143,7 @@ const VALID_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   ],
   [OrderStatus.PAID]: [
     OrderStatus.PREPARING,
-    OrderStatus.CANCELLED,
+    OrderStatus.CANCELLED, // Giữ ở mức service/state machine theo PDF
   ],
   [OrderStatus.PREPARING]: [OrderStatus.READY],
   [OrderStatus.READY]: [OrderStatus.COMPLETED],
@@ -190,6 +205,7 @@ export class OrdersService {
           where: {
             id: product.id,
             isAvailable: true,
+            version: product.version,
             stock: { gte: item.quantity },
           },
           data: {
@@ -220,16 +236,16 @@ export class OrdersService {
         }
 
         for (const top of toppings) {
-          if (!top.isAvailable || top.stock < item.quantity) {
+          if (!top.isAvailable || top.stock < 1) {
             throw new BadRequestException(`Topping ${top.name} không khả dụng hoặc hết hàng`);
           }
           await tx.topping.update({
             where: { id: top.id },
-            data: { stock: { decrement: item.quantity } },
+            data: { stock: { decrement: 1 } },
           });
         }
 
-        // Tính giá
+        // Tính giá: lineTotal = (unitPrice + Σ toppingPrice) * quantity
         const unitPrice = new Prisma.Decimal(product.basePrice).add(sizePrice.priceAdjustment);
         const toppingTotal = toppings.reduce(
           (sum, t) => sum.add(t.price),
@@ -264,7 +280,7 @@ export class OrdersService {
           items: { create: orderItemsToCreate },
           statusHistory: {
             create: {
-              fromStatus: null, // Tạo ban đầu, chưa có trạng thái trước
+              fromStatus: null as any, // Open item: fromStatus nullable migration
               toStatus: OrderStatus.PENDING,
               changedBy: 'system',
               reason: 'Order created',
@@ -276,6 +292,61 @@ export class OrdersService {
             include: {
               product: true,
               toppings: { include: { topping: true } },
+            },
+          },
+        },
+      });
+    });
+  }
+
+  /**
+   * Hủy đơn hàng (POST /orders/:id/cancel - D6)
+   */
+  async cancel(orderId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: { include: { toppings: true } } },
+      });
+
+      if (!order || order.userId !== userId) {
+        throw new NotFoundException('Không tìm thấy đơn hàng');
+      }
+
+      if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.PAYMENT_FAILED) {
+        throw new ConflictException('Đơn hàng không ở trạng thái cho phép hủy');
+      }
+
+      // Hoàn lại tồn kho
+      for (const item of order.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: { increment: item.quantity },
+            version: { increment: 1 },
+          },
+        });
+
+        for (const top of item.toppings) {
+          await tx.topping.update({
+            where: { id: top.toppingId },
+            data: { stock: { increment: 1 } },
+          });
+        }
+      }
+
+      this.assertTransition(order.status, OrderStatus.CANCELLED);
+
+      return tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.CANCELLED,
+          statusHistory: {
+            create: {
+              fromStatus: order.status,
+              toStatus: OrderStatus.CANCELLED,
+              changedBy: 'customer',
+              reason: 'Customer cancelled',
             },
           },
         },
@@ -297,12 +368,13 @@ File tham khảo: `frontend/src/types/order.ts`
 export interface CreateOrderItemInput {
   productId: string;
   size: 'S' | 'M' | 'L';
-  quantity: number;
+  quantity: number; // 1..99
   toppingIds: string[];
 }
 
 export interface CreateOrderInput {
   items: CreateOrderItemInput[];
+  promotionCode?: string;
 }
 
 export interface OrderResponse {
@@ -356,3 +428,7 @@ export function useCreateOrder() {
   return { createOrder, isLoading, error };
 }
 ```
+
+## 3. Lịch sử thay đổi
+- v1.0 (2026-10-10): Khởi tạo tài liệu FE-BE Skeleton Order Module.
+- v1.1 – áp dụng quyết định D1, D3, D5, D6, D7 (ngày 2026-10-16).
