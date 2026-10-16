@@ -24,6 +24,7 @@ import {
   Max,
   Min,
   ArrayNotEmpty,
+  ArrayMaxSize,
   ArrayUnique,
   ValidateNested,
 } from 'class-validator';
@@ -48,6 +49,7 @@ export class CreateOrderItemDto {
   @IsArray({ message: 'toppingIds phải là một mảng' })
   @IsString({ each: true, message: 'Mỗi toppingId phải là chuỗi' })
   @ArrayUnique({ message: 'Danh sách topping không được chứa ID trùng lặp' })
+  @ArrayMaxSize(3, { message: 'Mỗi món chỉ được chọn tối đa 3 loại topping' })
   toppingIds?: string[] = [];
 }
 
@@ -130,7 +132,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ProductSize, OrderStatus, Prisma } from '@prisma/client';
 
-// Bảng ma trận chuyển đổi trạng thái hợp lệ (đủ 10 chuyển tiếp chuẩn PDF)
+// Bảng ma trận chuyển đổi trạng thái hợp lệ (9 chuyển tiếp giữa các trạng thái + 1 bước khởi tạo theo PDF)
 const VALID_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   [OrderStatus.PENDING]: [
     OrderStatus.PAID,

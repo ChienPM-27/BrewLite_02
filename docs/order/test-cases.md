@@ -42,7 +42,7 @@ Các chuyển tiếp không được State Machine cho phép phải bị từ ch
 
 ### 1.3 Kiểm thử toàn bộ (Unit test)
 
-Duyệt toàn bộ 7 × 7 = 49 cặp trạng thái. Với đúng 10 cặp chuyển tiếp hợp lệ trong `TRANSITIONS`, kiểm tra `assertTransition(from, to)` không ném exception. Với 39 cặp còn lại, kiểm tra hàm ném `ConflictException`.
+Duyệt toàn bộ 7 × 7 = 49 cặp trạng thái. Với đúng 9 cặp chuyển tiếp hợp lệ trong `TRANSITIONS` (TC-ST-01 đến TC-ST-09), kiểm tra `assertTransition(from, to)` không ném exception. Với 40 cặp còn lại, kiểm tra hàm ném `ConflictException`.
 
 ### 1.4 Đồng thời
 
@@ -65,6 +65,8 @@ Duyệt toàn bộ 7 × 7 = 49 cặp trạng thái. Với đúng 10 cặp chuy�
 | TC-CO-09 | Kích cỡ không hợp lệ | `size: "XL"` | `400 Bad Request`, không tạo đơn |
 | TC-CO-10 | Sản phẩm không tồn tại | `productId` không tồn tại trong DB | `400 Bad Request` |
 | TC-CO-11 | Topping không tồn tại hoặc không hợp lệ | `toppingIds` chứa ID không hợp lệ | `400 Bad Request` |
+| TC-CO-11a | Chọn quá 3 topping mỗi món | `toppingIds` có 4 phần tử | `400 Bad Request` (`@ArrayMaxSize(3)`) |
+| TC-CO-11b | Trùng lặp topping | `toppingIds` chứa ID trùng lặp | `400 Bad Request` (`@ArrayUnique()`) |
 | TC-CO-12 | DTO không chứa userId (D4) | Request body chứa `userId` | `ValidationPipe` loại bỏ (whitelist) hoặc báo lỗi nếu có `forbidNonWhitelisted` |
 | TC-CO-13 | Hết tồn kho sản phẩm | `quantity` lớn hơn `stock` | `400 Bad Request` (khớp TS-E2E-STOCK-01), tồn kho không âm |
 | TC-CO-14 | Hết hàng ở sản phẩm thứ hai trong đơn | Sản phẩm thứ nhất đủ, sản phẩm thứ hai thiếu | `400 Bad Request`; transaction rollback, tồn kho sản phẩm thứ nhất không bị trừ |

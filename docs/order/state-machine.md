@@ -16,7 +16,7 @@
 
 ## 2. Sơ đồ trạng thái (State Diagram)
 
-Sơ đồ phản ánh chính xác 10 chuyển tiếp hợp lệ theo đề bài gốc (trang 8 PDF `BrewLite-CongNghePhanMem.pdf`):
+Sơ đồ phản ánh chính xác 9 chuyển tiếp hợp lệ giữa các trạng thái + 1 bước khởi tạo theo đề bài gốc (trang 8 PDF `BrewLite-CongNghePhanMem.pdf`):
 
 ```mermaid
 stateDiagram-v2
@@ -54,9 +54,9 @@ stateDiagram-v2
 | `COMPLETED` | Đơn hàng đã được giao cho khách và hoàn tất quy trình. | Có |
 | `CANCELLED` | Đơn hàng đã bị hủy. | Có |
 
-## 4. Bảng chuyển tiếp hợp lệ (Transition Table - Đủ 10 chuyển tiếp chuẩn PDF)
+## 4. Bảng chuyển tiếp hợp lệ (Transition Table - 9 chuyển tiếp giữa các trạng thái + 1 bước khởi tạo)
 
-Hệ thống cài đặt hàm `assertTransition(from, to)` để kiểm tra tính hợp lệ trước khi cập nhật. Đúng 10 chuyển tiếp sau được chấp nhận:
+Hệ thống cài đặt hàm `assertTransition(from, to)` để kiểm tra tính hợp lệ trước khi cập nhật. Có 9 chuyển tiếp hợp lệ giữa các trạng thái (T2–T10) và 1 bước khởi tạo đơn hàng ban đầu (T1):
 
 | # | Từ | Sang | Sự kiện | Tác nhân | Tác động phụ thực thi trong transaction |
 |---|---|---|---|---|---|
@@ -72,7 +72,7 @@ Hệ thống cài đặt hàm `assertTransition(from, to)` để kiểm tra tín
 | **T10** | `READY` | `COMPLETED` | Giao đơn cho khách | Barista / Quản lý | Hoàn tất đơn hàng. |
 
 ### Quy tắc chuyển trạng thái
-- Mọi chuyển tiếp ngoài 10 chuyển tiếp trên đều bị chặn bởi `assertTransition` và ném lỗi `409 Conflict`.
+- Mọi chuyển tiếp ngoài 9 chuyển tiếp giữa các trạng thái trên đều bị chặn bởi `assertTransition` và ném lỗi `409 Conflict`.
 - `COMPLETED` và `CANCELLED` là trạng thái kết thúc, không có bất kỳ chuyển tiếp nào đi tiếp.
 
 ## 5. State Rules & Cơ chế thực thi

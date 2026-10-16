@@ -82,8 +82,8 @@
 | BR-04 | Tồn kho sản phẩm (Optimistic Lock) và topping (conditional update) được cập nhật trong transaction cùng quá trình tạo đơn; nếu transaction thất bại, mọi thao tác đều được rollback. |
 | BR-05 | **Quy tắc hủy đơn & Hạn thanh toán (D6):** Khách hàng chủ động hủy đơn qua `POST /orders/:id/cancel` (chỉ từ `PENDING` hoặc `PAYMENT_FAILED` sang `CANCELLED`, hoàn tồn kho trong transaction). MVP không cài đặt scheduler tự động hủy 15 phút. Đơn bỏ dở sẽ giữ tồn kho cho đến khi hủy thủ công (Known Limitation). |
 | BR-06 | **Khuyến mãi (D7):** `POST /orders` nhận thêm `promotionCode?: string`. Backend gọi `PromotionsService.validate(code, totalAmount)` để tính `discountAmount` và `finalAmount`. Mỗi đơn áp dụng tối đa 1 mã. |
-| BR-07 | Các chuyển đổi trạng thái đơn hàng phải tuân theo State Machine đã thống nhất (10 chuyển tiếp). Sử dụng hàm `assertTransition` để chặn các chuyển đổi trái phép. |
-| BR-08 | Một đơn hàng phải có ít nhất một phần tử trong `items`; mỗi `quantity` phải là số nguyên từ `1` đến `99` (D5). |
+| BR-07 | Các chuyển đổi trạng thái đơn hàng phải tuân theo State Machine đã thống nhất (9 chuyển tiếp giữa các trạng thái + 1 bước khởi tạo). Sử dụng hàm `assertTransition` để chặn các chuyển đổi trái phép. |
+| BR-08 | Một đơn hàng phải có ít nhất một phần tử trong `items`; mỗi `quantity` phải là số nguyên từ `1` đến `99` (D5); mỗi món chọn tối đa 3 loại topping không trùng lặp (`@ArrayMaxSize(3)`, `@ArrayUnique()`). |
 
 ## 7. Acceptance criteria
 
