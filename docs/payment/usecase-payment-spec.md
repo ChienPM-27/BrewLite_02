@@ -33,39 +33,38 @@
 
 ### A1 – Thanh toán thất bại
 
-1. Cổng thanh toán giả lập trả kết quả thất bại.
-2. Backend cập nhật Payment thành `FAILED`.
-3. Backend lưu lý do thất bại nếu có.
-4. Frontend hiển thị thông báo thất bại.
-5. Khách hàng có thể thử lại nếu đơn hàng vẫn đủ điều kiện, sử dụng `Idempotency-Key` mới.
+1. Cổng thanh toán giả lập trả kết quả thất bại (hoặc gateway timeout).
+2. Backend cập nhật Payment thành `FAILED` kèm lý do thất bại.
+3. Backend chuyển trạng thái đơn hàng `PENDING → PAYMENT_FAILED` thông qua `OrderService.transition`.
+4. Frontend hiển thị thông báo thất bại và giữ nguyên giỏ hàng của khách hàng.
+5. Khách hàng có thể chọn thử lại thanh toán không giới hạn số lần: hệ thống chuyển đơn hàng `PAYMENT_FAILED → PENDING` và thực hiện thanh toán với `Idempotency-Key` mới.
 
 ### A2 – Idempotency-Key đã tồn tại
 
-- Nếu key và nội dung yêu cầu giống nhau, Backend trả lại kết quả đã lưu hoặc trạng thái hiện tại của giao dịch.
-- Nếu key giống nhưng nội dung yêu cầu khác, Backend từ chối yêu cầu.
+- Nếu key và nội dung yêu cầu giống nhau, Backend trả lại kết quả đã lưu (HTTP 200). Request đồng thời dùng cùng key: request thua (lỗi unique) truy vấn và trả lại kết quả đã lưu (HTTP 200), không trả lỗi 500.
+- Nếu key giống nhưng nội dung yêu cầu khác (`requestHash` lệch), Backend từ chối với mã lỗi `409 Conflict`.
 - Không tạo giao dịch thanh toán trùng.
 
-### A3 – Timeout hoặc chưa xác định kết quả
+### A3 – Timeout từ cổng thanh toán
 
-1. Backend giữ Payment ở trạng thái `PENDING` khi chưa xác định được kết quả cuối cùng.
-2. Hệ thống thực hiện kiểm tra hoặc đối soát trạng thái giao dịch.
-3. Không tự động tạo giao dịch mới khi kết quả lần trước chưa rõ.
+1. Khi yêu cầu sang Gateway bị timeout, hệ thống ghi nhận Payment là `FAILED` với lý do `"Gateway timeout"`.
+2. Đơn hàng chuyển sang trạng thái `PAYMENT_FAILED` qua `OrderService.transition`.
+3. Khách hàng có thể bấm "Thử lại" để chuyển đơn sang `PENDING` và thanh toán lại với key mới.
 
 ## 5. Hậu điều kiện (Postconditions)
 
-- Thành công: Payment có trạng thái `SUCCESS`; Order có trạng thái `PAID`.
-- Thất bại đã xác nhận: Payment có trạng thái `FAILED`; đơn hàng không bị đánh dấu đã thanh toán.
-- Chưa rõ kết quả: Payment giữ trạng thái `PENDING` cho đến khi được xác minh.
+- Thành công: Payment có trạng thái `SUCCESS`; Order chuyển sang trạng thái `PAID`; Giỏ hàng được xóa (`clearCart()` và xóa `pendingOrderId`); Tích lũy điểm thưởng loyalty.
+- Thất bại: Payment có trạng thái `FAILED`; Order chuyển sang trạng thái `PAYMENT_FAILED`; Giỏ hàng được giữ nguyên để khách hàng có thể thử lại.
 
 ## 6. Acceptance Criteria
 
 - Khách hàng có thể chọn một trong hai phương thức: `E_WALLET` hoặc `BANK_CARD`.
 - Backend tự xác định số tiền từ đơn hàng, không tin số tiền do Frontend tự gửi.
-- Thanh toán thành công cập nhật trạng thái đơn hàng thành `PAID`.
-- Thanh toán thất bại không đánh dấu đơn hàng là đã thanh toán.
-- Cùng Idempotency-Key và cùng nội dung yêu cầu không tạo giao dịch trùng.
-- Cùng Idempotency-Key nhưng nội dung khác phải bị từ chối.
-- Timeout chưa rõ kết quả không được tự động xem là thất bại hoặc tự động tạo giao dịch mới.
+- Thanh toán thành công cập nhật trạng thái đơn hàng thành `PAID` và làm rỗng giỏ hàng.
+- Thanh toán thất bại chuyển đơn hàng thành `PAYMENT_FAILED`, giữ nguyên giỏ hàng.
+- Cùng Idempotency-Key và cùng nội dung yêu cầu không tạo giao dịch trùng, trả về kết quả đã lưu.
+- Cùng Idempotency-Key nhưng nội dung khác phải bị từ chối với lỗi 409 Conflict.
+- Hỗ trợ thử lại thanh toán không giới hạn số lần với Idempotency-Key mới.
 
 ---
 
@@ -73,35 +72,32 @@
 
 | Mã quy tắc | Tên quy tắc | Nội dung chi tiết |
 | :--- | :--- | :--- |
-| **BR-PAY-01** | Idempotency (Cơ chế chống trùng lặp) | Header `Idempotency-Key` là bắt buộc khi gọi `POST /api/v1/payments`.<br>- **Cùng key + cùng payload:** Backend trả lại kết quả đã lưu trong bảng `Payment` (hoặc trạng thái đang xử lý) mà không tạo giao dịch mới hay gọi lại Mock Gateway.<br>- **Cùng key + khác payload:** Backend từ chối với mã lỗi `409 Conflict`. |
+| **BR-PAY-01** | Idempotency (Cơ chế chống trùng lặp) | Header `Idempotency-Key` là bắt buộc khi gọi `POST /api/v1/payments`.<br>- **Cùng key + cùng payload:** Backend trả lại kết quả đã lưu trong bảng `Payment` (HTTP 200) mà không tạo giao dịch mới hay gọi lại Mock Gateway.<br>- **Request đồng thời:** Request bị lỗi unique constraint truy vấn và trả kết quả đã lưu (HTTP 200), không trả 500.<br>- **Cùng key + khác payload (`requestHash`):** Backend từ chối với mã lỗi `409 Conflict`. |
 | **BR-PAY-02** | Số tiền thanh toán từ CSDL (Amount Verification) | Số tiền thanh toán (`amount`) bắt buộc phải lấy từ trường `Order.finalAmount` trong database. Backend tuyệt đối không tin cậy và không sử dụng bất kỳ số tiền nào do Client tự gửi lên. |
-| **BR-PAY-03** | Điều kiện trạng thái đơn hàng (Order State Precondition) | Chỉ chấp nhận thanh toán cho các đơn hàng đang ở trạng thái `PENDING`. Nếu đơn hàng đã ở trạng thái `PAID`, `CANCELLED`, `PAYMENT_FAILED` hoặc khác `PENDING`, Backend từ chối giao dịch với mã lỗi phù hợp (`400 Bad Request` hoặc `409 Conflict`). |
-| **BR-PAY-04** | Xử lý thanh toán thành công (Payment Success) | Khi Mock Gateway xác nhận thành công:<br>1. Cập nhật `Payment.status = SUCCESS`, lưu `transactionRef`.<br>2. Cập nhật `Order.status = PAID`, gán `Order.paidAt = now()`.<br>3. Ghi nhận lịch sử trạng thái vào `OrderStatusHistory` và tích lũy điểm thưởng loyalty (`Order.pointsEarned`). |
-| **BR-PAY-05** | Xử lý thanh toán thất bại (Payment Failure) | Khi Mock Gateway trả về kết quả thất bại (từ chối thẻ, không đủ số dư...):<br>1. Cập nhật bản ghi `Payment.status = FAILED`, lưu `failureReason`.<br>2. `Order.status` vẫn **giữ nguyên PENDING** (khi chưa vượt quá số lần retry tối đa) để khách hàng có thể đổi phương thức hoặc thử lại. |
-| **BR-PAY-06** | Quy tắc thử lại thanh toán (Retry Policy) | Khi khách hàng thử lại sau một giao dịch thất bại (`FAILED`), Frontend **bắt buộc phải sinh một `Idempotency-Key` mới**. Cấm tái sử dụng key cũ của lần giao dịch đã thất bại. Mỗi lần thử lại sẽ tạo một bản ghi `Payment` mới liên kết với cùng `orderId`. |
-| **BR-PAY-07** | Xử lý Timeout và trạng thái chưa rõ (Timeout Handling) | Khi yêu cầu sang Gateway bị timeout hoặc chưa nhận được kết quả cuối cùng:<br>1. `Payment.status` được giữ ở mức `PENDING`.<br>2. `Order.status` giữ nguyên `PENDING`.<br>3. Tuyệt đối không tự động coi là thất bại và không tự động gửi giao dịch mới cho đến khi có kết quả đối soát/xác minh. |
+| **BR-PAY-03** | Điều kiện trạng thái đơn hàng (Order State Precondition) | `POST /api/v1/payments` chỉ chấp nhận các đơn hàng đang ở trạng thái `PENDING` hoặc `PAYMENT_FAILED`. Nếu đơn hàng ở các trạng thái khác (`PAID`, `CANCELLED`, `PREPARING`...), Backend từ chối giao dịch với mã lỗi `409 Conflict`. |
+| **BR-PAY-04** | Xử lý thanh toán thành công (Payment Success) | Khi Mock Gateway xác nhận thành công:<br>1. Cập nhật `Payment.status = SUCCESS`, lưu `transactionRef`.<br>2. Gọi `OrderService.transition(orderId, PAID)`, gán `Order.paidAt = now()`.<br>3. Ghi nhận lịch sử trạng thái vào `OrderStatusHistory` và tích lũy điểm thưởng loyalty (`Order.pointsEarned`) trong cùng transaction.<br>4. Client thực hiện xóa giỏ hàng (`clearCart()` và xóa `pendingOrderId`). |
+| **BR-PAY-05** | Xử lý thanh toán thất bại (Payment Failure) | Khi Mock Gateway trả về kết quả thất bại (từ chối thẻ, không đủ số dư, timeout...):<br>1. Cập nhật bản ghi `Payment.status = FAILED`, lưu `failureReason`.<br>2. Gọi `OrderService.transition(orderId, PAYMENT_FAILED)` để chuyển trạng thái đơn hàng sang `PAYMENT_FAILED`.<br>3. Giữ nguyên giỏ hàng tại Frontend để khách hàng có thể thử lại hoặc đổi phương thức. |
+| **BR-PAY-06** | Quy tắc thử lại thanh toán (Retry Policy) | Khi khách hàng thử lại sau một giao dịch thất bại (`PAYMENT_FAILED`), hệ thống chuyển đơn hàng `PAYMENT_FAILED → PENDING` qua `OrderService.transition`. Frontend **bắt buộc phải sinh một `Idempotency-Key` mới**. Hệ thống cho phép thử lại không giới hạn số lần (gỡ bỏ giới hạn 3 lần và thời hạn 15 phút). Mỗi lần thử lại sẽ tạo một bản ghi `Payment` mới liên kết với cùng `orderId`. |
+| **BR-PAY-07** | Xử lý Timeout (Timeout Handling) | Khi yêu cầu sang Gateway bị timeout, Backend ghi nhận `Payment.status = FAILED` với `failureReason = "Gateway timeout"` và chuyển `Order.status = PAYMENT_FAILED`. Không duy trì trạng thái treo PENDING hay đối soát bất đồng bộ trong MVP. |
 
 ---
 
-## 8. Giả định / Câu hỏi mở
-
-> Các mục dưới đây **chưa được chốt**. Mỗi mục được đánh dấu **ĐỀ XUẤT – cần nhóm xác nhận** trước khi đưa vào implementation.
+## 8. Kết luận các vấn đề thiết kế
 
 ### [Q1] Khi nào chuyển đơn hàng sang trạng thái `OrderStatus.PAYMENT_FAILED`?
 
-**ĐỀ XUẤT – cần nhóm xác nhận.**
-
-- **Hiện trạng:** Trong `schema.prisma`, enum `OrderStatus` có giá trị `PAYMENT_FAILED`. Tuy nhiên, khi một lượt thanh toán đơn lẻ thất bại, bản ghi `Payment` chuyển `FAILED` trong khi `Order` vẫn giữ `PENDING` để khách hàng có cơ hội thử lại.
-- **Đề xuất quy tắc kích hoạt `OrderStatus.PAYMENT_FAILED`:**
-  - Cho phép khách hàng thử lại tối đa **3 lần** (`max_retry = 3`).
-  - Nếu sau 3 lần thanh toán đều thất bại (`Payment.status = FAILED`), hoặc sau thời hạn thanh toán quy định (**15 phút** kể từ thời điểm tạo đơn mà đơn hàng chưa được thanh toán thành công), Backend sẽ tự động cập nhật `Order.status` từ `PENDING` sang `PAYMENT_FAILED`.
-  - Khi đơn đã ở trạng thái `PAYMENT_FAILED`, đơn hàng sẽ bị khóa thanh toán. Khách hàng không thể tiếp tục gửi yêu cầu `POST /api/v1/payments` cho đơn này nữa.
-- **Quy tắc chuyển tiếp tiếp theo (Next State):** Sau khi chuyển sang `PAYMENT_FAILED`, hệ thống giải phóng số lượng tồn kho (`stock`) đã giữ cho đơn hàng, và đơn hàng có thể được chuyển sang `CANCELLED` (hoặc giữ `PAYMENT_FAILED` làm trạng thái kết thúc phục vụ báo cáo phân tích tỷ lệ rớt đơn).
+**ĐÃ CHỐT (Quyết định D1):**
+- Khi giao dịch thanh toán thất bại (gateway từ chối hoặc timeout), `Payment.status = FAILED` và đơn hàng lập tức chuyển sang `OrderStatus.PAYMENT_FAILED` thông qua `OrderService.transition`.
+- Khách hàng được phép thử lại không giới hạn số lần: khi thử lại, đơn hàng chuyển `PAYMENT_FAILED → PENDING` và gửi thanh toán với `Idempotency-Key` mới.
+- Gỡ bỏ toàn bộ quy định giới hạn 3 lần, 15 phút và khóa vĩnh viễn đơn hàng.
 
 ### [Q2] Thời gian chờ thanh toán tối đa (Payment Timeout Window)
 
-**ĐỀ XUẤT – cần nhóm xác nhận.**
+**ĐÃ CHỐT (Quyết định D6):**
+- Gỡ bỏ scheduler/cron-job tự động hết hạn 15 phút và trường `expiresAt` khỏi phạm vi MVP.
+- **Giới hạn đã biết (Known Limitation):** Các đơn hàng ở trạng thái `PENDING` hoặc `PAYMENT_FAILED` nếu bị khách hàng bỏ dở sẽ tiếp tục giữ tồn kho cho đến khi được hủy thủ công thông qua `POST /orders/:id/cancel`.
 
-- Đề xuất mặc định: Mỗi đơn hàng có thời hạn thanh toán tối đa là **15 phút**.
-- Lý do: Tránh việc giữ chỗ tồn kho (`stock`) quá lâu làm ảnh hưởng đến khách hàng khác trong giờ cao điểm.
-- Hệ quả nếu chốt: Cần bố trí một cron-job hoặc scheduler kiểm tra các đơn hàng `PENDING` quá 15 phút để chuyển trạng thái sang `PAYMENT_FAILED` / `CANCELLED` và hoàn kho.
+## 9. Lịch sử thay đổi
+- v1.0 (2026-10-11): Khởi tạo đặc tả Use Case Payment.
+- v1.1 – áp dụng quyết định D1, D2, D6 (ngày 2026-10-16).
+
