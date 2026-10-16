@@ -65,7 +65,7 @@ Theo đặc tả, Task 10 phải có unit/integration test chứng minh các ti�
 | TS-FR-07-04 | CANCELLED là trạng thái kết thúc | Boundary | Unit | High | Đơn CANCELLED không thể chuyển sang trạng thái khác. |
 | TS-FR-07-05 | Nhánh PAYMENT_FAILED | Negative | Integration | High | Thanh toán lỗi chuyển đơn từ PENDING sang PAYMENT_FAILED (Quyết định D1). |
 | TS-FR-07-06 | Thử lại sau PAYMENT_FAILED | Positive | Integration | High | Đơn PAYMENT_FAILED được phép thử lại: `OrderService.transition` chuyển PAYMENT_FAILED → PENDING, sau đó xử lý thanh toán với `Idempotency-Key` mới. Không giới hạn số lần thử lại (Quyết định D1). |
-| TS-FR-07-07 | Chuyển trạng thái PAID → CANCELLED ở mức state machine | Boundary | Unit | High | State machine cho phép PAID → CANCELLED (đủ 10 chuyển tiếp theo PDF trang 8); ngoài phạm vi MVP ở mức UI/endpoint (Quyết định D6). |
+| TS-FR-07-07 | Chuyển trạng thái PAID → CANCELLED ở mức state machine | Boundary | Unit | High | State machine cho phép PAID → CANCELLED (9 chuyển tiếp + khởi tạo theo PDF trang 8); ngoài phạm vi MVP ở mức UI/endpoint (Quyết định D6). |
 | TS-FR-07-08 | Hủy đơn qua POST /orders/:id/cancel | Positive | Integration | High | Chủ đơn được phép hủy đơn từ PENDING hoặc PAYMENT_FAILED → CANCELLED, hoàn tồn kho sản phẩm (optimistic lock) và topping trong cùng transaction (Quyết định D6). |
 | TS-FR-07-09 | Từ chối hủy đơn sai quyền hoặc sai trạng thái | Negative | Integration | High | POST /orders/:id/cancel trả 404 nếu không phải chủ đơn (không lộ sự tồn tại); trả 409 nếu đơn đã PAID, PREPARING, READY, COMPLETED hoặc CANCELLED (Quyết định D6). |
 
