@@ -238,13 +238,17 @@ export class OrdersService {
         }
 
         for (const top of toppings) {
-          if (!top.isAvailable || top.stock < 1) {
-            throw new BadRequestException(`Topping ${top.name} không khả dụng hoặc hết hàng`);
+          if (!top.isAvailable) {
+            throw new BadRequestException(`Topping ${top.name} không khả dụng`);
           }
-          await tx.topping.update({
-            where: { id: top.id },
-            data: { stock: { decrement: 1 } },
+          // D3: cập nhật có điều kiện (Topping không có cột version); mỗi ly dùng 1 phần topping
+          const updatedTopping = await tx.topping.updateMany({
+            where: { id: top.id, stock: { gte: item.quantity } },
+            data: { stock: { decrement: item.quantity } },
           });
+          if (updatedTopping.count === 0) {
+            throw new BadRequestException(`Topping ${top.name} đã hết hàng`);
+          }
         }
 
         // Tính giá: lineTotal = (unitPrice + Σ toppingPrice) * quantity
@@ -332,7 +336,7 @@ export class OrdersService {
         for (const top of item.toppings) {
           await tx.topping.update({
             where: { id: top.toppingId },
-            data: { stock: { increment: 1 } },
+            data: { stock: { increment: item.quantity } },
           });
         }
       }

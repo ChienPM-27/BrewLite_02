@@ -90,7 +90,7 @@ Module Order tương tác trực tiếp với 4 bảng dữ liệu cốt lõi tr
 3. **Transaction Boundary (Prisma `$transaction`):**
    - **Tạo đơn hàng:**
      + Trừ tồn kho `Product.stock` bằng Optimistic Locking (`version: currentVersion, stock: { gte: quantity }`).
-     + Trừ tồn kho `Topping.stock` có điều kiện (`stock: { gte: 1 }`).
+     + Trừ tồn kho `Topping.stock` có điều kiện (`stock: { gte: item.quantity }`).
      + `Order.create` kèm các dòng `OrderItem`, `OrderItemTopping` và bản ghi khởi tạo `OrderStatusHistory`.
      + Rollback toàn bộ nếu bất kỳ bước nào thất bại.
    - **Hủy đơn hàng (`POST /orders/:id/cancel` - D6):**
