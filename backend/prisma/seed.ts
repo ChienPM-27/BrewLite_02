@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient, ProductSize } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -30,7 +31,7 @@ async function main() {
       loyaltyPoints: 120, // Có sẵn 120 điểm loyalty
     },
   });
-  console.log(`✅ Đã tạo user demo: ${demoUser.email} / Mật khẩu: Demo@12345`);
+  console.log(`Đã tạo user demo: ${demoUser.email} / Mật khẩu: Demo@12345`);
 
   // 3. Tạo Categories
   const catCoffee = await prisma.category.create({
@@ -48,80 +49,137 @@ async function main() {
       displayOrder: 2,
     },
   });
-  console.log('✅ Đã tạo 2 danh mục: Cà phê, Trà & Trái cây');
+  console.log('Đã tạo 2 danh mục: Cà phê, Trà & Trái cây');
 
-  // 4. Tạo Toppings
-  const toppingBoba = await prisma.topping.create({
-    data: {
-      name: 'Trân châu trắng',
-      price: 5000,
-      stock: 200,
-    },
-  });
 
-  const toppingCheese = await prisma.topping.create({
-    data: {
-      name: 'Kem Cheese',
-      price: 10000,
-      stock: 150,
-    },
-  });
+    const toppingsData = [
+    { name: 'Trân châu trắng', price: 5000, stock: 200 },
+    { name: 'Kem Cheese', price: 10000, stock: 150 },
+    { name: 'Đào miếng', price: 8000, stock: 100 },
+  ];
 
-  const toppingPeach = await prisma.topping.create({
-    data: {
-      name: 'Đào miếng',
-      price: 8000,
-      stock: 100,
-    },
-  });
-  console.log('✅ Đã tạo 3 Topping: Trân châu trắng (5k), Kem Cheese (10k), Đào miếng (8k)');
+  for (const topping of toppingsData) {
+    await prisma.topping.create({
+      data: {
+        ...topping,
+        isAvailable: true,
+      },
+    });
+  }
 
-  // 5. Tạo Sản phẩm kèm giá Size phụ thu (S: 0, M: +5k, L: +10k)
-  const productsData = [
+  console.log('Đã tạo 3 topping.');
+
+   const productsData = [
+      // Có hình ảnh cho từng sản phẩm và ít nhất một sản phẩm tồn kho thấp.
     {
       categoryId: catCoffee.id,
       name: 'Cà phê sữa đá',
       basePrice: 35000,
-      imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
+      imageUrl:
+        'https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
       stock: 100,
     },
     {
       categoryId: catCoffee.id,
       name: 'Americano',
       basePrice: 40000,
-      imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600',
+      imageUrl:
+        'https://images.unsplash.com/photo-1531835207745-506a1bc035d8?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
       stock: 80,
     },
     {
       categoryId: catCoffee.id,
       name: 'Cappuccino',
       basePrice: 45000,
-      imageUrl: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600',
+      imageUrl:
+        'https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
       stock: 60,
+    },
+    {
+      categoryId: catCoffee.id,
+      name: 'Latte',
+      basePrice: 45000,
+      imageUrl:
+        'https://plus.unsplash.com/premium_photo-1674327105074-46dd8319164b?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 50,
+    },
+    {
+      categoryId: catCoffee.id,
+      name: 'Espresso',
+      basePrice: 30000,
+      imageUrl:
+        'https://plus.unsplash.com/premium_photo-1675435644687-562e8042b9db?q=80&w=749&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 40,
+    },
+    {
+      categoryId: catCoffee.id,
+      name: 'Bạc xỉu',
+      basePrice: 35000,
+      imageUrl:
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWjNC1sUHZBhykAgVMQ11P3utPelI-fVIQbyCzapGHhn6iTB3VurhV5_s&s=10',
+      stock: 5, // Sản phẩm tồn kho thấp.
     },
     {
       categoryId: catTea.id,
       name: 'Trà đào cam sả',
       basePrice: 39000,
-      imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600',
+      imageUrl:
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQaNtZBj9O9cMPKzo07Dl3D_QYiitLSofLg4jnzfhWVzTcx4YSO7DBfmyQ&s=10',
       stock: 75,
     },
+    {
+      categoryId: catTea.id,
+      name: 'Trà chanh',
+      basePrice: 30000,
+      imageUrl:
+        'https://www.unileverfoodsolutions.com.vn/dam/global-ufs/mcos/phvn/vietnam/calcmenu/recipes/VN-recipes/other/energizing-lemon-tea/main-header.jpg',
+      stock: 70,
+    },
+    {
+      categoryId: catTea.id,
+      name: 'Trà vải',
+      basePrice: 39000,
+      imageUrl:
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4yCQPdHn0Vb0iqtXZohd6DUep6KaAghMgxjt648CZC4g8jewg6BXU2twr&s=10',
+      stock: 45,
+    },
+    {
+      categoryId: catTea.id,
+      name: 'Trà dâu',
+      basePrice: 40000,
+      imageUrl:
+        'https://gtp.com.vn/ckfinder/userfiles/images/CONG_THUC_2/5.JPG',
+      stock: 35,
+    },
   ];
+ 
+    const sizePrices = [
+      { size: ProductSize.S, priceAdjustment: 0 },
+      { size: ProductSize.M, priceAdjustment: 5000 },
+      { size: ProductSize.L, priceAdjustment: 10000 },
+    ];
 
-  for (const item of productsData) {
+for (const item of productsData) {
     const product = await prisma.product.create({
       data: {
         ...item,
-        sizePrices: {
-          create: [
-            { size: ProductSize.S, priceAdjustment: 0 },
-            { size: ProductSize.M, priceAdjustment: 5000 },
-            { size: ProductSize.L, priceAdjustment: 10000 },
-          ],
-        },
+        isAvailable: true,
       },
     });
-    console.log(`✅ Đã tạo sản phẩm: ${product.name} (Base: ${product.basePrice}đ) kèm size S/M/L`);
+
+    for (const sizePrice of sizePrices) {
+      await prisma.productSizePrice.create({
+        data: {
+          productId: product.id,
+          size: sizePrice.size,
+          priceAdjustment: sizePrice.priceAdjustment,
+        },
+      });
+    }
+
+    console.log(
+      `Đã tạo ${product.name} - Tồn kho: ${item.stock}`,
+    );
   }
 
   // 6. Tạo Promotions (Vouchers)
@@ -144,11 +202,10 @@ async function main() {
       },
     ],
   });
-  console.log('✅ Đã tạo 2 voucher khuyến mãi: WELCOME10, GIAM15K');
+  console.log('Đã tạo 2 voucher khuyến mãi: WELCOME10, GIAM15K');
 
   console.log('🎉 Hoàn tất nạp dữ liệu mẫu cho BrewLite!');
 }
-
 main()
   .catch((e) => {
     console.error('❌ Lỗi khi seed DB:', e);
