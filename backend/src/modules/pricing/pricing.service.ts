@@ -1,9 +1,18 @@
-// Chữ ký tối thiểu PricingService.calculate(items: any[]) phục vụ tính giá món và đơn hàng phía server
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 @Injectable()
 export class PricingService {
-  async calculate(items: any[]): Promise<any> {
+  async calculate(
+    items: {
+      productId: string;
+      size: string;
+      toppingIds: string[];
+      quantity: number;
+    }[],
+  ): Promise<{
+    lines: { productId: string; unitPrice: number; lineTotal: number }[];
+    subtotal: number;
+  }> {
     throw new NotImplementedException();
   }
 }

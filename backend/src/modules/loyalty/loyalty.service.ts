@@ -1,9 +1,13 @@
-// Chữ ký tối thiểu LoyaltyService.award(userId: string, points: number, orderId?: string) phục vụ cộng điểm loyalty
 import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class LoyaltyService {
-  async award(userId: string, points: number, orderId?: string): Promise<any> {
+  // idempotent theo order.id
+  async award(
+    tx: Prisma.TransactionClient,
+    order: { id: string; userId: string; finalAmount: number },
+  ): Promise<void> {
     throw new NotImplementedException();
   }
 }

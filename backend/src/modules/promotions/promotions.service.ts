@@ -1,9 +1,11 @@
-// Chữ ký PromotionsService.validate(code: string, totalAmount: number) theo docs/order/api-contract.md
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 @Injectable()
 export class PromotionsService {
-  async validate(code: string, totalAmount: number): Promise<any> {
+  async validate(
+    code: string | undefined,
+    totalAmount: number,
+  ): Promise<{ promotionId: string; discountAmount: number } | null> {
     throw new NotImplementedException();
   }
 }
