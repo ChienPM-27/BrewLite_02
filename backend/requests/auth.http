@@ -1,0 +1,32 @@
+@base = http://localhost:4000/api/v1
+
+### 1. Register - Đăng ký tài khoản
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "Password@123",
+  "fullName": "Nguyễn Văn A"
+}
+
+### 2. Login - Đăng nhập thành công
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@brewlite.test",
+  "password": "Demo@12345"
+}
+
+### 3. Login - Sai thông tin (401 Unauthorized)
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@brewlite.test",
+  "password": "WrongPassword@123"
+}
+
+### 4. Protected Route - Test lỗi 401 khi thiếu token
+GET {{base}}/orders/me
