@@ -1,0 +1,21 @@
+@base = http://localhost:4000/api/v1
+
+# Chạy `npx prisma db seed` trước. Lấy id thật bằng request #1 rồi dán vào các biến bên dưới.
+@productId = PASTE_PRODUCT_ID_HERE
+
+### 1. Danh sách sản phẩm (lấy id để test)
+GET {{base}}/products
+
+### 2. [Success 200] Chi tiết sản phẩm: có sizePrices (S/M/L) + toàn bộ topping, KHÔNG có `stock`
+GET {{base}}/products/{{productId}}
+
+### 3. [404] ID đúng định dạng nhưng không tồn tại
+GET {{base}}/products/clproduct001
+
+### 4. [400] ID sai định dạng (ký tự không hợp lệ)
+GET {{base}}/products/abc%20def!
+
+### 5. [isAvailable=false] Sản phẩm hết hàng vẫn trả 200
+# Đặt stock = 0 trước: UPDATE products SET stock = 0 WHERE name = 'Bạc xỉu';
+# Rồi lấy id "Bạc xỉu" từ request #1 và gọi:
+GET {{base}}/products/PASTE_OUT_OF_STOCK_PRODUCT_ID
