@@ -1,12 +1,7 @@
-import { Module, Controller, Get } from '@nestjs/common';
+import { Module, Controller } from '@nestjs/common';
 
 @Controller('payments')
-export class PaymentsController {
-  @Get('health')
-  healthCheck() {
-    return { module: 'Payments', status: 'Ready for implementation (Task 8 & 10)' };
-  }
-}
+export class PaymentsController {}
 
 @Module({
   controllers: [PaymentsController],

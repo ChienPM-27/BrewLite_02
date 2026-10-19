@@ -27,11 +27,11 @@ Client -> FE: Nhấn "Thanh toán đơn hàng"
 FE -> Guard: POST /api/v1/orders (Header: Authorization: Bearer eyJhbGci...)
 Guard -> Guard: Kiểm tra Secret Key & Expiration Date
 alt Token Hợp lệ
-    Guard -> Auth: Chuyển request kèm user payload (req.user = { userId, email })
-    Auth -> DB: Tạo đơn hàng PENDING gắn với userId
+    Guard -> Auth: Chuyển request kèm user payload (req.user = { sub, email })
+    Auth -> DB: Tạo đơn hàng PENDING gắn với req.user.sub
     DB --> Auth: Bản ghi Order mới (#1042)
     Auth --> FE: 201 Created: { success: true, data: Order }
-    FE --> Client: Hiển thị màn hình Thanh toán
+    FE --> Client: Hiển thị màn hình Thanh toán (giữ nguyên giỏ, lưu pendingOrderId)
 else Token Không hợp lệ / Hết hạn
     Guard --> FE: 401 Unauthorized: { success: false, message: "Token không hợp lệ" }
     FE --> Client: Yêu cầu đăng nhập lại

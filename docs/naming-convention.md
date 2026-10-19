@@ -16,6 +16,7 @@
 | `POST` | `/api/v1/auth/register` | Đăng ký tài khoản mới | 201 Created |
 | `POST` | `/api/v1/auth/login` | Đăng nhập và nhận Bearer JWT | 200 OK |
 | `POST` | `/api/v1/orders` | Tạo đơn hàng mới (`PENDING`) | 201 Created |
+| `POST` | `/api/v1/orders/:id/cancel` | Hủy đơn hàng (`PENDING`/`PAYMENT_FAILED` → `CANCELLED`) | 200 OK |
 | `GET` | `/api/v1/orders/me` | Lấy lịch sử đơn hàng của người dùng | 200 OK |
 | `POST` | `/api/v1/payments` | Thanh toán đơn hàng (kèm `Idempotency-Key` header) | 200 OK / 201 Created |
 
@@ -50,3 +51,6 @@
 * **Components:** `PascalCase` cho tên hàm và tên file (ví dụ: `ProductCard.tsx`, `CartDrawer.tsx`, `Navbar.tsx`).
 * **Hooks:** Bắt đầu bằng `use`, dùng `camelCase` (ví dụ: `useCartStore.ts`, `useAuth.ts`).
 * **Thư mục routes (App Router):** `kebab-case` (ví dụ: `app/menu/page.tsx`, `app/orders/history/page.tsx`).
+
+---
+> *Tài liệu cập nhật v1.1 – áp dụng quyết định D6 (ngày 2026-10-16).*
