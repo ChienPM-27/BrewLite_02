@@ -13,8 +13,7 @@ stock: {gt: 0,},
 },
 include: {
 category: true,
-sizePrices: true,
-},
+ sizePrices: {orderBy: {priceAdjustment: 'asc',}, },},
 orderBy: {
 name: 'asc',
 },
