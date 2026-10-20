@@ -77,10 +77,12 @@ export class OrdersService {
   // 2. Kiểm tra khuyến mãi theo contract của nhóm.
   const promotionCode = dto.promotionCode?.trim();
 
-  const promotion = await this.promotionsService.validate(
-    promotionCode || undefined,
-    pricing.subtotal,
-  );
+  const promotion = promotionCode
+    ? await this.promotionsService.validate(
+        promotionCode,
+        pricing.subtotal,
+      )
+    : null;
 
   if (promotionCode && !promotion) {
     throw new BadRequestException(

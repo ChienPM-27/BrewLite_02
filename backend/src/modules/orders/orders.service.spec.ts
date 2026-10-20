@@ -127,11 +127,7 @@ describe('OrdersService.create', () => {
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
 
     expect(pricingMock.calculate).toHaveBeenCalledTimes(1);
-    expect(promotionsMock.validate).toHaveBeenCalledWith(
-      undefined,
-      110000,
-    );
-
+    expect(promotionsMock.validate).not.toHaveBeenCalled();
     expect(tx.product.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
