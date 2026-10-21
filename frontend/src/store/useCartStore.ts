@@ -29,6 +29,15 @@ export interface CartState {
   addItem: (item: Omit<CartItem, 'id'>) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
+  updateItem: (
+    currentCartItemId: string,
+    updates: {
+      size: 'S' | 'M' | 'L';
+      toppingIds: string[];
+      estimatedUnitPrice: number;
+      quantity?: number;
+    },
+  ) => void;
   setPendingOrderId: (orderId: string | null) => void;
   clearCart: () => void; // Chỉ gọi khi đơn thanh toán PAID thành công (Quyết định D2)
 }
@@ -96,6 +105,66 @@ export const useCartStore = create<CartState>()(
             ? { ...item, quantity: Math.min(quantity, MAX_QUANTITY_PER_LINE) }
             : item,
         );
+        set(summarize(updatedItems));
+      },
+
+      updateItem: (currentCartItemId, updates) => {
+        const currentItems = get().items;
+        const targetItem = currentItems.find((item) => item.id === currentCartItemId);
+        if (!targetItem) return;
+
+        const newSize = updates.size ?? targetItem.size;
+        const newToppings = updates.toppingIds ?? targetItem.toppingIds;
+        const newCartItemId = `${targetItem.productId}-${newSize}-${[...newToppings]
+          .sort()
+          .join('-')}`;
+        const newQuantity = updates.quantity ?? targetItem.quantity;
+        const newPrice = updates.estimatedUnitPrice ?? targetItem.estimatedUnitPrice;
+
+        if (newCartItemId === currentCartItemId) {
+          const updatedItems = currentItems.map((item) =>
+            item.id === currentCartItemId
+              ? {
+                  ...item,
+                  size: newSize,
+                  toppingIds: newToppings,
+                  estimatedUnitPrice: newPrice,
+                  quantity: Math.min(newQuantity, MAX_QUANTITY_PER_LINE),
+                }
+              : item,
+          );
+          set(summarize(updatedItems));
+          return;
+        }
+
+        const existingSame = currentItems.find((item) => item.id === newCartItemId);
+        let updatedItems: CartItem[];
+        if (existingSame) {
+          updatedItems = currentItems
+            .filter((item) => item.id !== currentCartItemId)
+            .map((item) =>
+              item.id === newCartItemId
+                ? {
+                    ...item,
+                    quantity: Math.min(item.quantity + newQuantity, MAX_QUANTITY_PER_LINE),
+                    estimatedUnitPrice: newPrice,
+                  }
+                : item,
+            );
+        } else {
+          updatedItems = currentItems.map((item) =>
+            item.id === currentCartItemId
+              ? {
+                  ...item,
+                  id: newCartItemId,
+                  size: newSize,
+                  toppingIds: newToppings,
+                  estimatedUnitPrice: newPrice,
+                  quantity: Math.min(newQuantity, MAX_QUANTITY_PER_LINE),
+                }
+              : item,
+          );
+        }
         set(summarize(updatedItems));
       },
 

@@ -1,6 +1,12 @@
 // frontend/src/types/product.ts
 
-export type ProductSize = 'S' | 'M' | 'L';
+export const ProductSize = {
+  S: 'S',
+  M: 'M',
+  L: 'L',
+} as const;
+
+export type ProductSize = (typeof ProductSize)[keyof typeof ProductSize];
 
 export interface SizePrice {
   size: ProductSize;
@@ -17,6 +23,7 @@ export interface ProductItem {
   basePrice: number;
   imageUrl: string | null;
   isAvailable: boolean;
+  stock?: number;
   categoryName: string | null;
   sizePrices: SizePrice[];
 }
@@ -35,6 +42,8 @@ export interface ProductDetail {
   basePrice: number;
   currency: 'VND';
   isAvailable: boolean;
+  stock?: number;
+  categoryName?: string | null;
   sizePrices: SizePrice[];
   toppings: ProductTopping[];
 }

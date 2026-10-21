@@ -1,6 +1,6 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Check, Lightbulb } from 'lucide-react';
 import { formatSurcharge } from '@/lib/format-currency';
 import { MAX_TOPPINGS } from '@/hooks/useProductDetail';
 import { ProductTopping } from '@/types/product';
@@ -11,6 +11,14 @@ interface ToppingSelectorProps {
   onToggle: (toppingId: string) => void;
   disabled?: boolean;
 }
+
+const TOPPING_DESCRIPTIONS: Record<string, string> = {
+  'Trân châu trắng': 'Giòn dai sần sật',
+  'Kem Cheese': 'Đậm đà ngậy thơm',
+  'Kem Cheese béo': 'Đậm đà ngậy thơm',
+  'Đào miếng': '2 miếng đào ngâm giòn',
+  'Đào miếng giòn': '2 miếng đào ngâm giòn',
+};
 
 /** Chọn / bỏ topping (checkbox), tối đa 3 loại, không chọn trùng. */
 export default function ToppingSelector({
@@ -25,7 +33,7 @@ export default function ToppingSelector({
   if (toppings.length === 0) {
     return (
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-bold text-navy">Topping thêm</h2>
+        <h2 className="text-base font-bold text-navy">Topping thêm</h2>
         <p className="rounded-2xl border border-border-warm bg-surface-milk p-3 text-sm text-content-secondary">
           Hiện tạm hết topping.
         </p>
@@ -36,31 +44,36 @@ export default function ToppingSelector({
   return (
     <fieldset className="flex flex-col gap-3" disabled={disabled}>
       <div className="flex items-center justify-between gap-2">
-        <legend className="text-lg font-bold text-navy">
+        <legend className="text-base font-bold text-navy">
           Topping thêm (Tối đa {MAX_TOPPINGS})
         </legend>
         <span
           aria-live="polite"
-          className="rounded-full border border-border-warm bg-primary-light px-3 py-0.5 text-[11px] font-bold text-primary"
+          className="text-xs font-semibold text-content-secondary"
         >
-          Đã chọn {selectedIds.length}/{MAX_TOPPINGS} topping
+          (Đã chọn {selectedIds.length}/{MAX_TOPPINGS} topping)
         </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {toppings.map((topping) => {
           const checked = selectedIds.includes(topping.id);
           const blocked = !checked && reachedLimit;
+          const description =
+            (topping as any).description ||
+            TOPPING_DESCRIPTIONS[topping.name] ||
+            'Topping hảo hạng';
+
           return (
             <label
               key={topping.id}
-              className={`flex cursor-pointer items-start justify-between gap-3 rounded-2xl border-2 p-4 transition-all sm:flex-col ${
+              className={`flex cursor-pointer flex-col justify-between rounded-2xl border-2 p-3.5 transition-all ${
                 checked
-                  ? 'border-primary bg-surface-milk shadow-card'
-                  : 'border-border-warm bg-surface-milk hover:bg-primary-light'
+                  ? 'border-primary bg-surface-milk shadow-card ring-2 ring-primary/20'
+                  : 'border-border-warm bg-surface-milk hover:border-primary/40'
               } ${blocked ? 'cursor-not-allowed opacity-50 hover:bg-surface-milk' : ''}`}
             >
-              <span className="flex items-center gap-3">
+              <div className="flex items-start gap-2.5">
                 <input
                   type="checkbox"
                   checked={checked}
@@ -70,20 +83,33 @@ export default function ToppingSelector({
                 />
                 <span
                   aria-hidden="true"
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 ${
-                    checked ? 'border-primary bg-primary text-surface-milk' : 'border-outline bg-surface-milk'
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                    checked ? 'border-primary bg-primary text-white' : 'border-outline bg-surface-milk'
                   }`}
                 >
-                  {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                  {checked && <Check className="h-3 w-3" strokeWidth={3} />}
                 </span>
-                <span className="text-[13px] font-semibold text-navy">{topping.name}</span>
-              </span>
-              <span className="text-[13px] font-bold text-primary">
-                {formatSurcharge(topping.price)}
-              </span>
+                <div>
+                  <h4 className="text-[13px] font-bold text-navy">{topping.name}</h4>
+                  <p className="text-[11px] text-content-secondary">{description}</p>
+                </div>
+              </div>
+              <div className="mt-2 text-right">
+                <span className="text-xs font-bold text-primary">
+                  {formatSurcharge(topping.price)}
+                </span>
+              </div>
             </label>
           );
         })}
+      </div>
+
+      {/* Mẹo nhỏ */}
+      <div className="flex items-center gap-2 rounded-xl bg-[#FAF2E8]/60 px-3.5 py-2 text-xs text-content-roast">
+        <Lightbulb className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+        <span>
+          <strong>Mẹo nhỏ:</strong> Kết hợp Kem Cheese với cà phê sữa đậm đà mang lại trải nghiệm béo ngậy cực đỉnh.
+        </span>
       </div>
     </fieldset>
   );

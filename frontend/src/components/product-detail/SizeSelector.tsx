@@ -10,6 +10,12 @@ interface SizeSelectorProps {
   disabled?: boolean;
 }
 
+const SIZE_LABELS: Record<ProductSize, string> = {
+  [ProductSize.S]: 'Nhỏ',
+  [ProductSize.M]: 'Tiêu chuẩn',
+  [ProductSize.L]: 'Lớn',
+};
+
 /** Chọn size S/M/L từ mảng sizePrices do API trả về. */
 export default function SizeSelector({
   sizePrices,
@@ -22,15 +28,15 @@ export default function SizeSelector({
   return (
     <fieldset className="flex flex-col gap-3" disabled={disabled}>
       <div className="flex items-center justify-between gap-2">
-        <legend className="flex items-center gap-2 text-lg font-bold text-navy">
-          Chọn size
-          <span className="rounded border border-danger/30 bg-danger-light px-1.5 py-0.5 text-[11px] font-semibold text-danger">
+        <legend className="flex items-center gap-2 text-base font-bold text-navy">
+          <span>Chọn size</span>
+          <span className="rounded-full bg-danger-light px-2 py-0.5 text-[10px] font-bold text-danger border border-danger/30">
             Bắt buộc
           </span>
         </legend>
         {selectedPrice && (
-          <span className="text-xs font-medium text-content-secondary">
-            Đang chọn: Size {selectedPrice.size} ({formatSurcharge(selectedPrice.priceAdjustment)})
+          <span className="text-xs font-semibold text-content-secondary">
+            (Đang chọn: Size {selectedPrice.size} ({formatSurcharge(selectedPrice.priceAdjustment)}))
           </span>
         )}
       </div>
@@ -43,11 +49,11 @@ export default function SizeSelector({
         <div
           role="radiogroup"
           aria-label="Chọn size"
-          className="grid gap-2 rounded-2xl border border-border-warm bg-primary-light p-1"
-          style={{ gridTemplateColumns: `repeat(${sizePrices.length}, minmax(0, 1fr))` }}
+          className="grid grid-cols-3 gap-3"
         >
           {sizePrices.map((sp) => {
             const active = sp.size === selected;
+            const label = SIZE_LABELS[sp.size];
             return (
               <button
                 key={sp.size}
@@ -55,14 +61,16 @@ export default function SizeSelector({
                 role="radio"
                 aria-checked={active}
                 onClick={() => onSelect(sp.size)}
-                className={`flex flex-col items-center justify-center rounded-xl px-3 py-2 text-[13px] transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                   active
-                    ? 'bg-surface-milk text-primary shadow-card-hover ring-1 ring-primary'
-                    : 'text-content-secondary hover:text-navy'
+                    ? 'border-primary bg-surface-milk text-primary shadow-card ring-2 ring-primary/20'
+                    : 'border-border-warm bg-surface-milk hover:border-primary/50 text-content-roast'
                 }`}
               >
-                <span className="font-bold">Size {sp.size}</span>
-                <span className={`text-xs ${active ? 'font-bold' : 'opacity-75'}`}>
+                <span className="text-sm font-bold text-navy">
+                  Size {sp.size} {label ? `(${label})` : ''}
+                </span>
+                <span className={`mt-0.5 text-xs ${active ? 'font-bold text-primary' : 'text-content-secondary'}`}>
                   {formatSurcharge(sp.priceAdjustment)}
                 </span>
               </button>
