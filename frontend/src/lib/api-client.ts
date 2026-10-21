@@ -8,6 +8,17 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+/** Lỗi trả về từ API; giữ `statusCode` để giao diện phân biệt 404 / 400 / 5xx. */
+export class ApiError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+  }
+}
+
 export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -30,7 +41,11 @@ export async function fetchApi<T>(
   const json: ApiResponse<T> = await response.json();
 
   if (!response.ok || !json.success) {
-    throw new Error((json as any).message || 'Có lỗi xảy ra khi gọi API');
+    const rawMessage = (json as any).message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join(', ')
+      : rawMessage || 'Có lỗi xảy ra khi gọi API';
+    throw new ApiError(message, response.status);
   }
 
   return json.data;

@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center space-y-6 px-4 py-12 text-center">
+
       <div className="inline-flex items-center gap-2 bg-coffee-cream/80 text-navy text-xs font-semibold px-4 py-1.5 rounded-full border border-border-light shadow-sm">
         <span>☕</span>
         <span>Hệ thống đặt cà phê không tiền mặt thế hệ mới</span>
