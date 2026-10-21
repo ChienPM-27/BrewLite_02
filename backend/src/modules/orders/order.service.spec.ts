@@ -1,5 +1,4 @@
 
-//file test tao don hang, goi pricing service, promotions service, ....
 import {
   ConflictException,
   NotFoundException,
@@ -15,18 +14,10 @@ describe('OrderService.transition', () => {
     order: {
       findUnique: jest.fn(),
       updateMany: jest.fn(),
-      update: jest.fn(),
       findUniqueOrThrow: jest.fn(),
     },
     orderStatusHistory: {
       create: jest.fn(),
-    },
-    loyaltyTransaction: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
-    },
-    user: {
-      update: jest.fn(),
     },
   };
 
@@ -37,17 +28,14 @@ describe('OrderService.transition', () => {
 
     tx.order.findUnique.mockResolvedValue({
       id: 'order-1',
-      userId: 'user-1',
       status: OrderStatus.PAID,
       version: 3,
-      finalAmount: 50000,
     });
 
     tx.order.updateMany.mockResolvedValue({ count: 1 });
 
     tx.order.findUniqueOrThrow.mockResolvedValue({
       id: 'order-1',
-      userId: 'user-1',
       status: OrderStatus.PREPARING,
       version: 4,
     });
@@ -107,10 +95,8 @@ describe('OrderService.transition', () => {
   it('rejects an invalid state transition', async () => {
     tx.order.findUnique.mockResolvedValue({
       id: 'order-1',
-      userId: 'user-1',
       status: OrderStatus.PENDING,
       version: 3,
-      finalAmount: 50000,
     });
 
     await expect(
@@ -138,7 +124,8 @@ describe('OrderService.transition', () => {
 
     expect(tx.orderStatusHistory.create).not.toHaveBeenCalled();
   });
-    const validTransitions: Array<[OrderStatus, OrderStatus]> = [
+
+  const validTransitions: Array<[OrderStatus, OrderStatus]> = [
     [OrderStatus.PENDING, OrderStatus.PAID],
     [OrderStatus.PENDING, OrderStatus.PAYMENT_FAILED],
     [OrderStatus.PENDING, OrderStatus.CANCELLED],
@@ -155,22 +142,14 @@ describe('OrderService.transition', () => {
     async (fromStatus, toStatus) => {
       tx.order.findUnique.mockResolvedValue({
         id: 'order-1',
-        userId: 'user-1',
         status: fromStatus,
         version: 3,
-        finalAmount: 50000,
       });
 
       tx.order.findUniqueOrThrow.mockResolvedValue({
         id: 'order-1',
-        userId: 'user-1',
         status: toStatus,
         version: 4,
-      });
-
-      // Tránh kích hoạt nhánh cộng điểm trong test ma trận.
-      tx.loyaltyTransaction.findFirst.mockResolvedValue({
-        id: 'existing-transaction',
       });
 
       await service.transition(
@@ -211,10 +190,8 @@ describe('OrderService.transition', () => {
     async (fromStatus) => {
       tx.order.findUnique.mockResolvedValue({
         id: 'order-1',
-        userId: 'user-1',
         status: fromStatus,
         version: 3,
-        finalAmount: 50000,
       });
 
       await expect(
@@ -229,84 +206,4 @@ describe('OrderService.transition', () => {
       expect(tx.orderStatusHistory.create).not.toHaveBeenCalled();
     },
   );
-
-    it('awards loyalty points when an order transitions to PAID', async () => {
-    tx.order.findUnique.mockResolvedValue({
-      id: 'order-1',
-      userId: 'user-1',
-      status: OrderStatus.PENDING,
-      version: 3,
-      finalAmount: 50000,
-    });
-
-    tx.order.updateMany.mockResolvedValue({ count: 1 });
-    tx.loyaltyTransaction.findFirst.mockResolvedValue(null);
-    tx.order.update.mockResolvedValue({});
-    tx.user.update.mockResolvedValue({});
-    tx.loyaltyTransaction.create.mockResolvedValue({});
-    tx.order.findUniqueOrThrow.mockResolvedValue({
-      id: 'order-1',
-      status: OrderStatus.PAID,
-    });
-
-    await service.transition(
-      tx as unknown as Prisma.TransactionClient,
-      'order-1',
-      OrderStatus.PAID,
-    );
-
-    // 50.000đ / 1.000 = 50 điểm
-    expect(tx.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-1' },
-      data: { pointsEarned: 50 },
-    });
-
-    expect(tx.user.update).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: {
-        loyaltyPoints: { increment: 50 },
-      },
-    });
-
-    expect(tx.loyaltyTransaction.create).toHaveBeenCalledWith({
-      data: {
-        userId: 'user-1',
-        orderId: 'order-1',
-        points: 50,
-        type: 'EARNED',
-        reason: 'Earned 50 points from order order-1',
-      },
-    });
-  });
-
-  it('does not award loyalty points twice for the same order', async () => {
-    tx.order.findUnique.mockResolvedValue({
-      id: 'order-1',
-      userId: 'user-1',
-      status: OrderStatus.PENDING,
-      version: 3,
-      finalAmount: 50000,
-    });
-
-    tx.order.updateMany.mockResolvedValue({ count: 1 });
-    tx.loyaltyTransaction.findFirst.mockResolvedValue({
-      id: 'existing-earned-transaction',
-    });
-
-    tx.order.findUniqueOrThrow.mockResolvedValue({
-      id: 'order-1',
-      status: OrderStatus.PAID,
-    });
-
-    await service.transition(
-      tx as unknown as Prisma.TransactionClient,
-      'order-1',
-      OrderStatus.PAID,
-    );
-
-    expect(tx.loyaltyTransaction.findFirst).toHaveBeenCalled();
-    expect(tx.order.update).not.toHaveBeenCalled();
-    expect(tx.user.update).not.toHaveBeenCalled();
-    expect(tx.loyaltyTransaction.create).not.toHaveBeenCalled();
-  });
 });

@@ -6,7 +6,6 @@ import {
 import {
   Prisma,
   OrderStatus,
-  LoyaltyTransactionType,
   Order,
 } from '@prisma/client';
 
@@ -27,10 +26,8 @@ export class OrderService {
       where: { id: orderId },
       select: {
         id: true,
-        userId: true,
         status: true,
         version: true,
-        finalAmount: true,
       },
     });
 
@@ -76,48 +73,6 @@ export class OrderService {
         reason: opts?.reason,
       },
     });
-
-    // Cộng điểm loyalty khi chuyển sang PAID.
-    if (to === OrderStatus.PAID) {
-      const existingTransaction =
-        await tx.loyaltyTransaction.findFirst({
-          where: {
-            orderId: order.id,
-            type: LoyaltyTransactionType.EARNED,
-          },
-          select: { id: true },
-        });
-
-      if (!existingTransaction) {
-        const points = Math.floor(
-          Number(order.finalAmount) / 1000,
-        );
-
-        await tx.order.update({
-          where: { id: order.id },
-          data: { pointsEarned: points },
-        });
-
-        if (points > 0) {
-          await tx.user.update({
-            where: { id: order.userId },
-            data: {
-              loyaltyPoints: { increment: points },
-            },
-          });
-        }
-
-        await tx.loyaltyTransaction.create({
-          data: {
-            userId: order.userId,
-            orderId: order.id,
-            points,
-            type: LoyaltyTransactionType.EARNED,
-            reason: `Earned ${points} points from order ${order.id}`,
-          },
-        });
-      }
-    }
 
     return tx.order.findUniqueOrThrow({
       where: { id: order.id },
