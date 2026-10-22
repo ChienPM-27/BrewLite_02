@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:4000/api/v1
+@token = YOUR_JWT_TOKEN
+@orderId = YOUR_PENDING_ORDER_ID
+
+### 1. Thanh toán thành công
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-demo-001
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### 2. Gửi lại cùng key và cùng nội dung
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-demo-001
+X-Mock-Outcome: FAILED
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### 3. Thanh toán thất bại bằng key mới
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-demo-002
+X-Mock-Outcome: FAILED
+
+{
+  "orderId": "{{orderId}}",
+  "method": "BANK_CARD"
+}
+
+### 4. Cùng key nhưng khác nội dung
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-demo-001
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "BANK_CARD"
+}
+
+### 5. Thử lại thanh toán sau khi thất bại bằng key mới (Retry PAYMENT_FAILED -> SUCCESS)
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-demo-003
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
