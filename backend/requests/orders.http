@@ -1,0 +1,38 @@
+@baseUrl = http://localhost:4000/api/v1
+@token = REPLACE_WITH_ACCESS_TOKEN
+@productId = REPLACE_WITH_EXISTING_PRODUCT_ID
+@toppingId = REPLACE_WITH_EXISTING_TOPPING_ID
+@promotionCode = REPLACE_WITH_VALID_PROMOTION_CODE
+
+### GD1-09: Tạo đơn hàng không dùng topping và khuyến mãi
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "size": "M",
+      "quantity": 2,
+      "toppingIds": []
+    }
+  ]
+}
+
+### GD1-09: Tạo đơn hàng có topping và mã khuyến mãi
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "size": "M",
+      "quantity": 2,
+      "toppingIds": ["{{toppingId}}"]
+    }
+  ],
+  "promotionCode": "{{promotionCode}}"
+}
