@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Module,
@@ -30,14 +29,6 @@ export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
   ) {}
-
-  @Get('health')
-  healthCheck() {
-    return {
-      module: 'Orders',
-      status: 'Ready for implementation (Task 6)',
-    };
-  }
 
   @Post()
   @UseGuards(JwtAuthGuard)
