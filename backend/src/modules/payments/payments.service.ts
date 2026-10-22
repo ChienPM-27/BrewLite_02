@@ -140,13 +140,15 @@ export class PaymentsService {
             finalAmount: Number(order.finalAmount),
           });
 
-          return tx.payment.update({
+          const updated = await tx.payment.update({
             where: { id: payment.id },
             data: {
               status: PaymentStatus.SUCCESS,
               transactionRef: `MOCK-${payment.id}`,
             },
           });
+
+          return this.toPaymentResponse(updated);
         }
 
         // 7. Thanh toán thất bại.
@@ -160,13 +162,15 @@ export class PaymentsService {
           },
         );
 
-        return tx.payment.update({
+        const updated = await tx.payment.update({
           where: { id: payment.id },
           data: {
             status: PaymentStatus.FAILED,
             failureReason: 'Mock payment failed',
           },
         });
+
+        return this.toPaymentResponse(updated);
       });
     } catch (error) {
       // 8. Hai request cùng key có thể chạy đồng thời.
@@ -213,7 +217,28 @@ export class PaymentsService {
       );
     }
 
-    const { order, ...paymentData } = payment;
-    return paymentData;
+    return this.toPaymentResponse(payment);
+  }
+
+  private toPaymentResponse(payment: {
+    id: string;
+    orderId: string;
+    amount: any;
+    method: any;
+    status: any;
+    transactionRef: string | null;
+    failureReason: string | null;
+    createdAt: Date;
+  }) {
+    return {
+      id: payment.id,
+      orderId: payment.orderId,
+      amount: payment.amount,
+      method: payment.method,
+      status: payment.status,
+      transactionRef: payment.transactionRef,
+      failureReason: payment.failureReason,
+      createdAt: payment.createdAt,
+    };
   }
 }

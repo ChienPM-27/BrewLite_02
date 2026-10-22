@@ -379,4 +379,57 @@ describe('PaymentsService', () => {
 
     expect(result.status).toBe(PaymentStatus.SUCCESS);
   });
+
+  it('returns lean payment response without internal fields (idempotencyKey, requestHash, order)', async () => {
+    prismaMock.payment.findUnique.mockResolvedValue(null);
+
+    tx.order.findUnique.mockResolvedValue({
+      id: 'order-1',
+      userId: 'user-1',
+      status: OrderStatus.PENDING,
+      finalAmount: new Prisma.Decimal(65000),
+    });
+
+    tx.payment.create.mockResolvedValue({
+      id: 'pay-1',
+      orderId: 'order-1',
+      status: PaymentStatus.PENDING,
+    });
+
+    const createdAt = new Date('2026-10-22T00:00:00.000Z');
+    tx.payment.update.mockResolvedValue({
+      id: 'pay-1',
+      orderId: 'order-1',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.E_WALLET,
+      status: PaymentStatus.SUCCESS,
+      transactionRef: 'MOCK-pay-1',
+      failureReason: null,
+      createdAt,
+      idempotencyKey: 'idem-key-1',
+      requestHash: 'some-hash',
+      order: { id: 'order-1' },
+    });
+
+    const result = await service.createPayment(
+      'user-1',
+      'idem-key-1',
+      validDto,
+      'SUCCESS',
+    );
+
+    expect(result).toEqual({
+      id: 'pay-1',
+      orderId: 'order-1',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.E_WALLET,
+      status: PaymentStatus.SUCCESS,
+      transactionRef: 'MOCK-pay-1',
+      failureReason: null,
+      createdAt,
+    });
+    expect(result).not.toHaveProperty('idempotencyKey');
+    expect(result).not.toHaveProperty('requestHash');
+    expect(result).not.toHaveProperty('order');
+  });
 });
