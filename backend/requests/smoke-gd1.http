@@ -1,0 +1,104 @@
+@base = http://localhost:4000/api/v1
+
+### 1. Đăng nhập tài khoản demo
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@brewlite.test",
+  "password": "Demo@12345"
+}
+
+### Lưu Access Token
+@token = {{login.response.body.data.accessToken}}
+
+### 2. Lấy danh sách sản phẩm (lấy id sản phẩm đầu tiên)
+# @name getProducts
+GET {{base}}/products
+Authorization: Bearer {{token}}
+
+### Lưu Product ID
+@productId = {{getProducts.response.body.data[0].id}}
+
+### 3. Lấy chi tiết sản phẩm (lấy id topping đầu tiên)
+# @name getProductDetail
+GET {{base}}/products/{{productId}}
+Authorization: Bearer {{token}}
+
+### Lưu Topping ID
+@toppingId = {{getProductDetail.response.body.data.toppings[0].id}}
+
+### 4. Tạo đơn hàng (1 món size M, 1 topping)
+# @name createOrder
+POST {{base}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "size": "M",
+      "quantity": 1,
+      "toppingIds": ["{{toppingId}}"]
+    }
+  ]
+}
+
+### Lưu Order ID
+@orderId = {{createOrder.response.body.data.id}}
+
+### 5. Thanh toán thất bại (Idempotency-Key: key-1, X-Mock-Outcome: FAILED, method: E_WALLET)
+# @name payFailedKey1
+POST {{base}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: key-1
+X-Mock-Outcome: FAILED
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### 6. Thanh toán thành công bằng key mới (Idempotency-Key: key-2, không header mock)
+# @name paySuccessKey2
+POST {{base}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: key-2
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### 7. Gửi lại y hệt key-2 (Replay Idempotency)
+# @name replayKey2
+POST {{base}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: key-2
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### 8. Gửi key-2 nhưng khác method (Conflict 409)
+# @name conflictKey2
+POST {{base}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: key-2
+
+{
+  "orderId": "{{orderId}}",
+  "method": "BANK_CARD"
+}
+
+### 9. Thử hủy đơn đã PAID (Conflict 409)
+# @name cancelPaidOrder
+POST {{base}}/orders/{{orderId}}/cancel
+Authorization: Bearer {{token}}
