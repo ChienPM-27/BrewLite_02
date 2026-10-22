@@ -1,0 +1,25 @@
+### TEST Orders
+# Thay token vào sau bearer
+curl -X POST http://localhost:4000/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token" \
+  -d '{
+    "items": [
+      {
+        "productId": "....",
+        "size": "M",
+        "quantity": 1,
+        "toppingIds": []
+      }
+    ]
+  }'
+
+### TEST Payment
+curl -X POST http://localhost:4000/api/v1/payments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token" \
+  -H "Idempotency-Key: pay-12345" \
+  -d '{
+    "orderId": "....",
+    "method": "BANK_CARD"
+  }'
