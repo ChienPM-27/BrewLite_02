@@ -17,7 +17,7 @@ export function assertTransition(
 ): void {
   const allowedStatuses = ALLOWED_TRANSITIONS[fromStatus];
 
-    if (!allowedStatuses?.includes(toStatus)) {
+  if (!allowedStatuses?.includes(toStatus)) {
     throw new ConflictException(
       `Invalid order status transition: ${fromStatus} -> ${toStatus}`,
     );

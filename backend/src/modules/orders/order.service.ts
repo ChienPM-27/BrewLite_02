@@ -3,11 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  Prisma,
-  OrderStatus,
-  Order,
-} from '@prisma/client';
+import { Prisma, OrderStatus, Order } from '@prisma/client';
 
 import { assertTransition } from './order-state';
 
@@ -32,9 +28,7 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new NotFoundException(
-        `Order ${orderId} not found`,
-      );
+      throw new NotFoundException(`Order ${orderId} not found`);
     }
 
     // Kiểm tra state machine trước khi cập nhật.
@@ -51,9 +45,7 @@ export class OrderService {
       data: {
         status: to,
         version: { increment: 1 },
-        ...(to === OrderStatus.PAID
-          ? { paidAt: new Date() }
-          : {}),
+        ...(to === OrderStatus.PAID ? { paidAt: new Date() } : {}),
       },
     });
 

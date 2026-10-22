@@ -4,11 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  OrderStatus,
-  PaymentStatus,
-  Prisma,
-} from '@prisma/client';
+import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -35,15 +31,11 @@ export class PaymentsService {
     const normalizedKey = idempotencyKey?.trim();
 
     if (!normalizedKey) {
-      throw new BadRequestException(
-        'Idempotency-Key là bắt buộc',
-      );
+      throw new BadRequestException('Idempotency-Key là bắt buộc');
     }
 
     if (!userId || !body?.orderId || !body?.method) {
-      throw new BadRequestException(
-        'orderId và method là bắt buộc',
-      );
+      throw new BadRequestException('orderId và method là bắt buộc');
     }
 
     const requestHash = createHash('sha256')
@@ -62,11 +54,7 @@ export class PaymentsService {
     });
 
     if (existingPayment) {
-      return this.replayExistingPayment(
-        existingPayment,
-        userId,
-        requestHash,
-      );
+      return this.replayExistingPayment(existingPayment, userId, requestHash);
     }
 
     try {
@@ -77,9 +65,7 @@ export class PaymentsService {
         });
 
         if (!order || order.userId !== userId) {
-          throw new NotFoundException(
-            'Không tìm thấy đơn hàng',
-          );
+          throw new NotFoundException('Không tìm thấy đơn hàng');
         }
 
         // 3. Chỉ cho phép thanh toán trạng thái hợp lệ.
@@ -107,8 +93,7 @@ export class PaymentsService {
         }
 
         // 5. Xác định kết quả mock trước khi tạo Payment.
-        const outcome =
-          this.mockGateway.processPayment(mockOutcome);
+        const outcome = this.mockGateway.processPayment(mockOutcome);
 
         const payment = await tx.payment.create({
           data: {
@@ -123,15 +108,10 @@ export class PaymentsService {
 
         // 6. Thanh toán thành công.
         if (outcome === 'SUCCESS') {
-          await this.orderService.transition(
-            tx,
-            order.id,
-            OrderStatus.PAID,
-            {
-              changedBy: userId,
-              reason: 'Thanh toán thành công',
-            },
-          );
+          await this.orderService.transition(tx, order.id, OrderStatus.PAID, {
+            changedBy: userId,
+            reason: 'Thanh toán thành công',
+          });
 
           // Giữ lời gọi theo đúng contract Payment hiện tại.
           await this.loyaltyService.award(tx, {
@@ -179,11 +159,10 @@ export class PaymentsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const paymentAfterRace =
-          await this.prisma.payment.findUnique({
-            where: { idempotencyKey: normalizedKey },
-            include: { order: true },
-          });
+        const paymentAfterRace = await this.prisma.payment.findUnique({
+          where: { idempotencyKey: normalizedKey },
+          include: { order: true },
+        });
 
         if (paymentAfterRace) {
           return this.replayExistingPayment(
@@ -206,9 +185,7 @@ export class PaymentsService {
     requestHash: string,
   ) {
     if (payment.order.userId !== userId) {
-      throw new NotFoundException(
-        'Không tìm thấy đơn hàng',
-      );
+      throw new NotFoundException('Không tìm thấy đơn hàng');
     }
 
     if (payment.requestHash !== requestHash) {

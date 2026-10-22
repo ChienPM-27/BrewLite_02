@@ -1,4 +1,4 @@
-import { Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -9,13 +9,13 @@ export class LoyaltyService {
     order: { id: string; userId: string; finalAmount: number },
   ): Promise<void> {
     const points = Math.floor(Number(order.finalAmount) / 1000);
-    if (points <= 0 ) return;
+    if (points <= 0) return;
 
     //Đơn đã cộng điểm thì dừng
     const existingTransaction = await tx.loyaltyTransaction.findFirst({
       where: {
         orderId: order.id,
-        type: "EARNED"
+        type: 'EARNED',
       },
     });
     if (existingTransaction) {
@@ -27,9 +27,10 @@ export class LoyaltyService {
       data: {
         userId: order.userId,
         orderId: order.id,
-        points, type: "EARNED",
-        reason:`Tích điểm từ đơn hàng ${order.id}`
-      }
+        points,
+        type: 'EARNED',
+        reason: `Tích điểm từ đơn hàng ${order.id}`,
+      },
     });
 
     // Cộng điểm vào tài khoản người dùng
@@ -43,4 +44,5 @@ export class LoyaltyService {
       where: { id: order.id },
       data: { pointsEarned: points },
     });
-  }}
+  }
+}

@@ -1,9 +1,5 @@
-
 //file test chuyen trang thai, kiem tra state machine, optimistic locking va ghi lich su
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductSize, OrderStatus } from '@prisma/client';
 
 import { OrdersService } from './orders.service';
@@ -58,8 +54,7 @@ describe('OrdersService.create', () => {
     jest.clearAllMocks();
 
     prismaMock.$transaction.mockImplementation(
-      (callback: (transaction: typeof tx) => Promise<unknown>) =>
-        callback(tx),
+      (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
     );
 
     tx.user.findUnique.mockResolvedValue({
@@ -114,10 +109,7 @@ describe('OrdersService.create', () => {
   });
 
   it('creates an order and records the initial status', async () => {
-    const result = await service.create(
-      'user-1',
-      dto,
-    );
+    const result = await service.create('user-1', dto);
 
     expect(result).toEqual({
       id: 'order-1',
@@ -161,9 +153,9 @@ describe('OrdersService.create', () => {
   it('rejects when the user does not exist', async () => {
     tx.user.findUnique.mockResolvedValue(null);
 
-    await expect(
-      service.create('missing-user', dto),
-    ).rejects.toThrow(NotFoundException);
+    await expect(service.create('missing-user', dto)).rejects.toThrow(
+      NotFoundException,
+    );
 
     expect(tx.order.create).not.toHaveBeenCalled();
   });
@@ -184,9 +176,9 @@ describe('OrdersService.create', () => {
   it('rejects when product stock cannot be reserved', async () => {
     tx.product.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(
-      service.create('user-1', dto),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.create('user-1', dto)).rejects.toThrow(
+      BadRequestException,
+    );
 
     expect(tx.order.create).not.toHaveBeenCalled();
   });

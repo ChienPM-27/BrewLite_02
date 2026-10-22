@@ -26,17 +26,12 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    private readonly ordersService: OrdersService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  create(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: CreateOrderDto,
-  ) {
+  create(@Req() req: AuthenticatedRequest, @Body() dto: CreateOrderDto) {
     return this.ordersService.create(req.user.sub, dto);
   }
 }

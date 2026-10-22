@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export type MockPaymentOutcome = 'SUCCESS' | 'FAILED';
@@ -19,19 +16,13 @@ export class MockGatewayService {
       return 'SUCCESS';
     }
 
-    if (
-      outcomeHeader === undefined ||
-      outcomeHeader.trim() === ''
-    ) {
+    if (outcomeHeader === undefined || outcomeHeader.trim() === '') {
       return 'SUCCESS';
     }
 
     const normalizedOutcome = outcomeHeader.trim().toUpperCase();
 
-    if (
-      normalizedOutcome !== 'SUCCESS' &&
-      normalizedOutcome !== 'FAILED'
-    ) {
+    if (normalizedOutcome !== 'SUCCESS' && normalizedOutcome !== 'FAILED') {
       throw new BadRequestException(
         'X-Mock-Outcome chỉ chấp nhận SUCCESS hoặc FAILED',
       );

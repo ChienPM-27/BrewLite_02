@@ -1,8 +1,4 @@
-
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 
 import { OrderService } from './order.service';
@@ -182,10 +178,7 @@ describe('OrderService.transition', () => {
     },
   );
 
-  it.each([
-    OrderStatus.COMPLETED,
-    OrderStatus.CANCELLED,
-  ])(
+  it.each([OrderStatus.COMPLETED, OrderStatus.CANCELLED])(
     'rejects transitions out of terminal state %s',
     async (fromStatus) => {
       tx.order.findUnique.mockResolvedValue({

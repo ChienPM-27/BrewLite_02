@@ -1,5 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { BadRequestException, Injectable} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PromotionsService {
@@ -8,11 +8,10 @@ export class PromotionsService {
     code: string | undefined,
     totalAmount: number,
   ): Promise<{ promotionId: string; discountAmount: number } | null> {
-
     if (!code?.trim()) return null;
-    
+
     if (!Number.isFinite(totalAmount) || totalAmount < 0) {
-      throw new BadRequestException("Tổng tiền đơn hàng không hợp lệ!");
+      throw new BadRequestException('Tổng tiền đơn hàng không hợp lệ!');
     }
 
     const normalizedCode = code.trim().toUpperCase();
@@ -20,15 +19,15 @@ export class PromotionsService {
       where: { code: normalizedCode },
     });
     if (!promotion || !promotion.isActive) {
-      throw new BadRequestException("Mã giảm giá không hợp lệ.");
+      throw new BadRequestException('Mã giảm giá không hợp lệ.');
     }
 
     const now = new Date();
     if (now < promotion.startDate) {
-      throw new BadRequestException("Mã giảm giá chưa đến thời gian áp dụng.");
+      throw new BadRequestException('Mã giảm giá chưa đến thời gian áp dụng.');
     }
     if (promotion.endDate && now > promotion.endDate) {
-      throw new BadRequestException("Mã giảm giá đã hết hạn.");
+      throw new BadRequestException('Mã giảm giá đã hết hạn.');
     }
 
     const minOrderAmount = Number(promotion.minOrderAmount);
@@ -41,7 +40,7 @@ export class PromotionsService {
     const hasPercent = promotion.discountPercent !== null;
     const hasFixedAmount = promotion.discountAmount !== null;
     if (!hasPercent && !hasFixedAmount) {
-      throw new BadRequestException("Mã giảm giá chưa được cấu hình mức giảm.");
+      throw new BadRequestException('Mã giảm giá chưa được cấu hình mức giảm.');
     }
     let discount = hasPercent
       ? Math.floor((totalAmount * promotion.discountPercent!) / 100)

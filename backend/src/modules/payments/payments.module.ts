@@ -6,14 +6,8 @@ import { OrdersModule } from '../orders/orders.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 
 @Module({
-  imports: [
-    OrdersModule,
-    LoyaltyModule,
-  ],
+  imports: [OrdersModule, LoyaltyModule],
   controllers: [PaymentsController],
-  providers: [
-    PaymentsService,
-    MockGatewayService,
-  ],
+  providers: [PaymentsService, MockGatewayService],
 })
 export class PaymentsModule {}

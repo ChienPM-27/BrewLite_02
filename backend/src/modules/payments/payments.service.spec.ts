@@ -4,7 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+} from '@prisma/client';
 
 import { PaymentsService } from './payments.service';
 import { MockGatewayService } from './mock-gateway.service';
@@ -257,7 +262,8 @@ describe('PaymentsService', () => {
     const existing = {
       id: 'pay-1',
       orderId: 'order-1',
-      requestHash: '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
+      requestHash:
+        '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
       status: PaymentStatus.SUCCESS,
       order: {
         userId: 'user-1',
@@ -294,7 +300,8 @@ describe('PaymentsService', () => {
     const racePayment = {
       id: 'pay-race',
       orderId: 'order-1',
-      requestHash: '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
+      requestHash:
+        '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
       status: PaymentStatus.SUCCESS,
       order: {
         userId: 'user-1',
