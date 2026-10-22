@@ -56,7 +56,7 @@ export class CancelOrderService {
         tx,
         order.id,
         OrderStatus.CANCELLED,
-        { changedBy: 'customer', reason: 'Customer cancelled' },
+        { changedBy: userId, reason: 'Customer cancelled' },
       );
 
       // Hoàn kho cho Product (tăng version để vô hiệu hóa optimistic lock đang chạy).
