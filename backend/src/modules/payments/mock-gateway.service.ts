@@ -1,8 +1,6 @@
-
 import {
   BadRequestException,
   Injectable,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -16,10 +14,9 @@ export class MockGatewayService {
     const nodeEnvironment =
       this.configService.get<string>('NODE_ENV') ?? 'development';
 
+    // Trong môi trường production, luôn bỏ qua header mô phỏng và xử lý thành công (D8, TC-PAY-19)
     if (nodeEnvironment === 'production') {
-      throw new ServiceUnavailableException(
-        'Mock payment không được bật trong production',
-      );
+      return 'SUCCESS';
     }
 
     if (

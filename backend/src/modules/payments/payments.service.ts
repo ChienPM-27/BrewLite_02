@@ -1,12 +1,9 @@
-
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   OrderStatus,
   PaymentStatus,
@@ -27,7 +24,6 @@ export class PaymentsService {
     private readonly orderService: OrderService,
     private readonly loyaltyService: LoyaltyService,
     private readonly mockGateway: MockGatewayService,
-    private readonly configService: ConfigService,
   ) {}
 
   async createPayment(
@@ -47,14 +43,6 @@ export class PaymentsService {
     if (!userId || !body?.orderId || !body?.method) {
       throw new BadRequestException(
         'orderId và method là bắt buộc',
-      );
-    }
-
-    if (
-      this.configService.get<string>('NODE_ENV') === 'production'
-    ) {
-      throw new ServiceUnavailableException(
-        'Mock payment không được bật trong production',
       );
     }
 
@@ -104,7 +92,21 @@ export class PaymentsService {
           );
         }
 
-        // 4. Xác định kết quả mock trước khi tạo Payment.
+        // 4. Nếu là đơn hàng thử lại thanh toán sau khi thất bại,
+        // chuyển trạng thái PAYMENT_FAILED -> PENDING theo đúng State Machine (D1, TC-PAY-13)
+        if (order.status === OrderStatus.PAYMENT_FAILED) {
+          await this.orderService.transition(
+            tx,
+            order.id,
+            OrderStatus.PENDING,
+            {
+              changedBy: userId,
+              reason: 'Khách hàng thử lại thanh toán',
+            },
+          );
+        }
+
+        // 5. Xác định kết quả mock trước khi tạo Payment.
         const outcome =
           this.mockGateway.processPayment(mockOutcome);
 
@@ -119,7 +121,7 @@ export class PaymentsService {
           },
         });
 
-        // 5. Thanh toán thành công.
+        // 6. Thanh toán thành công.
         if (outcome === 'SUCCESS') {
           await this.orderService.transition(
             tx,
@@ -144,11 +146,10 @@ export class PaymentsService {
               status: PaymentStatus.SUCCESS,
               transactionRef: `MOCK-${payment.id}`,
             },
-            include: { order: true },
           });
         }
 
-        // 6. Thanh toán thất bại.
+        // 7. Thanh toán thất bại.
         await this.orderService.transition(
           tx,
           order.id,
@@ -165,11 +166,10 @@ export class PaymentsService {
             status: PaymentStatus.FAILED,
             failureReason: 'Mock payment failed',
           },
-          include: { order: true },
         });
       });
     } catch (error) {
-      // 7. Hai request cùng key có thể chạy đồng thời.
+      // 8. Hai request cùng key có thể chạy đồng thời.
       // Nếu request còn lại đã tạo Payment, trả lại kết quả đó.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -213,6 +213,7 @@ export class PaymentsService {
       );
     }
 
-    return payment;
+    const { order, ...paymentData } = payment;
+    return paymentData;
   }
 }
