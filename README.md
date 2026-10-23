@@ -57,13 +57,7 @@ npm run prisma:seed
 npm run start:dev
 ```
 - **REST API Base URL:** `http://localhost:4000/api/v1`
-- Biến môi trường mẫu trong `backend/.env.example`:
-  - `PORT=4000`
-  - `NODE_ENV=development`
-  - `DATABASE_URL="postgresql://brewlite_admin:brewlite_secret_pass@localhost:5432/brewlite_db?schema=public"`
-  - `DIRECT_URL="postgresql://brewlite_admin:brewlite_secret_pass@localhost:5432/brewlite_db?schema=public"`
-  - `JWT_SECRET=brewlite_super_secret_jwt_key_2026`
-  - `JWT_EXPIRATION=7d`
+- Toàn bộ biến môi trường dev được cấu hình mẫu trong `backend/.env.example` (`PORT`, `NODE_ENV`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `JWT_EXPIRATION`). Lệnh `cp .env.example .env` đã nạp sẵn cấu hình dev kết nối tới PostgreSQL cục bộ.
 
 #### 3. Cài đặt và chạy Frontend (Port 3000):
 ```bash
@@ -73,9 +67,9 @@ npm install
 npm run dev
 ```
 - **Giao diện Web:** `http://localhost:3000`
-- Biến môi trường trong `frontend/.env.local`:
-  - `NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1`
-  - `NEXT_PUBLIC_DEMO_MODE=true` *(bật chế độ demo để hiển thị công cụ chọn kịch bản thanh toán MoMo/Thẻ ngân hàng)*
+- Cấu hình môi trường dev trong `frontend/.env.example`:
+  - `NEXT_PUBLIC_API_URL`: Trỏ tới backend API (`http://localhost:4000/api/v1`).
+  - `NEXT_PUBLIC_DEMO_MODE`: Bật/tắt công cụ mô phỏng thanh toán trực quan (true/false).
 
 ---
 
