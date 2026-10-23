@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Coffee, ShoppingBag } from 'lucide-react';
+import { Coffee, LogOut, ShoppingBag, User } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useHydrated } from '@/hooks/useHydrated';
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
   { href: '/menu', label: 'Thực đơn' },
-  { href: '/orders', label: 'Lịch sử đơn hàng' },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -21,8 +21,17 @@ export default function Navbar() {
   const pathname = usePathname();
   const hydrated = useHydrated();
   const badgeCount = useCartStore((state) => state.badgeCount);
-  // Giỏ hàng lưu ở localStorage -> chỉ hiển thị số sau khi client đã mount
   const cartCount = hydrated ? badgeCount : 0;
+
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const isLoggedIn = hydrated && !!user;
+  const displayName = user?.fullName?.trim() || user?.email?.split('@')[0] || 'Tài khoản';
+
+  const navLinks = [
+    ...BASE_NAV_LINKS,
+    ...(isLoggedIn ? [{ href: '/orders', label: 'Đơn hàng của tôi' }] : []),
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border-warm/60 bg-surface-milk/85 backdrop-blur-xl">
@@ -44,7 +53,7 @@ export default function Navbar() {
             aria-label="Điều hướng chính"
             className="hidden items-center gap-1 rounded-full border border-border-warm/60 bg-primary-light/80 p-1 lg:flex"
           >
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const active = isActive(pathname, link.href);
               return (
                 <Link
@@ -76,21 +85,44 @@ export default function Navbar() {
               {cartCount} món
             </span>
           </Link>
-          <Link
-            href="/auth/login"
-            className="hidden px-2 py-1 text-[13px] font-semibold text-content-secondary transition-colors hover:text-primary sm:inline-flex"
-          >
-            Đăng nhập / Đăng ký
-          </Link>
+
+          {isLoggedIn ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/orders"
+                title={user?.email}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border-warm bg-surface-sand/80 px-3 py-1.5 text-xs font-bold text-navy transition-colors hover:border-primary hover:text-primary"
+              >
+                <User className="h-3.5 w-3.5 text-primary" />
+                <span className="max-w-[120px] truncate sm:max-w-[160px]">{displayName}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                title="Đăng xuất"
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-content-secondary transition-colors hover:text-danger"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Đăng xuất</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="inline-flex rounded-full border border-border-warm bg-surface-sand/80 px-3.5 py-1.5 text-[13px] font-semibold text-content-roast transition-colors hover:border-primary hover:text-primary"
+            >
+              Đăng nhập / Đăng ký
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Điều hướng rút gọn cho màn hình nhỏ */}
       <nav
         aria-label="Điều hướng chính (di động)"
-        className="no-scrollbar flex gap-2 overflow-x-auto border-t border-border-subtle px-4 py-2 lg:hidden"
+        className="no-scrollbar flex items-center gap-2 overflow-x-auto border-t border-border-subtle px-4 py-2 lg:hidden"
       >
-        {NAV_LINKS.map((link) => {
+        {navLinks.map((link) => {
           const active = isActive(pathname, link.href);
           return (
             <Link
@@ -107,6 +139,22 @@ export default function Navbar() {
             </Link>
           );
         })}
+        {isLoggedIn ? (
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="shrink-0 rounded-full border border-border-warm bg-surface-milk px-3 py-1.5 text-xs font-semibold text-content-secondary hover:text-danger"
+          >
+            Đăng xuất
+          </button>
+        ) : (
+          <Link
+            href="/auth/login"
+            className="shrink-0 rounded-full border border-border-warm bg-surface-milk px-3 py-1.5 text-xs font-semibold text-primary"
+          >
+            Đăng nhập
+          </Link>
+        )}
       </nav>
     </header>
   );
