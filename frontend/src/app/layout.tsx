@@ -1,6 +1,16 @@
 import type { Metadata } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
-import Link from 'next/link';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
+
+// Plus Jakarta Sans: hiển thị tốt dấu tiếng Việt (theo design system "Warm Roasted Modern")
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin', 'vietnamese'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'BrewLite - Đặt Cà Phê Không Dùng Tiền Mặt',
@@ -13,37 +23,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
-      <body className="min-h-screen flex flex-col bg-surface text-content-primary antialiased">
-        {/* Header / Navbar chuẩn bảng màu Obsidian Navy & BrewLite Blue */}
-        <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-border-light shadow-sm">
-          <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-black text-navy tracking-tight">☕ BrewLite</span>
-            </Link>
-            <nav className="flex items-center space-x-6 text-sm font-medium">
-              <Link href="/menu" className="text-content-secondary hover:text-primary transition">
-                Thực đơn
-              </Link>
-              <Link href="/cart" className="text-content-secondary hover:text-primary transition">
-                Giỏ hàng
-              </Link>
-              <Link href="/orders" className="text-content-secondary hover:text-primary transition">
-                Đơn hàng
-              </Link>
-            </nav>
-          </div>
-        </header>
+    <html lang="vi" className={plusJakarta.variable}>
+      <body className="min-h-screen flex flex-col bg-surface font-sans text-content-primary antialiased">
+        <Navbar />
 
-        {/* Nội dung chính */}
-        <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
-          {children}
-        </main>
+        {/* Nội dung chính – mỗi trang tự quyết định độ rộng container */}
+        <main className="flex-1 w-full">{children}</main>
 
-        {/* Footer */}
-        <footer className="border-t border-border-light py-6 text-center text-xs text-content-secondary bg-surface-secondary">
-          BrewLite © 2026 – Đồ án Công nghệ Phần mềm
-        </footer>
+        <Footer />
       </body>
     </html>
   );

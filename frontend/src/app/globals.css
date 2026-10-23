@@ -3,12 +3,45 @@
 @tailwind utilities;
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #111827;
+  --background: #FAF7F2;
+  --foreground: #231710;
 }
 
 body {
   color: var(--foreground);
   background-color: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer utilities {
+  /* Ẩn thanh cuộn ngang của danh sách tab/chip nhưng vẫn cuộn được */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer components {
+  /* Khung xương loading với hiệu ứng shimmer */
+  .skeleton {
+    @apply relative overflow-hidden bg-surface-sand;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite];
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 253, 249, 0.75),
+      transparent
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
 }

@@ -94,6 +94,7 @@ export class HistoryService {
         totalAmount: true,
         discountAmount: true,
         finalAmount: true,
+        pointsEarned: true,
         paidAt: true,
         createdAt: true,
         items: {

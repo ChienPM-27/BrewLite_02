@@ -12,6 +12,7 @@ coverage/
 out/
 build/
 dist/
+*.tsbuildinfo
 
 # Environment files - BẢO MẬT: KHÔNG COMMIT SECRET
 .env
@@ -29,6 +30,7 @@ pnpm-debug.log*
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
 .idea/
 .DS_Store
 Thumbs.db
