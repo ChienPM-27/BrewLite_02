@@ -30,6 +30,7 @@ pnpm-debug.log*
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
 .idea/
 .DS_Store
 Thumbs.db
