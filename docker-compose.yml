@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,6 +16,58 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brewlite_backend
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      NODE_ENV: ${BACKEND_NODE_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-brewlite_admin}:${POSTGRES_PASSWORD:-brewlite_secret_pass}@postgres:5432/${POSTGRES_DB:-brewlite_db}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-brewlite_admin}:${POSTGRES_PASSWORD:-brewlite_secret_pass}@postgres:5432/${POSTGRES_DB:-brewlite_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-brewlite_super_secret_jwt_key_2026}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy && node dist/main"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+        NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-true}
+    container_name: brewlite_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brewlite_seed
+    profiles:
+      - seed
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-brewlite_admin}:${POSTGRES_PASSWORD:-brewlite_secret_pass}@postgres:5432/${POSTGRES_DB:-brewlite_db}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-brewlite_admin}:${POSTGRES_PASSWORD:-brewlite_secret_pass}@postgres:5432/${POSTGRES_DB:-brewlite_db}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma db seed"
 
 volumes:
   postgres_data:
