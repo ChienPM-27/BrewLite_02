@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { GetOrderHistoryDto } from './dto/get-order-history.dto';
 
 const orderSummarySelect = {
   id: true,
@@ -22,9 +23,9 @@ export interface OrderHistoryResult {
     id: string;
     orderNumber: number;
     status: OrderStatus;
-    totalAmount: Prisma.Decimal;
-    discountAmount: Prisma.Decimal;
-    finalAmount: Prisma.Decimal;
+    totalAmount: Prisma.Decimal | number;
+    discountAmount: Prisma.Decimal | number;
+    finalAmount: Prisma.Decimal | number;
     createdAt: Date;
     itemCount: number;
   }>;
@@ -41,10 +42,16 @@ export interface OrderHistoryResult {
 export class HistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string): Promise<OrderHistoryResult> {
-    const page = 1;
-    const limit = 20;
-    const where: Prisma.OrderWhereInput = { userId };
+  async findAll(
+    userId: string,
+    query?: GetOrderHistoryDto,
+  ): Promise<OrderHistoryResult> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const where: Prisma.OrderWhereInput = {
+      userId,
+      ...(query?.status ? { status: query.status } : {}),
+    };
 
     const [total, orders] = await Promise.all([
       this.prisma.order.count({ where }),
@@ -57,7 +64,7 @@ export class HistoryService {
       }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
 
     return {
       items: orders.map(({ items, ...order }) => ({
@@ -69,7 +76,7 @@ export class HistoryService {
         limit,
         total,
         totalPages,
-        hasNextPage: page < totalPages,
+        hasNextPage: total > 0 && page < totalPages,
       },
     };
   }
@@ -87,6 +94,7 @@ export class HistoryService {
         totalAmount: true,
         discountAmount: true,
         finalAmount: true,
+        paidAt: true,
         createdAt: true,
         items: {
           select: {
@@ -114,6 +122,16 @@ export class HistoryService {
               },
             },
           },
+        },
+        payments: {
+          select: {
+            id: true,
+            method: true,
+            status: true,
+            transactionRef: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });
