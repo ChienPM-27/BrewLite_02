@@ -12,7 +12,7 @@ module.exports = {
         sans: ['var(--font-plus-jakarta)', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // BrewLite Design System – "Warm Roasted Modern" (frontend/design/Image5.md)
+        // BrewLite Design System – "Warm Roasted Modern" (frontend/design/design-system.md)
         // Giữ nguyên tên token cũ (navy, primary, success, coffee, surface, content, border, danger)
         // để các trang có sẵn không bị vỡ, chỉ đổi giá trị sang bảng màu cà phê rang.
         navy: {

@@ -7,6 +7,7 @@ export const MOCK_TOPPINGS = [
 ];
 
 export const MOCK_PRODUCTS: (ProductItem & {
+  stock?: number;
   description?: string;
   rating?: number;
   ratingCount?: number;
@@ -301,7 +302,6 @@ export function getMockProductDetail(idOrSlug: string): ProductDetail | null {
     categoryName: match.categoryName,
     basePrice: match.basePrice,
     imageUrl: match.imageUrl,
-    stock: match.stock,
     isAvailable: match.isAvailable,
     currency: 'VND',
     sizePrices: match.sizePrices,

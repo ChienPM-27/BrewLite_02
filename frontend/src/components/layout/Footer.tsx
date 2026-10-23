@@ -100,14 +100,14 @@ export default function Footer() {
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border-warm/50 pt-6 text-xs text-content-secondary md:flex-row">
           <p>© 2026 BrewLite Coffee. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <Link href="#" className="transition-colors hover:text-navy">
-              Điều khoản dịch vụ
+            <Link href="/menu" className="transition-colors hover:text-navy">
+              Thực đơn
             </Link>
-            <Link href="#" className="transition-colors hover:text-navy">
-              Chính sách bảo mật
+            <Link href="/cart" className="transition-colors hover:text-navy">
+              Giỏ hàng
             </Link>
-            <Link href="#" className="transition-colors hover:text-navy">
-              Quy chế hoạt động
+            <Link href="/orders" className="transition-colors hover:text-navy">
+              Đơn hàng
             </Link>
           </div>
         </div>

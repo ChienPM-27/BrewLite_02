@@ -12,6 +12,7 @@ coverage/
 out/
 build/
 dist/
+*.tsbuildinfo
 
 # Environment files - BẢO MẬT: KHÔNG COMMIT SECRET
 .env

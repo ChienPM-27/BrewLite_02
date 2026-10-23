@@ -23,7 +23,6 @@ export interface ProductItem {
   basePrice: number;
   imageUrl: string | null;
   isAvailable: boolean;
-  stock?: number;
   categoryName: string | null;
   sizePrices: SizePrice[];
 }
@@ -42,7 +41,6 @@ export interface ProductDetail {
   basePrice: number;
   currency: 'VND';
   isAvailable: boolean;
-  stock?: number;
   categoryName?: string | null;
   sizePrices: SizePrice[];
   toppings: ProductTopping[];
