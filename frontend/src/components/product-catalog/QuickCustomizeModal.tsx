@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Lightbulb, ShoppingBag, X } from 'lucide-react';
 import ProductImage from '@/components/ui/ProductImage';
 import QuantityStepper from '@/components/ui/QuantityStepper';
 import { formatSurcharge, formatVND } from '@/lib/format-currency';
-import { MOCK_TOPPINGS } from '@/data/mock-products';
 import { useCartStore } from '@/store/useCartStore';
-import { ProductItem, ProductSize } from '@/types/product';
+import { ProductDetail, ProductItem, ProductSize } from '@/types/product';
+import { getProductById } from '@/services/product.service';
 
 interface QuickCustomizeModalProps {
   product: ProductItem | null;
@@ -49,6 +49,9 @@ function QuickCustomizeModalContent({
 }) {
   const addItem = useCartStore((state) => state.addItem);
 
+  const [detail, setDetail] = useState<ProductDetail | null>(null);
+  const [loadingToppings, setLoadingToppings] = useState(true);
+
   const defaultSize = product.sizePrices[0]?.size ?? ProductSize.S;
   const [selectedSize, setSelectedSize] = useState<ProductSize>(defaultSize);
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
@@ -56,12 +59,35 @@ function QuickCustomizeModalContent({
   const [ice, setIce] = useState('100%');
   const [quantity, setQuantity] = useState(1);
 
+  useEffect(() => {
+    let active = true;
+    setLoadingToppings(true);
+    getProductById(product.id)
+      .then((data) => {
+        if (active) {
+          setDetail(data);
+          setLoadingToppings(false);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setLoadingToppings(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [product.id]);
+
+  const availableSizes = detail?.sizePrices ?? product.sizePrices ?? [];
+  const availableToppings = detail?.toppings ?? [];
+
   // Tính giá
-  const sizeObj = product.sizePrices.find((sp) => sp.size === selectedSize);
+  const sizeObj = availableSizes.find((sp) => sp.size === selectedSize);
   const sizeAdjustment = sizeObj?.priceAdjustment ?? 0;
 
   const toppingsPrice = selectedToppings.reduce((sum, tId) => {
-    const top = MOCK_TOPPINGS.find((t) => t.id === tId);
+    const top = availableToppings.find((t) => t.id === tId);
     return sum + (top?.price ?? 0);
   }, 0);
 
@@ -79,12 +105,18 @@ function QuickCustomizeModalContent({
   };
 
   const handleAdd = () => {
+    const selectedToppingObjs = availableToppings.filter((t) =>
+      selectedToppings.includes(t.id),
+    );
+    const toppingNames = selectedToppingObjs.map((t) => t.name);
+
     addItem({
       productId: product.id,
       name: product.name,
       imageUrl: product.imageUrl,
       size: selectedSize,
       toppingIds: selectedToppings,
+      toppingNames,
       quantity,
       estimatedUnitPrice: unitPrice,
       currency: 'VND',
@@ -153,7 +185,7 @@ function QuickCustomizeModalContent({
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2.5">
-              {product.sizePrices.map((sp) => {
+              {availableSizes.map((sp) => {
                 const active = sp.size === selectedSize;
                 return (
                   <button
@@ -186,54 +218,65 @@ function QuickCustomizeModalContent({
                 (Đã chọn {selectedToppings.length}/{MAX_TOPPINGS})
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {MOCK_TOPPINGS.map((top) => {
-                const checked = selectedToppings.includes(top.id);
-                const reachedLimit = selectedToppings.length >= MAX_TOPPINGS && !checked;
 
-                return (
-                  <label
-                    key={top.id}
-                    className={`flex cursor-pointer flex-col justify-between rounded-2xl border-2 p-3 transition-all ${
-                      checked
-                        ? 'border-primary bg-surface-milk shadow-card ring-2 ring-primary/20'
-                        : 'border-border-warm bg-surface-milk hover:border-primary/40'
-                    } ${reachedLimit ? 'cursor-not-allowed opacity-50' : ''}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={reachedLimit}
-                        onChange={() => toggleTopping(top.id)}
-                        className="peer sr-only"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                          checked
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-outline bg-surface-milk'
-                        }`}
-                      >
-                        {checked && <Check className="h-3 w-3" strokeWidth={3} />}
-                      </span>
-                      <div>
-                        <h4 className="text-xs font-bold text-navy">{top.name}</h4>
-                        <p className="text-[10px] text-content-secondary">{top.description}</p>
+            {loadingToppings ? (
+              <div className="flex items-center justify-center py-6 text-xs text-content-secondary">
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                Đang tải danh sách topping...
+              </div>
+            ) : availableToppings.length === 0 ? (
+              <p className="text-xs text-content-secondary italic">
+                Món này hiện không có topping thêm.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {availableToppings.map((top) => {
+                  const checked = selectedToppings.includes(top.id);
+                  const reachedLimit = selectedToppings.length >= MAX_TOPPINGS && !checked;
+
+                  return (
+                    <label
+                      key={top.id}
+                      className={`flex cursor-pointer flex-col justify-between rounded-2xl border-2 p-3 transition-all ${
+                        checked
+                          ? 'border-primary bg-surface-milk shadow-card ring-2 ring-primary/20'
+                          : 'border-border-warm bg-surface-milk hover:border-primary/40'
+                      } ${reachedLimit ? 'cursor-not-allowed opacity-50' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={reachedLimit}
+                          onChange={() => toggleTopping(top.id)}
+                          className="peer sr-only"
+                        />
+                        <span
+                          aria-hidden="true"
+                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                            checked
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-outline bg-surface-milk'
+                          }`}
+                        >
+                          {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+                        </span>
+                        <div>
+                          <h4 className="text-xs font-bold text-navy">{top.name}</h4>
+                        </div>
                       </div>
-                    </div>
-                    <span className="mt-1 text-right text-xs font-bold text-primary">
-                      {formatSurcharge(top.price)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+                      <span className="mt-1 text-right text-xs font-bold text-primary">
+                        {formatSurcharge(top.price)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-[#FAF2E8]/60 px-3 py-1.5 text-xs text-content-roast">
               <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-              <span>Gợi ý: Thêm Kem Cheese béo ngậy tạo vị sánh mượt cho cà phê.</span>
+              <span>Gợi ý: Thêm topping để ly thức uống đậm đà và ngon miệng hơn.</span>
             </div>
           </div>
 

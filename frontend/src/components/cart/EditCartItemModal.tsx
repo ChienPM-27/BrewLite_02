@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Lightbulb, Save, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Check, Lightbulb, RefreshCw, Save, X } from 'lucide-react';
 import ProductImage from '@/components/ui/ProductImage';
 import { formatSurcharge, formatVND } from '@/lib/format-currency';
-import { MOCK_PRODUCTS, MOCK_TOPPINGS } from '@/data/mock-products';
 import { CartItem, useCartStore } from '@/store/useCartStore';
-import { ProductSize } from '@/types/product';
+import { ProductDetail, ProductSize } from '@/types/product';
+import { getProductById } from '@/services/product.service';
 
 interface EditCartItemModalProps {
   item: CartItem | null;
@@ -45,23 +45,45 @@ function EditCartItemModalContent({
 }) {
   const updateItem = useCartStore((state) => state.updateItem);
 
-  // Tìm sản phẩm gốc để lấy danh sách size và giá gốc
-  const product = MOCK_PRODUCTS.find((p) => p.id === item.productId);
-  const basePrice = product?.basePrice ?? 35000;
-  const availableSizes = product?.sizePrices ?? [
-    { size: ProductSize.S, priceAdjustment: 0 },
-    { size: ProductSize.M, priceAdjustment: 5000 },
-    { size: ProductSize.L, priceAdjustment: 10000 },
-  ];
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedSize, setSelectedSize] = useState<ProductSize>(item.size);
   const [selectedToppings, setSelectedToppings] = useState<string[]>(item.toppingIds);
+
+  const loadProduct = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getProductById(item.productId);
+      setProduct(data);
+      // Reconcile size and toppings if necessary
+      if (!data.sizePrices.some((sp) => sp.size === item.size)) {
+        if (data.sizePrices.length > 0) {
+          setSelectedSize(data.sizePrices[0].size);
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Không thể tải thông tin sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  }, [item.productId, item.size]);
+
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
+
+  const availableSizes = product?.sizePrices ?? [];
+  const availableToppings = product?.toppings ?? [];
+  const basePrice = product?.basePrice ?? item.estimatedUnitPrice;
 
   const sizeObj = availableSizes.find((sp) => sp.size === selectedSize);
   const sizeAdjustment = sizeObj?.priceAdjustment ?? 0;
 
   const toppingsPrice = selectedToppings.reduce((sum, tId) => {
-    const top = MOCK_TOPPINGS.find((t) => t.id === tId);
+    const top = availableToppings.find((t) => t.id === tId);
     return sum + (top?.price ?? 0);
   }, 0);
 
@@ -79,9 +101,15 @@ function EditCartItemModalContent({
   };
 
   const handleSave = () => {
+    const selectedToppingObjs = availableToppings.filter((t) =>
+      selectedToppings.includes(t.id),
+    );
+    const toppingNames = selectedToppingObjs.map((t) => t.name);
+
     updateItem(item.id, {
       size: selectedSize,
       toppingIds: selectedToppings,
+      toppingNames,
       estimatedUnitPrice: unitPrice,
       quantity: item.quantity,
     });
@@ -136,133 +164,165 @@ function EditCartItemModalContent({
           </div>
         </div>
 
-        {/* Các mục điều chỉnh */}
-        <div className="flex flex-col gap-5 py-4">
-          {/* Đổi kích cỡ (Size) */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-navy">
-                1. Kích cỡ (Size)
-              </span>
-              <span className="text-xs font-semibold text-content-secondary">
-                Đang chọn: Size {selectedSize} ({formatSurcharge(sizeAdjustment)})
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2.5">
-              {availableSizes.map((sp) => {
-                const active = sp.size === selectedSize;
-                return (
-                  <button
-                    key={sp.size}
-                    type="button"
-                    onClick={() => setSelectedSize(sp.size)}
-                    className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 transition-all ${
-                      active
-                        ? 'border-primary bg-primary text-white shadow-card'
-                        : 'border-border-warm bg-surface-milk text-content-roast hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="text-sm font-bold">Size {sp.size}</span>
-                    <span className={`text-xs ${active ? 'text-white/90' : 'text-primary font-semibold'}`}>
-                      {formatSurcharge(sp.priceAdjustment)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="mt-3 text-xs font-semibold text-content-roast">
+              Đang tải tùy chọn món...
+            </p>
           </div>
+        )}
 
-          {/* Đổi Topping */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-navy">
-                2. Topping đính kèm (Tối đa {MAX_TOPPINGS})
-              </span>
-              <span className="text-xs font-semibold text-content-secondary">
-                (Đã chọn {selectedToppings.length}/{MAX_TOPPINGS})
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {MOCK_TOPPINGS.map((top) => {
-                const checked = selectedToppings.includes(top.id);
-                const reachedLimit = selectedToppings.length >= MAX_TOPPINGS && !checked;
+        {/* Error state */}
+        {!loading && error && (
+          <div className="my-6 rounded-2xl border border-danger/30 bg-danger-light p-4 text-center">
+            <AlertCircle className="mx-auto h-8 w-8 text-danger" />
+            <p className="mt-2 text-xs font-bold text-danger">{error}</p>
+            <button
+              type="button"
+              onClick={loadProduct}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-danger px-4 py-1.5 text-xs font-bold text-white shadow-cta hover:opacity-90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Thử lại</span>
+            </button>
+          </div>
+        )}
 
-                return (
-                  <label
-                    key={top.id}
-                    className={`flex cursor-pointer flex-col justify-between rounded-2xl border-2 p-3 transition-all ${
-                      checked
-                        ? 'border-primary bg-surface-milk shadow-card ring-2 ring-primary/20'
-                        : 'border-border-warm bg-surface-milk hover:border-primary/40'
-                    } ${reachedLimit ? 'cursor-not-allowed opacity-50' : ''}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={reachedLimit}
-                        onChange={() => toggleTopping(top.id)}
-                        className="peer sr-only"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                          checked
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-outline bg-surface-milk'
+        {/* Loaded state */}
+        {!loading && !error && product && (
+          <>
+            {/* Các mục điều chỉnh */}
+            <div className="flex flex-col gap-5 py-4">
+              {/* Đổi kích cỡ (Size) */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-navy">
+                    1. Kích cỡ (Size)
+                  </span>
+                  <span className="text-xs font-semibold text-content-secondary">
+                    Đang chọn: Size {selectedSize} ({formatSurcharge(sizeAdjustment)})
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {availableSizes.map((sp) => {
+                    const active = sp.size === selectedSize;
+                    return (
+                      <button
+                        key={sp.size}
+                        type="button"
+                        onClick={() => setSelectedSize(sp.size)}
+                        className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 transition-all ${
+                          active
+                            ? 'border-primary bg-primary text-white shadow-card'
+                            : 'border-border-warm bg-surface-milk text-content-roast hover:border-primary/50'
                         }`}
                       >
-                        {checked && <Check className="h-3 w-3" strokeWidth={3} />}
-                      </span>
-                      <div>
-                        <h4 className="text-xs font-bold text-navy">{top.name}</h4>
-                        <p className="text-[10px] text-content-secondary">{top.description}</p>
-                      </div>
-                    </div>
-                    <span className="mt-1 text-right text-xs font-bold text-primary">
-                      {formatSurcharge(top.price)}
+                        <span className="text-sm font-bold">Size {sp.size}</span>
+                        <span className={`text-xs ${active ? 'text-white/90' : 'text-primary font-semibold'}`}>
+                          {formatSurcharge(sp.priceAdjustment)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Đổi Topping */}
+              {availableToppings.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-navy">
+                      2. Topping đính kèm (Tối đa {MAX_TOPPINGS})
                     </span>
-                  </label>
-                );
-              })}
+                    <span className="text-xs font-semibold text-content-secondary">
+                      (Đã chọn {selectedToppings.length}/{MAX_TOPPINGS})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {availableToppings.map((top) => {
+                      const checked = selectedToppings.includes(top.id);
+                      const reachedLimit = selectedToppings.length >= MAX_TOPPINGS && !checked;
+
+                      return (
+                        <label
+                          key={top.id}
+                          className={`flex cursor-pointer flex-col justify-between rounded-2xl border-2 p-3 transition-all ${
+                            checked
+                              ? 'border-primary bg-surface-milk shadow-card ring-2 ring-primary/20'
+                              : 'border-border-warm bg-surface-milk hover:border-primary/40'
+                          } ${reachedLimit ? 'cursor-not-allowed opacity-50' : ''}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={reachedLimit}
+                              onChange={() => toggleTopping(top.id)}
+                              className="peer sr-only"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                                checked
+                                  ? 'border-primary bg-primary text-white'
+                                  : 'border-outline bg-surface-milk'
+                              }`}
+                            >
+                              {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+                            </span>
+                            <div>
+                              <h4 className="text-xs font-bold text-navy">{top.name}</h4>
+                            </div>
+                          </div>
+                          <span className="mt-1 text-right text-xs font-bold text-primary">
+                            {formatSurcharge(top.price)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-[#FAF2E8]/60 px-3 py-1.5 text-xs text-content-roast">
+                    <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                    <span>Topping sẽ được cập nhật và tính lại tổng tiền ngay trong giỏ hàng.</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-[#FAF2E8]/60 px-3 py-1.5 text-xs text-content-roast">
-              <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-              <span>Topping sẽ được cập nhật và tính lại tổng tiền ngay trong giỏ hàng.</span>
+            {/* Chân trang xác nhận */}
+            <div className="mt-2 flex items-center justify-between border-t border-border-warm pt-4">
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-content-secondary">
+                  Đơn giá mới ({item.quantity} ly)
+                </span>
+                <span className="text-xl font-extrabold text-primary">
+                  {formatVND(lineTotal)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full border border-border-warm px-4 py-2.5 text-xs font-semibold text-content-roast hover:bg-surface-sand"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Lưu thay đổi</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Chân trang xác nhận */}
-        <div className="mt-2 flex items-center justify-between border-t border-border-warm pt-4">
-          <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-content-secondary">
-              Đơn giá mới ({item.quantity} ly)
-            </span>
-            <span className="text-xl font-extrabold text-primary">
-              {formatVND(lineTotal)}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-border-warm px-4 py-2.5 text-xs font-semibold text-content-roast hover:bg-surface-sand"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95"
-            >
-              <Save className="h-4 w-4" />
-              <span>Lưu thay đổi</span>
-            </button>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

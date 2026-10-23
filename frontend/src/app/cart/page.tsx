@@ -1,21 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   ArrowLeft,
-  CheckCircle2,
   ChevronRight,
   Coffee,
   CreditCard,
-  QrCode,
   ShieldCheck,
   ShoppingBag,
   SlidersHorizontal,
-  Sparkles,
-  Star,
   Trash2,
-  Wallet,
 } from 'lucide-react';
 import ProductImage from '@/components/ui/ProductImage';
 import QuantityStepper from '@/components/ui/QuantityStepper';
@@ -24,9 +20,9 @@ import EditCartItemModal from '@/components/cart/EditCartItemModal';
 import { CartItem, useCartStore } from '@/store/useCartStore';
 import { useHydrated } from '@/hooks/useHydrated';
 import { formatVND } from '@/lib/format-currency';
-import { MOCK_TOPPINGS } from '@/data/mock-products';
 
 export default function CartPage() {
+  const router = useRouter();
   const hydrated = useHydrated();
   const items = useCartStore((state) => state.items);
   const totalAmount = useCartStore((state) => state.totalAmount);
@@ -36,10 +32,6 @@ export default function CartPage() {
   const clearCart = useCartStore((state) => state.clearCart);
 
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [usePoints, setUsePoints] = useState(false);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [cartToast, setCartToast] = useState<string | null>(null);
 
@@ -51,31 +43,10 @@ export default function CartPage() {
     );
   }
 
-  // Topping name lookup helper
-  const getToppingNames = (ids: string[]) => {
-    return ids
-      .map((id) => MOCK_TOPPINGS.find((t) => t.id === id)?.name || id)
-      .join(', ');
-  };
-
-  const discountAmount = promoApplied ? 15000 : 0;
-  const pointsDiscount = usePoints ? 10000 : 0;
-  const finalTotal = Math.max(0, totalAmount - discountAmount - pointsDiscount);
-
-  const handleApplyPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (promoCode.trim().toUpperCase() === 'BREWLITE' || promoCode.trim().length > 0) {
-      setPromoApplied(true);
-    }
-  };
-
   const handleCheckout = () => {
-    setIsCheckingOut(true);
-    setTimeout(() => {
-      setIsCheckingOut(false);
-      setCheckoutSuccess(true);
-      clearCart();
-    }, 1200);
+    if (items.length === 0) return;
+    const promo = promoCode.trim();
+    router.push(promo ? `/checkout?promo=${encodeURIComponent(promo)}` : '/checkout');
   };
 
   return (
@@ -112,32 +83,8 @@ export default function CartPage() {
         </span>
       </nav>
 
-      {/* Thông báo thanh toán thành công */}
-      {checkoutSuccess && (
-        <div className="my-8 flex flex-col items-center justify-center rounded-3xl border border-emerald-200 bg-[#E6FCF3] p-8 text-center shadow-card">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-card">
-            <CheckCircle2 className="h-10 w-10" />
-          </div>
-          <h2 className="mt-4 text-2xl font-extrabold text-navy">
-            Đặt hàng thành công!
-          </h2>
-          <p className="mt-1 max-w-md text-sm text-content-roast">
-            Đơn hàng đã được chuyển thẳng tới quầy pha chế tự động. Bạn vui lòng tới nhận món sau 3-5 phút nhé!
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/menu"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-bold text-white shadow-cta hover:bg-primary-hover active:scale-95"
-            >
-              <Coffee className="h-4 w-4" />
-              <span>Tiếp tục đặt món</span>
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Giỏ hàng trống */}
-      {!checkoutSuccess && items.length === 0 && (
+      {items.length === 0 && (
         <div className="my-12 flex flex-col items-center justify-center rounded-3xl border border-border-warm bg-surface-milk p-12 text-center shadow-card">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary-container text-primary">
             <ShoppingBag className="h-10 w-10" />
@@ -159,7 +106,7 @@ export default function CartPage() {
       )}
 
       {/* Nội dung giỏ hàng khi có món */}
-      {!checkoutSuccess && items.length > 0 && (
+      {items.length > 0 && (
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
           {/* Cột trái: Danh sách món trong giỏ */}
           <div className="flex flex-col gap-4 lg:col-span-8">
@@ -179,7 +126,10 @@ export default function CartPage() {
             <ul className="flex flex-col gap-3">
               {items.map((item) => {
                 const itemTotal = item.estimatedUnitPrice * item.quantity;
-                const toppingsLabel = getToppingNames(item.toppingIds);
+                const toppingsLabel =
+                  item.toppingNames && item.toppingNames.length > 0
+                    ? item.toppingNames.join(', ')
+                    : '';
 
                 return (
                   <li
@@ -280,44 +230,22 @@ export default function CartPage() {
               </h2>
 
               {/* Nhập mã giảm giá */}
-              <form onSubmit={handleApplyPromo} className="flex gap-2">
+              <div>
+                <label htmlFor="cart-promo-code" className="mb-1.5 block text-xs font-bold text-navy">
+                  Mã ưu đãi
+                </label>
                 <input
+                  id="cart-promo-code"
                   type="text"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="Mã ưu đãi (VD: BREWLITE)"
+                  placeholder="Nhập mã ưu đãi (VD: BREWLITE)"
                   className="w-full rounded-full border border-border-warm bg-surface-sand px-4 py-2 text-xs font-medium text-navy placeholder:text-content-secondary outline-none focus:border-primary"
                 />
-                <button
-                  type="submit"
-                  className="rounded-full bg-secondary-container px-4 py-2 text-xs font-bold text-secondary transition-colors hover:bg-primary hover:text-white"
-                >
-                  Áp dụng
-                </button>
-              </form>
-              {promoApplied && (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#006337]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Đã áp dụng mã giảm giá (-15.000đ)</span>
-                </div>
-              )}
-
-              {/* Dùng điểm thưởng BrewPoints */}
-              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-border-warm bg-[#FAF2E8]/60 p-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                  <div>
-                    <span className="font-bold text-navy">Dùng 100 BrewPoints</span>
-                    <p className="text-[10px] text-content-secondary">Tiết kiệm ngay 10.000đ</p>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={usePoints}
-                  onChange={(e) => setUsePoints(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
-                />
-              </label>
+                <p className="mt-1 text-[11px] text-content-secondary">
+                  Mã giảm giá sẽ được áp dụng và xác thực tại bước đặt hàng.
+                </p>
+              </div>
 
               <div className="h-px w-full bg-border-warm" />
 
@@ -327,27 +255,15 @@ export default function CartPage() {
                   <dt>Tạm tính:</dt>
                   <dd className="font-bold text-navy">{formatVND(totalAmount)}</dd>
                 </div>
-                {promoApplied && (
-                  <div className="flex justify-between text-[#006337]">
-                    <dt>Giảm giá khuyến mãi:</dt>
-                    <dd className="font-bold">-15.000đ</dd>
-                  </div>
-                )}
-                {usePoints && (
-                  <div className="flex justify-between text-[#006337]">
-                    <dt>Quy đổi điểm thưởng:</dt>
-                    <dd className="font-bold">-10.000đ</dd>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <dt>Phương thức nhận:</dt>
                   <dd className="font-bold text-navy">Lấy tại quầy (Miễn phí)</dd>
                 </div>
                 <div className="my-1 h-px w-full bg-border-warm" />
                 <div className="flex items-baseline justify-between">
-                  <dt className="text-sm font-extrabold text-navy">Tổng thanh toán:</dt>
+                  <dt className="text-sm font-extrabold text-navy">Tổng cộng:</dt>
                   <dd className="text-xl font-extrabold text-primary">
-                    {formatVND(finalTotal)}
+                    {formatVND(totalAmount)}
                   </dd>
                 </div>
               </dl>
@@ -356,11 +272,11 @@ export default function CartPage() {
               <button
                 type="button"
                 onClick={handleCheckout}
-                disabled={isCheckingOut}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:opacity-60"
+                disabled={items.length === 0}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <CreditCard className="h-4 w-4" />
-                <span>{isCheckingOut ? 'Đang kích hoạt máy pha...' : 'Tiến hành thanh toán'}</span>
+                <span>Tiến hành thanh toán</span>
               </button>
 
               {/* Phương thức thanh toán cashless */}
@@ -370,16 +286,10 @@ export default function CartPage() {
                 </span>
                 <div className="mt-2 flex items-center justify-center gap-2">
                   <span className="rounded-lg bg-surface-sand px-2.5 py-1 text-[10px] font-bold text-navy">
-                    MoMo
+                    Ví điện tử
                   </span>
                   <span className="rounded-lg bg-surface-sand px-2.5 py-1 text-[10px] font-bold text-navy">
-                    ZaloPay
-                  </span>
-                  <span className="rounded-lg bg-surface-sand px-2.5 py-1 text-[10px] font-bold text-navy">
-                    VietQR
-                  </span>
-                  <span className="rounded-lg bg-surface-sand px-2.5 py-1 text-[10px] font-bold text-navy">
-                    Visa/Master
+                    Thẻ ngân hàng
                   </span>
                 </div>
               </div>
