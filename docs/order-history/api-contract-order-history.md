@@ -215,6 +215,7 @@ Backend validate `id`, sau đó truy vấn theo đồng thời `id` và `userId`
     "totalAmount": 125000,
     "discountAmount": 0,
     "finalAmount": 125000,
+    "pointsEarned": 12,
     "paidAt": "2026-10-09T08:32:00.000Z",
     "createdAt": "2026-10-09T08:30:00.000Z",
     "items": [
@@ -268,6 +269,7 @@ Các trường cấp đơn hàng (`id`, `orderNumber`, `status`, `totalAmount`, 
 | `toppings[].toppingId` | string | Có | ID topping. |
 | `toppings[].name` | string | Có | Tên topping (`Topping.name`). |
 | `toppings[].price` | integer | Có | Đơn giá topping tại thời điểm đặt. |
+| `pointsEarned` | integer | Có | Số điểm tích lũy được từ đơn hàng (`Order.pointsEarned`), 0 nếu chưa PAID hoặc đơn 0đ. |
 | `paidAt` | string (ISO-8601) | null | Không | Thời điểm đơn hàng được thanh toán thành công (`Order.paidAt`). Giá trị `null` nếu đơn chưa được thanh toán hoặc thanh toán thất bại. |
 | `payments` | array | Có | Danh sách lịch sử giao dịch thanh toán của đơn (`Payment`), sắp xếp mới nhất trước (`createdAt DESC`). Mảng rỗng nếu chưa có giao dịch. |
 | `payments[].id` | string | Có | ID bản ghi thanh toán. |
