@@ -37,3 +37,7 @@ Thumbs.db
 
 # Docker data volume (if local)
 postgres_data/
+
+# Team secrets files
+*secret*.txt
+*secrets*.txt
