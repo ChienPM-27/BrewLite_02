@@ -21,6 +21,7 @@ import { cancelOrder, getOrderById, OrderDetail } from '@/services/order.service
 import { createPayment, PaymentMethod } from '@/services/payment.service';
 import { formatVND } from '@/lib/format-currency';
 import { generateIdempotencyKey } from '@/lib/idempotency';
+import MockGatewayModal from '@/components/checkout/MockGatewayModal';
 
 function PaymentContent() {
   const router = useRouter();
@@ -40,6 +41,7 @@ function PaymentContent() {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
 
   // Giữ idempotency key trong useRef cho cả lượt thanh toán
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -117,7 +119,7 @@ function PaymentContent() {
     );
   }
 
-  const handlePay = async () => {
+  const handlePay = async (forceFail?: boolean) => {
     if (isPaying) return;
     setIsPaying(true);
     setPaymentError(null);
@@ -127,17 +129,21 @@ function PaymentContent() {
     }
     const idempotencyKey = idempotencyKeyRef.current;
 
+    const shouldFail = forceFail !== undefined ? forceFail : isDemoFail;
+
     try {
       const res = await createPayment(
         { orderId: order.id, method },
         idempotencyKey,
-        isDemoFail,
+        shouldFail,
       );
 
       if (res.status === 'SUCCESS') {
+        setIsGatewayModalOpen(false);
         clearCart();
         router.replace(`/orders/${order.id}?paid=1`);
       } else {
+        setIsGatewayModalOpen(false);
         // Server trả status FAILED -> tạo key MỚI cho lần thử tiếp theo
         idempotencyKeyRef.current = null;
         setPaymentError(
@@ -146,6 +152,7 @@ function PaymentContent() {
         );
       }
     } catch (err: any) {
+      setIsGatewayModalOpen(false);
       // Lỗi mạng hoặc timeout -> giữ NGUYÊN key trong idempotencyKeyRef để bấm lại gửi cùng key
       setPaymentError(
         err?.message ||
@@ -252,7 +259,7 @@ function PaymentContent() {
                 <div className="mt-4 flex flex-wrap gap-2.5">
                   <button
                     type="button"
-                    onClick={handlePay}
+                    onClick={() => setIsGatewayModalOpen(true)}
                     disabled={isPaying}
                     className="inline-flex items-center gap-1.5 rounded-full bg-danger px-4 py-2 text-xs font-bold text-white shadow-cta hover:opacity-90 active:scale-95 disabled:opacity-60"
                   >
@@ -360,7 +367,7 @@ function PaymentContent() {
           <div className="mt-6 hidden lg:block">
             <button
               type="button"
-              onClick={handlePay}
+              onClick={() => setIsGatewayModalOpen(true)}
               disabled={isPaying}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-base font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -401,7 +408,7 @@ function PaymentContent() {
         <div className="mx-auto flex max-w-md items-center gap-3">
           <button
             type="button"
-            onClick={handlePay}
+            onClick={() => setIsGatewayModalOpen(true)}
             disabled={isPaying}
             className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -410,6 +417,17 @@ function PaymentContent() {
           </button>
         </div>
       </div>
+
+      {/* Modal Cổng thanh toán Sandbox Mock Gateway */}
+      <MockGatewayModal
+        isOpen={isGatewayModalOpen}
+        orderNumber={order.orderNumber}
+        amount={order.finalAmount}
+        method={method}
+        isProcessing={isPaying}
+        onClose={() => setIsGatewayModalOpen(false)}
+        onConfirm={(forceFail) => handlePay(forceFail)}
+      />
     </div>
   );
 }
