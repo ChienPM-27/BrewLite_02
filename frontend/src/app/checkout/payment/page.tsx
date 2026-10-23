@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -20,6 +20,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { cancelOrder, getOrderById, OrderDetail } from '@/services/order.service';
 import { createPayment, PaymentMethod } from '@/services/payment.service';
 import { formatVND } from '@/lib/format-currency';
+import { generateIdempotencyKey } from '@/lib/idempotency';
 
 function PaymentContent() {
   const router = useRouter();
@@ -39,6 +40,16 @@ function PaymentContent() {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Giữ idempotency key trong useRef cho cả lượt thanh toán
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  const handleSelectMethod = (newMethod: PaymentMethod) => {
+    if (method !== newMethod) {
+      setMethod(newMethod);
+      idempotencyKeyRef.current = null;
+    }
+  };
 
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -111,7 +122,10 @@ function PaymentContent() {
     setIsPaying(true);
     setPaymentError(null);
 
-    const idempotencyKey = crypto.randomUUID();
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = generateIdempotencyKey();
+    }
+    const idempotencyKey = idempotencyKeyRef.current;
 
     try {
       const res = await createPayment(
@@ -124,12 +138,15 @@ function PaymentContent() {
         clearCart();
         router.replace(`/orders/${order.id}?paid=1`);
       } else {
+        // Server trả status FAILED -> tạo key MỚI cho lần thử tiếp theo
+        idempotencyKeyRef.current = null;
         setPaymentError(
           res.failureReason ||
             'Thanh toán không thành công. Bạn có thể thử lại hoặc chọn hình thức khác.',
         );
       }
     } catch (err: any) {
+      // Lỗi mạng hoặc timeout -> giữ NGUYÊN key trong idempotencyKeyRef để bấm lại gửi cùng key
       setPaymentError(
         err?.message ||
           'Không thể xử lý giao dịch. Vui lòng thử lại với phương thức khác!',
@@ -144,6 +161,7 @@ function PaymentContent() {
     setIsCancelling(true);
     try {
       await cancelOrder(order.id);
+      idempotencyKeyRef.current = null;
       clearPendingOrder();
       router.replace('/cart');
     } catch (err: any) {
@@ -265,7 +283,7 @@ function PaymentContent() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => setMethod('E_WALLET')}
+              onClick={() => handleSelectMethod('E_WALLET')}
               className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 text-left transition-all ${
                 method === 'E_WALLET'
                   ? 'border-primary bg-primary-light/50 ring-2 ring-primary/20 shadow-card'
@@ -291,7 +309,7 @@ function PaymentContent() {
 
             <button
               type="button"
-              onClick={() => setMethod('BANK_CARD')}
+              onClick={() => handleSelectMethod('BANK_CARD')}
               className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 text-left transition-all ${
                 method === 'BANK_CARD'
                   ? 'border-primary bg-primary-light/50 ring-2 ring-primary/20 shadow-card'

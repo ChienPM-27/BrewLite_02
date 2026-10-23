@@ -11,7 +11,8 @@ import { ApiError } from '@/lib/api-client';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/menu';
+  const rawNext = searchParams.get('next');
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/menu';
 
   const token = useAuthStore((state) => state.token);
   const login = useAuthStore((state) => state.login);
@@ -21,10 +22,10 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Nếu đã đăng nhập, chuyển hướng ngay về /menu
+  // Nếu đã đăng nhập, chuyển hướng ngay về /menu hoặc next hợp lệ
   useEffect(() => {
     if (token) {
-      router.replace(next.startsWith('/') ? next : '/menu');
+      router.replace(next);
     }
   }, [token, router, next]);
 
@@ -47,7 +48,7 @@ function LoginForm() {
     try {
       const res = await loginApi({ email, password });
       login(res.accessToken, res.user);
-      router.replace(next.startsWith('/') ? next : '/menu');
+      router.replace(next);
     } catch (err: any) {
       if (err instanceof ApiError && err.statusCode === 401) {
         setErrorMessage('Email hoặc mật khẩu không chính xác');
@@ -144,7 +145,7 @@ function LoginForm() {
         <div className="mt-6 text-center text-xs text-content-roast">
           Chưa có tài khoản?{' '}
           <Link
-            href={`/auth/register${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+            href={`/auth/register${next !== '/menu' ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="font-bold text-primary hover:underline"
           >
             Đăng ký ngay

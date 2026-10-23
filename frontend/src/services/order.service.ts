@@ -48,7 +48,7 @@ export interface PaymentItemDetail {
 
 export interface OrderDetail {
   id: string;
-  orderNumber: string;
+  orderNumber: number;
   status: OrderStatus;
   totalAmount: number;
   discountAmount: number;
@@ -62,7 +62,7 @@ export interface OrderDetail {
 
 export interface OrderSummaryItem {
   id: string;
-  orderNumber: string;
+  orderNumber: number;
   status: OrderStatus;
   finalAmount: number;
   itemCount: number;
@@ -103,8 +103,8 @@ export async function getOrderById(orderId: string): Promise<OrderDetail> {
   return await fetchApi<OrderDetail>(`/orders/${encodeURIComponent(orderId)}`);
 }
 
-export async function cancelOrder(orderId: string): Promise<{ id: string; orderNumber: string; status: OrderStatus }> {
-  return await fetchApi<{ id: string; orderNumber: string; status: OrderStatus }>(
+export async function cancelOrder(orderId: string): Promise<{ id: string; orderNumber: number; status: OrderStatus }> {
+  return await fetchApi<{ id: string; orderNumber: number; status: OrderStatus }>(
     `/orders/${encodeURIComponent(orderId)}/cancel`,
     {
       method: 'POST',

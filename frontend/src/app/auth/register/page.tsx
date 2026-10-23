@@ -11,7 +11,8 @@ import { ApiError } from '@/lib/api-client';
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/menu';
+  const rawNext = searchParams.get('next');
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/menu';
 
   const token = useAuthStore((state) => state.token);
   const login = useAuthStore((state) => state.login);
@@ -23,10 +24,10 @@ function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Nếu đã đăng nhập, chuyển hướng ngay về /menu
+  // Nếu đã đăng nhập, chuyển hướng ngay về /menu hoặc next hợp lệ
   useEffect(() => {
     if (token) {
-      router.replace(next.startsWith('/') ? next : '/menu');
+      router.replace(next);
     }
   }, [token, router, next]);
 
@@ -60,7 +61,7 @@ function RegisterForm() {
       });
 
       login(res.accessToken, res.user);
-      router.replace(next.startsWith('/') ? next : '/menu');
+      router.replace(next);
     } catch (err: any) {
       if (err instanceof ApiError) {
         if (err.statusCode === 409) {
@@ -188,7 +189,7 @@ function RegisterForm() {
         <div className="mt-6 text-center text-xs text-content-roast">
           Đã có tài khoản?{' '}
           <Link
-            href={`/auth/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+            href={`/auth/login${next !== '/menu' ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="font-bold text-primary hover:underline"
           >
             Đăng nhập ngay
