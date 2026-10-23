@@ -27,14 +27,8 @@ export default function Footer() {
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-navy">Hệ thống cửa hàng</h3>
             <div className="space-y-1 text-xs text-content-secondary">
-              <p className="font-semibold text-navy">📍 Hà Nội:</p>
-              <p>48 Tràng Tiền, Hoàn Kiếm, Hà Nội</p>
-              <p>12 Tô Ngọc Vân, Tây Hồ, Hà Nội</p>
-            </div>
-            <div className="space-y-1 pt-1 text-xs text-content-secondary">
               <p className="font-semibold text-navy">📍 TP. Hồ Chí Minh:</p>
-              <p>26 Lê Lợi, Bến Nghé, Quận 1, TP.HCM</p>
-              <p>102 Thảo Điền, TP. Thủ Đức, TP.HCM</p>
+              <p>273 An Dương Vương, P. Bến Nghé</p>
             </div>
           </div>
 
@@ -45,7 +39,7 @@ export default function Footer() {
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
                 <span>
-                  Hotline: <strong className="font-bold text-navy">1900 6868</strong>
+                  Hotline: <strong className="font-bold text-navy">0777782702</strong>
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -54,7 +48,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
-                <span>cskh@brewlite.vn</span>
+                <span>pminhchien2006@gmail.com</span>
               </div>
             </div>
             <div className="pt-2">
