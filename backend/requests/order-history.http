@@ -1,0 +1,59 @@
+@base = http://localhost:4000/api/v1
+
+### 1. Đăng nhập tài khoản demo
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@brewlite.test",
+  "password": "Demo@12345"
+}
+
+### Lưu Access Token
+@token = {{login.response.body.data.accessToken}}
+
+### 2. Lấy danh sách lịch sử đơn hàng (mặc định page=1, limit=20)
+# @name getOrderHistory
+GET {{base}}/orders/me
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Lưu Order ID đầu tiên nếu có
+@orderId = {{getOrderHistory.response.body.data.items[0].id}}
+
+### 3. Lọc lịch sử đơn hàng theo trạng thái PENDING
+# @name getPendingOrders
+GET {{base}}/orders/me?page=1&limit=5&status=PENDING
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 4. Lọc lịch sử đơn hàng theo trạng thái PAID
+# @name getPaidOrders
+GET {{base}}/orders/me?page=1&limit=5&status=PAID
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 5. Xem chi tiết đơn hàng theo ID
+# @name getOrderDetail
+GET {{base}}/orders/{{orderId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 6. Validation error khi page < 1 (400 Bad Request)
+# @name validationErrorPage
+GET {{base}}/orders/me?page=0
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 7. Validation error khi limit > 50 (400 Bad Request)
+# @name validationErrorLimit
+GET {{base}}/orders/me?limit=100
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 8. Lỗi không tìm thấy đơn hoặc không phải chủ đơn (404 Not Found)
+# @name notFoundOrder
+GET {{base}}/orders/cuid_khong_ton_tai_12345
+Authorization: Bearer {{token}}
+Accept: application/json

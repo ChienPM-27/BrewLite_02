@@ -18,7 +18,8 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "test:concurrency": "ts-node test/concurrency.ts"
   },
   "jest": {
     "moduleFileExtensions": [

@@ -5,6 +5,10 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Không chạy seed ở production');
+  }
+
   console.log('🌱 Bắt đầu nạp dữ liệu mẫu (Seeding BrewLite DB)...');
 
   // 1. Xóa dữ liệu cũ theo thứ tự quan hệ
@@ -115,7 +119,7 @@ async function main() {
       name: 'Bạc xỉu',
       basePrice: 35000,
       imageUrl:
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWjNC1sUHZBhykAgVMQ11P3utPelI-fVIQbyCzapGHhn6iTB3VurhV5_s&s=10',
+        'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=687&auto=format&fit=crop',
       stock: 5, // Sản phẩm tồn kho thấp.
     },
     {
@@ -123,7 +127,7 @@ async function main() {
       name: 'Trà đào cam sả',
       basePrice: 39000,
       imageUrl:
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQaNtZBj9O9cMPKzo07Dl3D_QYiitLSofLg4jnzfhWVzTcx4YSO7DBfmyQ&s=10',
+        'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=764&auto=format&fit=crop',
       stock: 75,
     },
     {
@@ -131,7 +135,7 @@ async function main() {
       name: 'Trà chanh',
       basePrice: 30000,
       imageUrl:
-        'https://www.unileverfoodsolutions.com.vn/dam/global-ufs/mcos/phvn/vietnam/calcmenu/recipes/VN-recipes/other/energizing-lemon-tea/main-header.jpg',
+        'https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=687&auto=format&fit=crop',
       stock: 70,
     },
     {
@@ -139,7 +143,7 @@ async function main() {
       name: 'Trà vải',
       basePrice: 39000,
       imageUrl:
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4yCQPdHn0Vb0iqtXZohd6DUep6KaAghMgxjt648CZC4g8jewg6BXU2twr&s=10',
+        'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?q=80&w=687&auto=format&fit=crop',
       stock: 45,
     },
     {
@@ -147,7 +151,7 @@ async function main() {
       name: 'Trà dâu',
       basePrice: 40000,
       imageUrl:
-        'https://gtp.com.vn/ckfinder/userfiles/images/CONG_THUC_2/5.JPG',
+        'https://images.unsplash.com/photo-1558857563-b371033873b8?q=80&w=687&auto=format&fit=crop',
       stock: 35,
     },
   ];
