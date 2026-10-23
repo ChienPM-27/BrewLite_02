@@ -10,6 +10,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { HistoryModule } from './modules/orders/history/history.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { LoyaltyModule } from './modules/loyalty/loyalty.module';
     PricingModule,
     PromotionsModule,
     LoyaltyModule,
+    HistoryModule,
   ],
   controllers: [AppController],
 })
