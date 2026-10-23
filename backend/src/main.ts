@@ -1,8 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+
+(Prisma.Decimal.prototype as any).toJSON = function () {
+  return this.toNumber();
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,6 +39,8 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`🚀 BrewLite Backend đang chạy tại: http://localhost:${port}/api/v1`);
+  console.log(
+    `🚀 BrewLite Backend đang chạy tại: http://localhost:${port}/api/v1`,
+  );
 }
 bootstrap();

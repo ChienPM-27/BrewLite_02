@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class ProductsService {
@@ -13,10 +13,10 @@ export class ProductsService {
       },
       include: {
         category: true,
-        sizePrices: { orderBy: { priceAdjustment: "asc" } },
+        sizePrices: { orderBy: { priceAdjustment: 'asc' } },
       },
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
     });
 

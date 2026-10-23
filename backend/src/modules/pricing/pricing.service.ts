@@ -85,7 +85,9 @@ export class PricingService {
         );
       }
       if (!product.isAvailable) {
-        throw new BadRequestException(`Sản phẩm "${product.name}" đã ngừng bán`);
+        throw new BadRequestException(
+          `Sản phẩm "${product.name}" đã ngừng bán`,
+        );
       }
 
       const sizePrice = product.sizePrices.find((sp) => sp.size === item.size);

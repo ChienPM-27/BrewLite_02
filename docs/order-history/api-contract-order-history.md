@@ -42,8 +42,7 @@ Tất cả response thành công phải tuân theo format của `TransformInterc
 }
 ```
 
-- API danh sách luôn trả `data` là một mảng.
-- API chi tiết trả `data` là một object.
+- API danh sách trả `data` là một object gồm mảng `items` và object `pagination`; API chi tiết trả `data` là một object.
 - `timestamp` là thời điểm Backend tạo response, không phải `createdAt` của đơn.
 
 ### 2.2. Response lỗi
@@ -124,7 +123,7 @@ hoặc `status` ngoài enum phải bị từ chối trước khi truy vấn repo
 7. Chỉ trả các trường được phép trong bảng dữ liệu tóm tắt; không trả dữ liệu
    xác thực, thông tin thanh toán bí mật, `idempotencyKey` hoặc trường nội bộ.
 8. Truy vấn không được ghi hoặc cập nhật Order, OrderItem, Payment.
-9. Nếu `page` hợp lệ nhưng lớn hơn tổng số trang, trả `200` với `data: []`.
+9. Nếu `page` hợp lệ nhưng lớn hơn tổng số trang, trả `200` với `data.items` là `[]`.
 
 ### 3.5. Response thành công
 
@@ -216,6 +215,7 @@ Backend validate `id`, sau đó truy vấn theo đồng thời `id` và `userId`
     "totalAmount": 125000,
     "discountAmount": 0,
     "finalAmount": 125000,
+    "paidAt": "2026-10-09T08:32:00.000Z",
     "createdAt": "2026-10-09T08:30:00.000Z",
     "items": [
       {
@@ -234,6 +234,15 @@ Backend validate `id`, sau đó truy vấn theo đồng thời `id` và `userId`
             "price": 10000
           }
         ]
+      }
+    ],
+    "payments": [
+      {
+        "id": "cmv5u012a0000mq6wzi4wzbl3",
+        "method": "E_WALLET",
+        "status": "SUCCESS",
+        "transactionRef": "MOCK-TXN-1728462720000",
+        "createdAt": "2026-10-09T08:32:00.000Z"
       }
     ]
   },
@@ -259,9 +268,16 @@ Các trường cấp đơn hàng (`id`, `orderNumber`, `status`, `totalAmount`, 
 | `toppings[].toppingId` | string | Có | ID topping. |
 | `toppings[].name` | string | Có | Tên topping (`Topping.name`). |
 | `toppings[].price` | integer | Có | Đơn giá topping tại thời điểm đặt. |
+| `paidAt` | string (ISO-8601) | null | Không | Thời điểm đơn hàng được thanh toán thành công (`Order.paidAt`). Giá trị `null` nếu đơn chưa được thanh toán hoặc thanh toán thất bại. |
+| `payments` | array | Có | Danh sách lịch sử giao dịch thanh toán của đơn (`Payment`), sắp xếp mới nhất trước (`createdAt DESC`). Mảng rỗng nếu chưa có giao dịch. |
+| `payments[].id` | string | Có | ID bản ghi thanh toán. |
+| `payments[].method` | enum string | Có | Phương thức thanh toán (`PaymentMethod`: `E_WALLET`, `BANK_CARD`). |
+| `payments[].status` | enum string | Có | Trạng thái thanh toán (`PaymentStatus`: `SUCCESS`, `FAILED`). |
+| `payments[].transactionRef` | string | null | Không | Mã tham chiếu giao dịch cổng thanh toán. |
+| `payments[].createdAt` | string (ISO-8601) | Có | Thời điểm tạo bản ghi thanh toán. |
 
 Chi tiết đơn hàng không trả password, token, thông tin thẻ/tài khoản, secret,
-`idempotencyKey` hoặc dữ liệu của người dùng khác.
+`idempotencyKey`, `requestHash` hoặc dữ liệu của người dùng khác.
 
 ## 5. Ma trận lỗi
 
@@ -342,7 +358,7 @@ Client suy đoán chủ sở hữu Order.
   và không gọi repository.
 - [ ] Danh sách được sắp xếp `createdAt DESC`, `id DESC`, phân trang đúng và
   trả đầy đủ metadata.
-- [ ] Không có dữ liệu trả `200` với `data: []`, không bị nhầm thành lỗi.
+- [ ] Không có dữ liệu trả `200` với `data.items` là `[]`, không bị nhầm thành lỗi.
 - [ ] API chi tiết kiểm tra `id` và `userId` trong cùng điều kiện truy vấn;
   Order không thuộc user trả `404`.
 - [ ] Không trả password, token, thông tin thanh toán bí mật, idempotency key

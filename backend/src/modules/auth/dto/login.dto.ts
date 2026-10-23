@@ -4,7 +4,9 @@ import { Transform } from 'class-transformer';
 export class LoginDto {
   @IsEmail({}, { message: 'Email không hợp lệ' })
   @IsNotEmpty({ message: 'Email không được để trống' })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   email: string;
 
   @IsString({ message: 'Mật khẩu phải là chuỗi ký tự' })

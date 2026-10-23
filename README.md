@@ -36,6 +36,10 @@ npm run dev
 ```
 * **Giao diện Web:** `http://localhost:3000`
 
+### Bước 4: Chạy kiểm thử (Testing)
+- **Unit test (không cần DB):** `cd backend && npm test`
+- **Kiểm thử tranh chấp & đồng thời:** `cd backend && npm run test:concurrency` (cần: `docker compose up -d`, `npx prisma migrate deploy`, `npm run prisma:seed`, và backend đang chạy `npm run start:dev`). Script sẽ tạm sửa tồn kho sản phẩm "Bạc xỉu" rồi tự khôi phục, chạy xong nên seed lại (`npm run prisma:seed`).
+
 ---
 
 ## 📁 CẤU TRÚC MONOREPO
