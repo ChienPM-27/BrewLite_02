@@ -1,0 +1,93 @@
+@startuml deployment-docker
+title Sơ Đồ Triển Khai Docker Compose (Deployment Architecture)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+
+skinparam node {
+    BackgroundColor #FAFAFA
+    BorderColor #2D3748
+}
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #3182CE
+}
+
+skinparam database {
+    BackgroundColor #EDF2F7
+    BorderColor #2B6CB0
+}
+
+actor "Người dùng / Trình duyệt\n(Client Web Browser)" as User
+
+node "Host Machine (Docker Engine)" as Host {
+    
+    node "Docker Network: default (Bridge Network)" as Net {
+
+        ' Container Frontend
+        node "Container: brewlite_frontend" as FrontendContainer {
+            artifact "Frontend Image\n(Build: ./frontend/Dockerfile)" as FE_Image
+            component "Next.js 14/15 Production Server\n(Port: 3000)" as NextServer
+            
+            note bottom of NextServer
+                **Build Arguments & Env:**
+                * NEXT_PUBLIC_API_URL = http://localhost:4000/api/v1
+                * NEXT_PUBLIC_DEMO_MODE = true
+                * restart: always
+            end note
+        }
+
+        ' Container Backend
+        node "Container: brewlite_backend" as BackendContainer {
+            artifact "Backend Image\n(Build: ./backend/Dockerfile)" as BE_Image
+            component "NestJS Application Server\n(Port: 4000)" as NestServer
+            
+            note bottom of NestServer
+                **Biến môi trường (Environment):**
+                * PORT = 4000
+                * NODE_ENV = development / production
+                * DATABASE_URL = postgresql://brewlite_admin:...@postgres:5432/brewlite_db?schema=public
+                * DIRECT_URL = postgresql://brewlite_admin:...@postgres:5432/brewlite_db?schema=public
+                * JWT_SECRET = brewlite_super_secret_jwt_key_2026
+                * JWT_EXPIRATION = 7d
+                * restart: always
+                * **Startup Command:**
+                  npx prisma migrate deploy && node dist/main
+            end note
+        }
+
+        ' Container Postgres
+        node "Container: brewlite_postgres" as PostgresContainer {
+            artifact "PostgreSQL Image\n(postgres:16-alpine)" as PG_Image
+            database "PostgreSQL Database Engine\n(Port: 5432)" as PG_Engine
+            
+            note bottom of PG_Engine
+                **Biến môi trường (Environment):**
+                * POSTGRES_USER = brewlite_admin
+                * POSTGRES_PASSWORD = brewlite_secret_pass
+                * POSTGRES_DB = brewlite_db
+                * restart: always
+                * **Healthcheck:**
+                  pg_isready -U brewlite_admin -d brewlite_db
+                  (interval: 5s, timeout: 5s, retries: 5)
+            end note
+        }
+    }
+
+    storage "Docker Named Volume:\nbrewlite_postgres_data" as PG_Vol {
+        folder "/var/lib/postgresql/data" as PG_Data
+    }
+}
+
+' Liên kết ánh xạ cổng từ Host vào Container
+User --> NextServer : HTTP: 3000\n(Host 3000:3000)
+User --> NestServer : HTTP REST API: 4000\n(Host 4000:4000)
+
+' Quan hệ phụ thuộc và giao tiếp nội bộ giữa các container trong mạng Docker
+NextServer ..> NestServer : depends_on: [backend]\nGọi API: http://backend:4000 hoặc localhost:4000
+NestServer --> PG_Engine : depends_on: postgres (service_healthy)\nTCP: 5432 (Internal Host: postgres:5432)
+PG_Engine --> PG_Data : Ghi dữ liệu bền vững (Persist Volume)
+
+@enduml

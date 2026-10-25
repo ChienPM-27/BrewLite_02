@@ -1,0 +1,58 @@
+@startuml order-state-machine
+title Sơ Đồ Máy Trạng Thái Đơn Hàng (Order State Machine - 9 Chuyển Tiếp)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+
+skinparam state {
+    BackgroundColor #FFFFFF
+    BorderColor #2B6CB0
+    StartColor #2B6CB0
+    EndColor #2D3748
+}
+
+[*] --> PENDING : Khởi tạo đơn mới\n(POST /api/v1/orders)
+
+state PENDING #FFFBEB : Đơn hàng chờ thanh toán\n- Tồn kho đã được trừ tạm giữ\n- Chưa thanh toán
+state PAID #F0FDF4 : Đã thanh toán thành công\n- Đã tích lũy điểm loyalty\n- Chờ quầy tiếp nhận
+state PREPARING #EFF6FF : Đang pha chế\n- Barista đang chuẩn bị đồ uống
+state READY #FAF5FF : Đồ uống đã sẵn sàng\n- Mời khách tới quầy nhận
+state COMPLETED #F0FDF4 : Hoàn tất đơn hàng\n- Khách đã nhận đồ uống\n(Trạng thái kết thúc)
+state PAYMENT_FAILED #FEF2F2 : Thanh toán thất bại\n- Cổng mock báo lỗi\n- Giữ nguyên đơn & giỏ
+state CANCELLED #F3F4F6 : Đã hủy đơn hàng\n- Hoàn trả lại tồn kho\n(Trạng thái kết thúc)
+
+' 1. Ba chuyển tiếp từ PENDING
+PENDING --> PAID : [1] Thanh toán thành công\n(POST /api/v1/payments -> SUCCESS)
+PENDING --> PAYMENT_FAILED : [2] Thanh toán thất bại\n(POST /api/v1/payments -> FAILED)
+PENDING --> CANCELLED : [3] Khách tự hủy đơn\n(POST /api/v1/orders/:id/cancel)
+
+' 2. Hai chuyển tiếp từ PAID
+PAID --> PREPARING : [4] Barista nhận đơn\n(Bắt đầu pha chế)
+PAID --> CANCELLED : [5] Hủy đơn / Hoàn tiền\n(Sự cố pha chế hoặc hết nguyên liệu)
+
+' 3. Một chuyển tiếp từ PREPARING
+PREPARING --> READY : [6] Pha chế xong\n(Đồ uống đặt tại quầy chờ lấy)
+
+' 4. Một chuyển tiếp từ READY
+READY --> COMPLETED : [7] Giao khách thành công\n(Khách nhận nước tại quầy)
+
+' 5. Hai chuyển tiếp từ PAYMENT_FAILED
+PAYMENT_FAILED --> PENDING : [8] Khách thử lại thanh toán\n(POST /api/v1/payments lần 2)
+PAYMENT_FAILED --> CANCELLED : [9] Khách hủy đơn sau lỗi\n(POST /api/v1/orders/:id/cancel)
+
+' Trạng thái kết thúc
+COMPLETED --> [*]
+CANCELLED --> [*]
+
+note right of CANCELLED
+    **Quy tắc bảo vệ (assertTransition):**
+    * Đúng chính xác 9 chuyển tiếp hợp lệ.
+    * Mọi chuyển tiếp khác (ví dụ: COMPLETED -> *,
+      CANCELLED -> *, PENDING -> COMPLETED)
+      đều bị hàm assertTransition() ném lỗi
+      **409 ConflictException**.
+    * Khi hủy đơn (CANCELLED): Hoàn trả tồn kho
+      cho Product & Topping.
+end note
+
+@enduml

@@ -1,0 +1,246 @@
+@startuml class-diagram-backend
+title Sơ Đồ Lớp Backend: Các Dịch Vụ (Services) & Thực Thể Dữ Liệu (Prisma Entities)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+skinparam class {
+    BackgroundColor #FFFFFF
+    BorderColor #2B6CB0
+    HeaderBackgroundColor #1A365D
+    HeaderFontColor #FFFFFF
+}
+
+package "Domain Entities (Prisma Models)" #F8FAFC {
+    class User <<model>> {
+        + id : String [PK]
+        + email : String [UK]
+        + passwordHash : String
+        + fullName : String?
+        + loyaltyPoints : Int
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class Category <<model>> {
+        + id : String [PK]
+        + name : String [UK]
+        + slug : String [UK]
+        + displayOrder : Int
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class Product <<model>> {
+        + id : String [PK]
+        + categoryId : String? [FK]
+        + name : String
+        + basePrice : Decimal(12,0)
+        + imageUrl : String?
+        + stock : Int
+        + version : Int <<OptimisticLock>>
+        + isAvailable : Boolean
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class ProductSizePrice <<model>> {
+        + id : String [PK]
+        + productId : String [FK]
+        + size : ProductSize (S|M|L)
+        + priceAdjustment : Decimal(12,0)
+    }
+
+    class Topping <<model>> {
+        + id : String [PK]
+        + name : String [UK]
+        + price : Decimal(12,0)
+        + stock : Int
+        + isAvailable : Boolean
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class Promotion <<model>> {
+        + id : String [PK]
+        + code : String [UK]
+        + description : String?
+        + discountPercent : Int?
+        + discountAmount : Decimal(12,0)?
+        + maxDiscount : Decimal(12,0)?
+        + minOrderAmount : Decimal(12,0)
+        + startDate : DateTime
+        + endDate : DateTime?
+        + isActive : Boolean
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class Order <<model>> {
+        + id : String [PK]
+        + orderNumber : Int [UK]
+        + userId : String [FK]
+        + promotionId : String? [FK]
+        + status : OrderStatus
+        + totalAmount : Decimal(12,0)
+        + discountAmount : Decimal(12,0)
+        + finalAmount : Decimal(12,0)
+        + pointsEarned : Int
+        + paidAt : DateTime?
+        + version : Int <<StateLock>>
+        + createdAt : DateTime
+        + updatedAt : DateTime
+    }
+
+    class OrderItem <<model>> {
+        + id : String [PK]
+        + orderId : String [FK]
+        + productId : String [FK]
+        + size : ProductSize
+        + quantity : Int
+        + unitPrice : Decimal(12,0)
+        + lineTotal : Decimal(12,0)
+    }
+
+    class OrderItemTopping <<model>> {
+        + id : String [PK]
+        + orderItemId : String [FK]
+        + toppingId : String [FK]
+        + price : Decimal(12,0)
+    }
+
+    class Payment <<model>> {
+        + id : String [PK]
+        + orderId : String [FK]
+        + idempotencyKey : String [UK]
+        + requestHash : String?
+        + amount : Decimal(12,0)
+        + method : PaymentMethod
+        + status : PaymentStatus
+        + failureReason : String?
+        + transactionRef : String?
+        + createdAt : DateTime
+    }
+
+    class LoyaltyTransaction <<model>> {
+        + id : String [PK]
+        + userId : String [FK]
+        + orderId : String? [FK]
+        + points : Int
+        + type : LoyaltyTransactionType
+        + reason : String
+        + createdAt : DateTime
+    }
+
+    class OrderStatusHistory <<model>> {
+        + id : String [PK]
+        + orderId : String [FK]
+        + fromStatus : OrderStatus?
+        + toStatus : OrderStatus
+        + changedBy : String?
+        + reason : String?
+        + createdAt : DateTime
+    }
+}
+
+package "Backend Services (NestJS Providers)" #EDF2F7 {
+    class AuthService {
+        + register(dto: RegisterDto): Promise<AuthResult>
+        + login(dto: LoginDto): Promise<AuthResult>
+    }
+
+    class ProductsService {
+        + getProducts(): Promise<ProductItem[]>
+    }
+
+    class ProductDetailService {
+        + getProductById(id: string): Promise<ProductDetailDto>
+    }
+
+    class OrdersService {
+        + create(userId: string, dto: CreateOrderDto): Promise<Order>
+    }
+
+    class OrderService {
+        + transition(tx, orderId: string, toStatus: OrderStatus, meta): Promise<Order>
+    }
+
+    class CancelOrderService {
+        + cancel(orderId: string, userId: string): Promise<CancelResult>
+    }
+
+    class HistoryService {
+        + findAll(userId: string, query?: GetOrderHistoryDto): Promise<OrderHistoryResult>
+        + findOne(userId: string, orderId: string): Promise<OrderDetail>
+    }
+
+    class PaymentsService {
+        + createPayment(userId: string, key: string, body: CreatePaymentDto, mockOutcome?: string): Promise<PaymentResponse>
+        - replayExistingPayment(payment, userId: string, requestHash: string): PaymentResponse
+    }
+
+    class MockGatewayService {
+        + processPayment(mockOutcome?: string): 'SUCCESS' | 'FAILED'
+    }
+
+    class PricingService {
+        + calculate(items: PricingItemInput[]): Promise<PricingCalculationResult>
+    }
+
+    class PromotionsService {
+        + validate(code: string, subtotal: number): Promise<PromotionValidationResult>
+    }
+
+    class LoyaltyService {
+        + award(tx, order: { id, userId, finalAmount }): Promise<void>
+    }
+
+    class PrismaService {
+        + onModuleInit(): Promise<void>
+        + onModuleDestroy(): Promise<void>
+        + $transaction(fn): Promise<any>
+    }
+}
+
+' Quan hệ giữa các Entity
+User "1" *-- "0..*" Order
+User "1" *-- "0..*" LoyaltyTransaction
+Category "0..1" o-- "0..*" Product
+Product "1" *-- "1..*" ProductSizePrice
+Product "1" <-- "0..*" OrderItem
+Promotion "0..1" o-- "0..*" Order
+Order "1" *-- "1..*" OrderItem
+Order "1" *-- "0..*" Payment
+Order "1" *-- "0..*" OrderStatusHistory
+Order "0..1" <-- "0..*" LoyaltyTransaction
+OrderItem "1" *-- "0..*" OrderItemTopping
+Topping "1" <-- "0..*" OrderItemTopping
+
+' Tương tác giữa các Service
+OrdersService --> PricingService : delegates pricing
+OrdersService --> PromotionsService : delegates coupon validation
+OrdersService --> PrismaService : uses transaction & lock
+PaymentsService --> OrderService : transition(PENDING -> PAID/FAILED)
+PaymentsService --> LoyaltyService : award loyalty points
+PaymentsService --> MockGatewayService : processPayment()
+PaymentsService --> PrismaService : reads/writes payment records
+CancelOrderService --> OrderService : transition(CANCELLED)
+CancelOrderService --> PrismaService : restocks inventory
+AuthService --> PrismaService
+ProductsService --> PrismaService
+ProductDetailService --> PrismaService
+HistoryService --> PrismaService
+LoyaltyService --> PrismaService
+
+' Service tác động lên Entity
+AuthService ..> User : creates & queries
+ProductsService ..> Product : queries active products
+ProductDetailService ..> Product : queries detail & toppings
+OrdersService ..> Order : creates Order & OrderItems
+OrdersService ..> Product : checks & decrements stock
+PaymentsService ..> Payment : records payment transaction
+OrderService ..> OrderStatusHistory : logs state transitions
+
+@enduml

@@ -1,0 +1,136 @@
+@startuml sequence-auth
+title Sequence Diagram - Luồng Xác Thực Auth (Register & Login)
+autonumber
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Khách hàng (User)" as User
+box "Frontend (Next.js)" #F9F9F9
+    participant "Page: Login / Register\n(app/auth/.../page.tsx)" as Page
+    participant "Zustand: useAuthStore\n(store/useAuthStore.ts)" as Store
+    participant "Client: auth.service.ts\n(services/auth.service.ts)" as ClientService
+end box
+
+box "Backend (NestJS)" #F0F7FF
+    participant "Controller: AuthController\n(modules/auth/auth.controller.ts)" as Controller
+    participant "Service: AuthService\n(modules/auth/auth.service.ts)" as Service
+    participant "Security: bcrypt & JwtService\n(@nestjs/jwt, bcrypt)" as Crypto
+    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+end box
+
+== Luồng 1: Đăng Ký Tài Khoản (Register) ==
+User -> Page: Nhập email, password, fullName & nhấn "Đăng ký"
+activate Page
+Page -> ClientService: registerApi({ email, password, fullName })
+activate ClientService
+ClientService -> Controller: POST /api/v1/auth/register (RegisterDto)
+activate Controller
+Controller -> Service: register(dto)
+activate Service
+
+Service -> DB: prisma.user.findUnique({ where: { email } })
+activate DB
+DB --> Service: Kết quả tìm kiếm
+deactivate DB
+
+alt Email đã được sử dụng
+    Service --> Controller: throw ConflictException('Email này đã được sử dụng')
+    Controller --> ClientService: 409 Conflict: { success: false, message: "Email này đã được sử dụng" }
+    ClientService --> Page: Ném ApiError(409)
+    Page --> User: Hiển thị banner lỗi "Email này đã được sử dụng"
+else Email chưa tồn tại (Hợp lệ)
+    Service -> Crypto: bcrypt.hash(dto.password, 10)
+    activate Crypto
+    Crypto --> Service: passwordHash
+    deactivate Crypto
+
+    Service -> DB: prisma.user.create({ data: { email, passwordHash, fullName, loyaltyPoints: 0 } })
+    activate DB
+    DB --> Service: user record (id, email, fullName, loyaltyPoints)
+    deactivate DB
+
+    Service -> Crypto: jwtService.signAsync({ sub: user.id, email: user.email })
+    activate Crypto
+    Crypto --> Service: accessToken
+    deactivate Crypto
+
+    Service --> Controller: { accessToken, user: { id, email, fullName, loyaltyPoints } }
+    deactivate Service
+
+    Controller --> ClientService: 201 Created: { success: true, statusCode: 201, data: { accessToken, user } }
+    deactivate Controller
+
+    ClientService --> Page: AuthResponse
+    deactivate ClientService
+
+    Page -> Store: login(res.accessToken, res.user)
+    activate Store
+    Store -> Store: localStorage.setItem('token', token)
+    Store --> Page: State updated
+    deactivate Store
+
+    Page --> User: router.replace(next || '/menu')
+    deactivate Page
+end
+
+== Luồng 2: Đăng Nhập (Login) ==
+User -> Page: Nhập email, password & nhấn "Đăng nhập"
+activate Page
+Page -> ClientService: loginApi({ email, password })
+activate ClientService
+ClientService -> Controller: POST /api/v1/auth/login (LoginDto)
+activate Controller
+Controller -> Service: login(dto)
+activate Service
+
+Service -> DB: prisma.user.findUnique({ where: { email } })
+activate DB
+DB --> Service: Kết quả tìm kiếm user
+deactivate DB
+
+alt Không tìm thấy user với email cung cấp
+    Service --> Controller: throw UnauthorizedException('Email hoặc mật khẩu không chính xác')
+    Controller --> ClientService: 401 Unauthorized: { success: false, message: "Email hoặc mật khẩu không chính xác" }
+    ClientService --> Page: Ném ApiError(401)
+    Page --> User: Hiển thị banner lỗi "Email hoặc mật khẩu không chính xác"
+else Tìm thấy user
+    Service -> Crypto: bcrypt.compare(dto.password, user.passwordHash)
+    activate Crypto
+    Crypto --> Service: isValid (boolean)
+    deactivate Crypto
+
+    alt Mật khẩu không trùng khớp (isValid === false)
+        Service --> Controller: throw UnauthorizedException('Email hoặc mật khẩu không chính xác')
+        Controller --> ClientService: 401 Unauthorized: { success: false, message: "Email hoặc mật khẩu không chính xác" }
+        ClientService --> Page: Ném ApiError(401)
+        Page --> User: Hiển thị banner lỗi "Email hoặc mật khẩu không chính xác"
+    else Mật khẩu hợp lệ (isValid === true)
+        Service -> Crypto: jwtService.signAsync({ sub: user.id, email: user.email })
+        activate Crypto
+        Crypto --> Service: accessToken
+        deactivate Crypto
+
+        Service --> Controller: { accessToken, user: { id, email, fullName, loyaltyPoints } }
+        deactivate Service
+
+        Controller --> ClientService: 200 OK: { success: true, statusCode: 200, data: { accessToken, user } }
+        deactivate Controller
+
+        ClientService --> Page: AuthResponse
+        deactivate ClientService
+
+        Page -> Store: login(res.accessToken, res.user)
+        activate Store
+        Store -> Store: localStorage.setItem('token', token)
+        Store --> Page: State updated
+        deactivate Store
+
+        Page --> User: router.replace(next || '/menu')
+        deactivate Page
+    end
+end
+
+@enduml

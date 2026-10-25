@@ -1,5 +1,5 @@
 @startuml
-title UML Database / Class Diagram - Hệ Thống BrewLite (Full Schema)
+title UML Database / ERD Schema - Hệ Thống BrewLite (Khớp 100% schema.prisma)
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam shadowing false
@@ -83,6 +83,8 @@ class "ProductSizePrice (product_size_prices)" as ProductSizePrice {
   + product_id : String [FK]
   + size : ProductSize
   + price_adjustment : Decimal(12,0) = 0
+  --
+  UK: [product_id, size]
 }
 
 class "Topping (toppings)" as Topping {
@@ -106,6 +108,8 @@ class "Promotion (promotions)" as Promotion {
   + start_date : DateTime
   + end_date : DateTime?
   + is_active : Boolean = true
+  + created_at : DateTime
+  + updated_at : DateTime
 }
 
 class "Order (orders)" as Order {
@@ -167,30 +171,34 @@ class "LoyaltyTransaction (loyalty_transactions)" as LoyaltyTransaction {
 class "OrderStatusHistory (order_status_history)" as OrderStatusHistory {
   + id : String [PK] <<cuid>>
   + order_id : String [FK]
-  + from_status : OrderStatus
+  + from_status : OrderStatus?
   + to_status : OrderStatus
   + changed_by : String?
   + reason : String?
   + created_at : DateTime
 }
 
-' Relationships & Multiplicities
-Category "1" o-- "0..*" Product : classifies
+' Relationships & Multiplicities (Đã sửa khớp 100% schema.prisma)
+Category "0..1" o-- "0..*" Product : classifies
 Product "1" *-- "1..*" ProductSizePrice : sizes
 User "1" *-- "0..*" Order : places
 User "1" *-- "0..*" LoyaltyTransaction : owns
-Promotion "1" o-- "0..*" Order : applied_to
+Promotion "0..1" o-- "0..*" Order : applied_to
 Order "1" *-- "1..*" OrderItem : contains
 Order "1" *-- "0..*" Payment : payments (1-N retry)
 Order "1" *-- "0..*" OrderStatusHistory : audit_trail
+Order "0..1" <-- "0..*" LoyaltyTransaction : origin_order
 Product "1" <-- "0..*" OrderItem : references
 OrderItem "1" *-- "0..*" OrderItemTopping : includes
 Topping "1" <-- "0..*" OrderItemTopping : references
 
+' Enum dependencies
 Order ..> OrderStatus : uses
+OrderStatusHistory ..> OrderStatus : uses
 Payment ..> PaymentMethod : uses
 Payment ..> PaymentStatus : uses
 OrderItem ..> ProductSize : uses
+ProductSizePrice ..> ProductSize : uses
 LoyaltyTransaction ..> LoyaltyTransactionType : uses
 
 @enduml

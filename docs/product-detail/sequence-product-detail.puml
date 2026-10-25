@@ -1,0 +1,110 @@
+@startuml sequence-product-detail
+title Sequence Diagram - Xem Chi Tiết Sản Phẩm & Chọn Tùy Chọn (Product Detail)
+autonumber
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Khách hàng (User)" as User
+box "Frontend (Next.js)" #F9F9F9
+    participant "Page: ProductDetailPage\n(app/products/[id]/page.tsx)" as Page
+    participant "Component: ProductDetailView\n(components/product-detail/...)" as View
+    participant "Hook: useProductDetail\n(hooks/useProductDetail.ts)" as Hook
+    participant "Client: product.service.ts\n(services/product.service.ts)" as ClientService
+    participant "Zustand: useCartStore\n(store/useCartStore.ts)" as CartStore
+end box
+
+box "Backend (NestJS)" #F0F7FF
+    participant "Controller: ProductDetailController\n(modules/products/product-detail.controller.ts)" as Controller
+    participant "Service: ProductDetailService\n(modules/products/product-detail.service.ts)" as Service
+    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+end box
+
+== Giai đoạn 1: Tải thông tin chi tiết sản phẩm ==
+User -> Page: Chọn 1 sản phẩm từ Menu (/products/:id)
+activate Page
+Page -> View: Render <ProductDetailView id={id} />
+activate View
+View -> Hook: useProductDetail(id)
+activate Hook
+
+Hook -> Hook: load() [useEffect on mount]
+Hook -> ClientService: getProductById(id)
+activate ClientService
+
+ClientService -> Controller: GET /api/v1/products/:id
+activate Controller
+Controller -> Service: getProductById(id)
+activate Service
+
+alt ID sai định dạng (!PRODUCT_ID_PATTERN.test(id))
+    Service --> Controller: throw BadRequestException('ID sản phẩm không hợp lệ')
+    Controller --> ClientService: 400 Bad Request: { success: false, message: "ID sản phẩm không hợp lệ" }
+    ClientService --> Hook: throw ApiError(400)
+    Hook -> Hook: setError('invalid-id'), setIsLoading(false)
+    Hook --> View: { error: 'invalid-id', product: null }
+    View --> User: Hiển thị giao diện báo ID không hợp lệ <ProductDetailStates />
+else ID hợp lệ về cú pháp
+    Service -> DB: Promise.all([\n  prisma.product.findUnique({ where: { id }, include: { sizePrices } }),\n  prisma.topping.findMany({ where: { isAvailable: true, stock: { gt: 0 } } })\n])
+    activate DB
+    DB --> Service: [productEntity, toppingsList]
+    deactivate DB
+
+    alt Không tìm thấy sản phẩm trong CSDL (!product)
+        Service --> Controller: throw NotFoundException('Không tìm thấy sản phẩm với ID cung cấp')
+        Controller --> ClientService: 404 Not Found: { success: false, message: "Không tìm thấy sản phẩm với ID cung cấp" }
+        ClientService --> Hook: throw ApiError(404)
+        Hook -> Hook: setError('not-found'), setIsLoading(false)
+        Hook --> View: { error: 'not-found', product: null }
+        View --> User: Hiển thị giao diện không tìm thấy sản phẩm <ProductDetailStates />
+    else Sản phẩm tồn tại
+        Service -> Service: Map sang ProductDetailDto:\n- Chuyển Decimal sang Number (basePrice, priceAdjustment, price)\n- isAvailable = product.isAvailable && product.stock > 0
+        Service --> Controller: ProductDetailDto
+        deactivate Service
+
+        Controller --> ClientService: 200 OK: {\n  success: true,\n  statusCode: 200,\n  data: ProductDetailDto,\n  timestamp\n}
+        deactivate Controller
+
+        ClientService --> Hook: ProductDetailDto
+        deactivate ClientService
+
+        Hook -> Hook: setProduct(data)\nsetSize(data.sizePrices[0]?.size)\nsetToppingIds([])\nsetQuantity(1)\nsetIsLoading(false)
+        Hook --> View: { product, size, toppingIds, quantity, unitPrice, totalPrice }
+        deactivate Hook
+
+        View --> User: Hiển thị giao diện chi tiết: Tên, Giá, Ảnh, Size (S/M/L), Topping
+    end
+end
+
+== Giai đoạn 2: Tùy biến sản phẩm & Thêm vào giỏ hàng ==
+opt Người dùng tùy chọn size & topping
+    User -> View: Chọn size khác (ví dụ: 'M' hoặc 'L')
+    View -> Hook: setSize('M')
+    User -> View: Chọn thêm Topping
+    View -> Hook: toggleTopping(toppingId)
+    alt Đã chọn đủ 3 topping (toppingIds.length >= 3)
+        Hook -> Hook: Chặn không cho chọn thêm (BR-CART-08: Tối đa 3 topping)
+    else Chưa đủ 3 topping
+        Hook -> Hook: Cập nhật danh sách toppingIds
+    end
+    User -> View: Tăng/giảm số lượng (QuantityStepper: 1 -> 99)
+    View -> Hook: changeQuantity(qty)
+    Hook -> Hook: Tự động tính toán lại unitPrice & totalPrice
+    Hook --> View: Re-render giá tổng tạm tính
+end
+
+User -> View: Nhấn nút "Thêm vào giỏ hàng"
+View -> View: handleAddToCart()
+View -> CartStore: addItem({\n  productId: product.id,\n  name: product.name,\n  imageUrl: product.imageUrl,\n  size,\n  toppingIds,\n  toppingNames,\n  quantity,\n  estimatedUnitPrice: unitPrice,\n  currency: 'VND'\n})
+activate CartStore
+CartStore -> CartStore: Sinh id dòng: `${productId}-${size}-${toppingIds.sort().join('-')}`\nThêm mới dòng hoặc cộng dồn quantity nếu đã tồn tại\nCập nhật totalAmount & badgeCount\nLưu localStorage: "brewlite_cart"
+CartStore --> View: Giỏ hàng đã cập nhật
+deactivate CartStore
+
+View --> User: Hiển thị Toast thông báo: "Đã thêm vào giỏ hàng!"
+deactivate View
+deactivate Page
+
+@enduml

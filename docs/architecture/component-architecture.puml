@@ -1,0 +1,93 @@
+@startuml component-architecture
+title Kiến Trúc Thành Phần Hệ Thống BrewLite (Component Architecture)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+skinparam node {
+    BackgroundColor #FAFAFA
+    BorderColor #4A5568
+}
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #2B6CB0
+    ArrowColor #2D3748
+}
+
+skinparam database {
+    BackgroundColor #EDF2F7
+    BorderColor #2D3748
+}
+
+actor "Khách hàng (Web Browser)" as Client
+
+node "Frontend Container (Port 3000)" as FE_Node {
+    package "Next.js 14/15 (App Router & React)" {
+        component [UI Pages / Components\n(Menu, Detail, Cart, Checkout, Orders, Auth)] as UI
+        component [Client Stores & Hooks\n(useCartStore, useAuthStore, useProductCatalog)] as StateStore
+        component [API Services\n(auth, product, order, payment services)] as ApiClient
+    }
+}
+
+node "Backend Container (Port 4000)" as BE_Node {
+    package "NestJS Application (/api/v1)" {
+        component [HTTP Pipeline\n(Cors, ValidationPipe, TransformInterceptor, AllExceptionsFilter, JwtAuthGuard)] as Middleware
+
+        package "Business Modules" {
+            component [AuthModule\n(AuthController, AuthService, JwtStrategy)] as AuthMod
+            component [ProductsModule\n(ProductsController, ProductDetailController,\nProductsService, ProductDetailService)] as ProductsMod
+            component [OrdersModule\n(OrdersController, CancelOrderController, HistoryController,\nOrdersService, OrderService, CancelOrderService, HistoryService)] as OrdersMod
+            component [PaymentsModule\n(PaymentsController, PaymentsService)] as PaymentsMod
+            component [PricingModule\n(PricingService)] as PricingMod
+            component [PromotionsModule\n(PromotionsService)] as PromotionsMod
+            component [LoyaltyModule\n(LoyaltyService)] as LoyaltyMod
+        }
+
+        component [PrismaModule\n(PrismaService / Client ORM)] as PrismaMod
+    }
+
+    component [Mock Payment Gateway\n(MockGatewayService - simulate MoMo/VNPay)] as MockGateway
+}
+
+node "Database Container (Port 5432)" as DB_Node {
+    database "PostgreSQL 16 (brewlite_db)" as PostgresDB {
+        folder "Tables (schema: public)" {
+            [users / categories / products / product_size_prices]
+            [toppings / promotions / orders / order_items]
+            [order_item_toppings / payments / loyalty_transactions / order_status_history]
+        }
+    }
+}
+
+' Giao tiếp giữa các tầng
+Client --> UI : Tương tác trực tiếp (HTTP/HTML/JS)
+UI --> StateStore : Đọc & ghi Client State (Zustand + localStorage)
+UI --> ApiClient : Kích hoạt gọi API
+ApiClient --> Middleware : RESTful HTTP Request (/api/v1/*)\n[Bearer JWT / Idempotency-Key]
+
+Middleware --> AuthMod : /api/v1/auth/*
+Middleware --> ProductsMod : /api/v1/products, /api/v1/products/:id
+Middleware --> OrdersMod : /api/v1/orders, /api/v1/orders/:id, /api/v1/orders/me
+Middleware --> PaymentsMod : /api/v1/payments
+
+' Phụ thuộc nội bộ giữa các module nghiệp vụ
+OrdersMod ..> PricingMod : calculate(pricingInput)\nTính tiền & phụ thu size/topping
+OrdersMod ..> PromotionsMod : validate(code, subtotal)\nKiểm tra mã giảm giá
+PaymentsMod ..> OrdersMod : OrderService.transition()\nChuyển đổi trạng thái đơn (State Machine)
+PaymentsMod ..> LoyaltyMod : LoyaltyService.award()\nTích điểm khi đơn PAID
+PaymentsMod ..> MockGateway : processPayment(mockOutcome)\nXử lý giao dịch giả lập
+
+' Truy cập cơ sở dữ liệu qua Prisma ORM
+AuthMod --> PrismaMod
+ProductsMod --> PrismaMod
+OrdersMod --> PrismaMod
+PaymentsMod --> PrismaMod
+PromotionsMod --> PrismaMod
+LoyaltyMod --> PrismaMod
+
+PrismaMod --> PostgresDB : PostgreSQL Native Driver (TCP: 5432)\n[Transactions, Optimistic Locking, Prisma Client]
+
+@enduml
