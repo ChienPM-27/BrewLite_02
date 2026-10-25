@@ -1,0 +1,27 @@
+# LaTeX temporary and build files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.xdv
+
+# Temp script folders
+scripts/_temp/
+scripts/__pycache__/
+*.pyc
+
+# Note: report/main.pdf and report/figures/*.pdf are explicitly tracked per project specification

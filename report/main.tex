@@ -1,0 +1,124 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% UTF-8 and System Fonts (XeLaTeX)
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+
+% Page Layout & Margins
+\usepackage[top=2.5cm, bottom=2.5cm, left=3.0cm, right=2.0cm]{geometry}
+\setlength{\headheight}{15pt}
+\addtolength{\topmargin}{-3pt}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+
+% Graphics & Tables
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tcolorbox}
+
+% Code Listings & Colors
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Header & Footer
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% Hyperlinks
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=blue,
+    citecolor=black,
+    pdfpagemode=FullScreen,
+}
+
+% Redefine Vietnamese Standard Names
+\renewcommand{\contentsname}{MỤC LỤC}
+\renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}
+\renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}
+\renewcommand{\chaptername}{Chương}
+\renewcommand{\appendixname}{Phụ lục}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+
+% Chapter & Section Formatting
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\Large}
+  {\chaptername\ \thechapter}{10pt}{\LARGE}
+\titlespacing*{\chapter}{0pt}{-10pt}{20pt}
+
+% Header & Footer Setup
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\slshape Báo cáo BTL Công nghệ Phần mềm - ĐH Sài Gòn}
+\fancyhead[R]{\small\slshape Hệ thống BrewLite}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% Code listings style
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=lines,
+  backgroundcolor=\color{gray!8},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray!80!black}\itshape,
+  stringstyle=\color{red!70!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=6pt,
+  showspaces=false,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b
+}
+
+% Custom Todo Command
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+\begin{document}
+
+% 1. Cover Page
+\include{chapters/cover}
+
+% 2. Front Matter (Roman numerals)
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+% 3. Main Content (Arabic numerals)
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{chapters/ch1-introduction}
+\include{chapters/ch2-requirements}
+\include{chapters/ch3-architecture}
+\include{chapters/ch4-database}
+\include{chapters/ch5-features}
+\include{chapters/ch6-advanced-logic}
+\include{chapters/ch7-implementation}
+\include{chapters/ch8-evaluation}
+
+% 4. Appendices
+\appendix
+\include{appendices/appendix-a}
+\include{appendices/appendix-b}
+\include{appendices/appendix-c}
+
+\end{document}

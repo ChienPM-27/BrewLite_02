@@ -1,0 +1,100 @@
+\chapter{KIẾN TRÚC HỆ THỐNG}
+
+\section{Kiến trúc thành phần (Component Architecture)}
+Hệ thống BrewLite được thiết kế theo mô hình kiến trúc phân tầng dịch vụ (\textit{Layered Service-Oriented Architecture}), đảm bảo tính phân tách trách nhiệm cao (\textit{Separation of Concerns}) và khả năng mở rộng linh hoạt giữa tầng giao diện người dùng, tầng xử lý nghiệp vụ và tầng dữ liệu bền vững. 
+
+Sơ đồ kiến trúc thành phần tổng thể của BrewLite được biểu diễn tại Hình~\ref{fig:component-architecture}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/component-architecture.pdf}
+    \caption{Sơ đồ Kiến trúc thành phần tổng thể hệ thống BrewLite}
+    \label{fig:component-architecture}
+\end{figure}
+
+Hệ thống bao gồm các thành phần cốt lõi:
+\begin{enumerate}
+    \item \textbf{Tầng Trình bày (Frontend Presentation Layer - Next.js 15):}
+    \begin{itemize}
+        \item Xây dựng bằng Next.js App Router, sử dụng TypeScript và TailwindCSS.
+        \item Phân chia thành các module giao diện tương ứng với các trang: Xác thực (\texttt{/login}, \texttt{/register}), Thực đơn (\texttt{/products}), Chi tiết món (\texttt{/products/[id]}), Giỏ hàng (\texttt{/cart}), Đặt hàng (\texttt{/checkout}) và Lịch sử (\texttt{/orders}).
+        \item Quản lý trạng thái cục bộ của giỏ hàng thông qua Custom Hook / Zustand và đồng bộ token xác thực lưu trong bộ nhớ an toàn.
+    \end{itemize}
+    \item \textbf{Tầng Xử lý Nghiệp vụ (Backend Application Layer - NestJS 11):}
+    Tổ chức theo các Module chuyên biệt, tận dụng cơ chế Dependency Injection (DI):
+    \begin{itemize}
+        \item \textbf{AuthModule:} Đảm nhận đăng ký, băm mật khẩu bằng \texttt{bcrypt}, đăng nhập và cấp phát JSON Web Token; bảo vệ hệ thống thông qua \texttt{JwtAuthGuard}.
+        \item \textbf{ProductsModule:} Quản lý danh mục (\texttt{categories}), sản phẩm (\texttt{products}), các tùy chọn size/đường/đá/topping và kiểm tra tính khả dụng của kho hàng.
+        \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{OrderStateMachine}) và kiểm soát giao dịch tạo đơn.
+        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập thực thi chính sách phụ thu tùy biến, kiểm tra hợp lệ của mã giảm giá \texttt{WELCOME10} và quy đổi điểm tích lũy thành viên.
+        \item \textbf{PaymentsModule:} Xử lý thanh toán trực tuyến, quản lý bảng idempotency (\texttt{PaymentIdempotency}) và kết nối giao tiếp với cổng thanh toán.
+        \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptionsFilter}) và bộ chuẩn hóa phản hồi (\texttt{TransformInterceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
+    \end{itemize}
+    \item \textbf{Tầng Cơ sở dữ liệu (Data Access Layer):}
+    Sử dụng \textbf{Prisma ORM 6} cung cấp Type-safe Client kết nối trực tiếp đến hệ quản trị cơ sở dữ liệu quan hệ \textbf{PostgreSQL 16}.
+    \item \textbf{Hệ thống ngoại vi (External Service):}
+    \textbf{Mock Payment Gateway} giả lập cổng thanh toán trực tuyến của bên thứ ba, cung cấp endpoint xử lý thẻ/ví điện tử và phản hồi kết quả giao dịch về backend.
+\end{enumerate}
+
+\section{Kiến trúc triển khai với Docker (Deployment Architecture)}
+Toàn bộ môi trường ứng dụng BrewLite được đóng gói và cấu hình tự động thông qua \textbf{Docker} và \textbf{Docker Compose}, giúp loại bỏ sự sai lệch giữa môi trường phát triển (Development) và môi trường kiểm thử/triển khai.
+
+Sơ đồ kiến trúc triển khai container được minh họa tại Hình~\ref{fig:deployment-docker}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/deployment-docker.pdf}
+    \caption{Sơ đồ Triển khai hệ thống đa container với Docker Compose}
+    \label{fig:deployment-docker}
+\end{figure}
+
+Hệ thống bao gồm 3 container độc lập kết nối thông qua mạng nội bộ Docker bridge (\texttt{brewlite-network}):
+\begin{itemize}
+    \item \textbf{Frontend Container (\texttt{brewlite-frontend}):}
+    \begin{itemize}
+        \item Base image: \texttt{node:20-alpine}.
+        \item Port ánh xạ: \texttt{3000:3000}.
+        \item Biến môi trường: \texttt{NEXT\_PUBLIC\_API\_BASE\_URL=http://localhost:3001/api/v1}.
+    \end{itemize}
+    \item \textbf{Backend Container (\texttt{brewlite-backend}):}
+    \begin{itemize}
+        \item Base image: \texttt{node:20-alpine}.
+        \item Port ánh xạ: \texttt{3001:3001}.
+        \item Biến môi trường: \texttt{DATABASE\_URL=postgresql://user:pass@postgres:5432/brewlite}, \texttt{JWT\_SECRET=...}, \texttt{JWT\_EXPIRES\_IN=24h}, \texttt{PORT=3001}.
+        \item Phụ thuộc (\texttt{depends\_on}): Chờ container \texttt{postgres} sẵn sàng nhận kết nối trước khi khởi chạy và tự động thực thi lệnh \texttt{prisma migrate deploy}.
+    \end{itemize}
+    \item \textbf{Database Container (\texttt{brewlite-postgres}):}
+    \begin{itemize}
+        \item Base image: \texttt{postgres:16-alpine}.
+        \item Port ánh xạ: \texttt{5432:5432}.
+        \item Lưu trữ bền vững (\texttt{Persistent Storage}): Mount volume Docker \texttt{postgres\_data} vào thư mục \texttt{/var/lib/postgresql/data}, đảm bảo dữ liệu không bị thất thoát khi container khởi động lại hoặc dừng hoạt động.
+    \end{itemize}
+\end{itemize}
+
+\section{Sơ đồ lớp Backend (Backend Class Diagram)}
+Cấu trúc hướng đối tượng của hệ thống Backend được thể hiện thông qua Sơ đồ lớp tại Hình~\ref{fig:class-diagram-backend}. Sơ đồ mô tả rõ nét mối liên kết giữa các tầng Controller, Service, DTO và các Entity của Prisma Client.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/class-diagram-backend.pdf}
+    \caption{Sơ đồ Lớp (Class Diagram) tầng Backend NestJS}
+    \label{fig:class-diagram-backend}
+\end{figure}
+
+Các lớp dịch vụ chính bao gồm:
+\begin{itemize}
+    \item \texttt{AuthService}: Xử lý logic mã hóa mật khẩu, kiểm tra trùng lặp email và sinh mã xác thực JWT.
+    \item \texttt{ProductsService}: Chịu trách nhiệm truy vấn danh mục, lọc món và thực thi lệnh cập nhật phiên bản tồn kho (\texttt{version}) khi có giao dịch.
+    \item \texttt{OrdersService}: Lớp điều phối chính của quy trình mua hàng. Quản lý việc tạo đơn trong transaction, phối hợp cùng \texttt{PricingService}, \texttt{PromotionsService} và \texttt{LoyaltyService} để xác định số tiền chính xác, sau đó kiểm tra và trừ tồn kho.
+    \item \texttt{PaymentsService}: Khởi tạo yêu cầu thanh toán, quản lý và kiểm tra bảng \texttt{PaymentIdempotency}, gọi Mock Gateway và cập nhật trạng thái đơn hàng.
+\end{itemize}
+
+\section{Luồng tương tác nghiệp vụ tổng thể (Overall Business Flow)}
+Luồng tương tác nghiệp vụ từ đầu đến cuối (End-to-End) của một khách hàng trên hệ thống diễn ra tuần tự qua các giai đoạn:
+\begin{enumerate}
+    \item \textbf{Giai đoạn 1 - Khám phá và Chọn món:} Khách hàng duyệt danh mục thực đơn tại trang chủ (\texttt{/products}), chọn đồ uống để xem chi tiết (\texttt{/products/[id]}), cấu hình kích cỡ (Size M/L), mức đường, mức đá và các món topping đi kèm. Sau đó món ăn được đưa vào giỏ hàng cục bộ (\texttt{Cart}).
+    \item \textbf{Giai đoạn 2 - Xác thực tài khoản:} Khi người dùng chọn tiến hành đặt hàng (\texttt{Checkout}), nếu chưa đăng nhập, hệ thống sẽ tự động điều hướng sang trang Đăng nhập/Đăng ký để xác thực danh tính.
+    \item \textbf{Giai đoạn 3 - Đặt hàng và Tính giá:} Khách hàng nhập địa chỉ giao hàng hoặc chọn nhận tại quầy, áp dụng mã ưu đãi \texttt{WELCOME10} và chọn số điểm tích lũy muốn đổi. Backend thực thi kiểm tra tồn kho đồng thời qua cơ chế Optimistic Lock, tạo bản ghi đơn hàng ở trạng thái \texttt{PENDING\_PAYMENT}.
+    \item \textbf{Giai đoạn 4 - Thanh toán Trực tuyến:} Hệ thống chuyển hướng khách hàng sang màn hình thanh toán (\texttt{/payment}). Khách hàng chọn phương thức (Thẻ ngân hàng hoặc Ví điện tử). Lệnh thanh toán được gửi kèm \texttt{Idempotency-Key}. Mock Gateway xác nhận giao dịch thành công.
+    \item \textbf{Giai đoạn 5 - Cập nhật và Hoàn tất:} Đơn hàng được chuyển trạng thái sang \texttt{PAID}, ghi nhận điểm thưởng mới vào tài khoản khách hàng, giải phóng giỏ hàng và lưu vết vào Lịch sử đơn hàng (\texttt{/orders}).
+\end{enumerate}

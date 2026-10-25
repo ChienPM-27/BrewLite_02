@@ -1,0 +1,53 @@
+\chapter{DANH MỤC API ENDPOINTS}
+\label{app:api-endpoints}
+
+Bảng~\ref{tab:full-api-list} liệt kê toàn bộ các API Endpoints được cài đặt và cung cấp bởi hệ thống Backend NestJS của BrewLite. Tất cả các endpoint đều có tiền tố chuẩn \texttt{/api/v1}.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Danh mục chi tiết toàn bộ các API Endpoints hệ thống BrewLite}
+\label{tab:full-api-list}
+\begin{tabularx}{\textwidth}{llp{2.5cm}X}
+\toprule
+\textbf{Phương thức} & \textbf{Đường dẫn (Path)} & \textbf{Xác thực} & \textbf{Mô tả chức năng} \\
+\midrule
+\texttt{POST} & \texttt{/api/v1/auth/register} & Công khai & Đăng ký tài khoản người dùng mới \\
+\texttt{POST} & \texttt{/api/v1/auth/login} & Công khai & Đăng nhập và nhận mã Bearer JWT \\
+\midrule
+\texttt{GET} & \texttt{/api/v1/categories} & Công khai & Lấy danh sách phân loại danh mục sản phẩm \\
+\texttt{GET} & \texttt{/api/v1/products} & Công khai & Tìm kiếm và lọc danh sách sản phẩm \\
+\texttt{GET} & \texttt{/api/v1/products/:id} & Công khai & Xem chi tiết thông tin và giá theo size sản phẩm \\
+\texttt{GET} & \texttt{/api/v1/toppings} & Công khai & Lấy danh sách các món topping khả dụng \\
+\midrule
+\texttt{POST} & \texttt{/api/v1/orders} & Bearer JWT & Tạo đơn hàng mới từ giỏ hàng, trừ kho, áp voucher \\
+\texttt{GET} & \texttt{/api/v1/orders/:id} & Bearer JWT & Xem chi tiết thông tin và trạng thái đơn hàng \\
+\texttt{GET} & \texttt{/api/v1/orders} & Bearer JWT & Lấy danh sách lịch sử đơn hàng của người dùng \\
+\midrule
+\texttt{POST} & \texttt{/api/v1/payments} & Bearer JWT + Idempotency & Thực hiện thanh toán trực tuyến với khóa bất biến \\
+\texttt{GET} & \texttt{/api/v1/payments/:id} & Bearer JWT & Tra cứu trạng thái giao dịch thanh toán \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mọi phản hồi thành công từ hệ thống đều được chuẩn hóa qua \texttt{TransformInterceptor} theo cấu trúc:
+\begin{lstlisting}[language=Java]
+{
+  "success": true,
+  "data": { ... },
+  "message": "Thong bao thanh cong",
+  "timestamp": "2026-10-25T10:00:00.000Z"
+}
+\end{lstlisting}
+
+Mọi phản hồi lỗi đều được chuẩn hóa qua \texttt{AllExceptionsFilter} theo cấu trúc:
+\begin{lstlisting}[language=Java]
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Thong tin loi chi tiet",
+  "error": "Bad Request",
+  "timestamp": "2026-10-25T10:00:00.000Z",
+  "path": "/api/v1/orders"
+}
+\end{lstlisting}

@@ -1,0 +1,20 @@
+\chapter{THIẾT KẾ CHI TIẾT CÁC PHÂN HỆ CHỨC NĂNG}
+
+Chương này trình bày chi tiết thiết kế kỹ thuật cho toàn bộ 7 phân hệ chức năng cốt lõi của hệ thống BrewLite. Mỗi phân hệ được chuẩn hóa theo cấu trúc toàn diện bao gồm:
+\begin{enumerate}
+    \item \textbf{Đặc tả Use Case:} Sơ đồ Use Case và bảng đặc tả nghiệp vụ chi tiết (Tiền điều kiện, Hậu điều kiện, Luồng chính, Luồng ngoại lệ).
+    \item \textbf{Sơ đồ Hoạt động (Activity Diagram):} Mô tả luồng xử lý quyết định nghiệp vụ.
+    \item \textbf{Sơ đồ Tuần tự (Sequence Diagram):} Ánh xạ tương tác chuẩn xác từ Người dùng \(\to\) Frontend Component \(\to\) Controller \(\to\) Service \(\to\) Prisma/DB.
+    \item \textbf{Hợp đồng API (API Contract):} Đặc tả Endpoint, phương thức HTTP, DTO validation và cấu trúc phản hồi.
+    \item \textbf{Ánh xạ Cơ sở dữ liệu (Database Mapping):} Thao tác bảng, trường dữ liệu và ràng buộc ACID.
+    \item \textbf{Kịch bản Kiểm thử (Test Cases):} Bảng các ca kiểm thử nghiệp vụ và giao diện.
+    \item \textbf{Giao diện Người dùng (User Interface):} Vị trí lưu giữ minh chứng cài đặt giao diện.
+\end{enumerate}
+
+\input{chapters/feature-auth}
+\input{chapters/feature-catalog}
+\input{chapters/feature-detail}
+\input{chapters/feature-cart}
+\input{chapters/feature-order}
+\input{chapters/feature-payment}
+\input{chapters/feature-history}
