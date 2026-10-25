@@ -1,0 +1,93 @@
+\chapter{GIỚI THIỆU DỰ ÁN}
+
+\section{Tổng quan đề tài và Product Vision}
+Trong xu hướng chuyển đổi số mạnh mẽ của ngành dịch vụ ăn uống (F\&B), mô hình phục vụ truyền thống tại các quầy cà phê thường xuyên đối mặt với tình trạng quá tải trong các khung giờ cao điểm. Khách hàng phải xếp hàng dài chờ đợi, nhân viên thu ngân dễ gặp sai sót khi ghi nhận các tùy chọn đồ uống phức tạp (độ ngọt, lượng đá, kích cỡ, topping), đồng thời việc thanh toán tiền mặt gây chậm trễ trong luồng vận hành.
+
+Hệ thống đặt cà phê trực tuyến \textbf{BrewLite} được nghiên cứu và xây dựng nhằm cung cấp giải pháp đặt món tinh gọn (Lite), hiện đại và tiện lợi cho khách hàng. Với tầm nhìn sản phẩm (\textit{Product Vision}):
+\begin{quote}
+    \textit{"BrewLite là nền tảng đặt món trực tuyến giúp khách hàng yêu thích cà phê có thể dễ dàng duyệt thực đơn, cá nhân hóa đồ uống theo khẩu vị, đặt hàng nhanh chóng và thanh toán an toàn mà không cần chờ đợi tại quầy; đồng thời giúp cửa hàng tối ưu hóa quy trình xử lý đơn hàng và kiểm soát chặt chẽ tồn kho."}
+\end{quote}
+
+Mục tiêu cốt lõi của đề tài bao gồm:
+\begin{itemize}
+    \item \textbf{Trải nghiệm người dùng mượt mà:} Khách hàng có thể tương tác trực quan với thực đơn, phân loại theo danh mục, tùy biến linh hoạt các thông số đồ uống trước khi thêm vào giỏ hàng.
+    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và đổi điểm thành viên thân thiết (loyalty points).
+    \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toán vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
+\end{itemize}
+
+\section{Phạm vi hệ thống (MVP Scope)}
+Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống tập trung hoàn thiện các tính năng cốt lõi cho sản phẩm khả dụng tối thiểu (MVP) trong hai giai đoạn phát triển chính (Giai đoạn 1 và Giai đoạn 2):
+
+\begin{enumerate}
+    \item \textbf{Phân hệ Xác thực (Auth):} Đăng ký tài khoản, đăng nhập hệ thống, cấp phát mã thông báo JWT an toàn và phân quyền người dùng.
+    \item \textbf{Phân hệ Danh mục sản phẩm (Product Catalog):} Hiển thị danh sách sản phẩm phân nhóm theo danh mục (Cà phê, Trà...), lọc món còn hàng và tìm kiếm.
+    \item \textbf{Phân hệ Chi tiết sản phẩm (Product Detail):} Xem thông tin mô tả chi tiết, hình ảnh, đơn giá và cho phép lựa chọn size, mức đường, mức đá cùng danh sách topping đi kèm.
+    \item \textbf{Phân hệ Giỏ hàng (Cart):} Quản lý các món đã chọn ở phía trình duyệt (Client-side), cập nhật số lượng, chỉnh sửa tùy chọn và tạm tính giá trị đơn hàng.
+    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, quy đổi điểm tích lũy và chuyển đổi trạng thái đơn hàng.
+    \item \textbf{Phân hệ Thanh toán (Payment):} Khởi tạo giao dịch thanh toán trực tuyến qua cổng giả lập (Mock Payment Gateway), xử lý bảo mật chống trùng lặp với \texttt{Idempotency-Key}.
+    \item \textbf{Phân hệ Lịch sử đơn hàng (Order History):} Tra cứu danh sách các đơn hàng đã thực hiện, xem chi tiết từng đơn hàng và trạng thái thanh toán/xử lý.
+\end{enumerate}
+
+\paragraph{Giới hạn phạm vi (Out-of-Scope trong MVP):}
+Để đảm bảo tiến độ và chất lượng cho các nghiệp vụ trọng tâm của khách hàng:
+\begin{itemize}
+    \item \textbf{Giao diện Pha chế (Barista Web UI):} Mặc dù hệ thống đã hiện thực toàn diện Máy trạng thái đơn hàng (Order State Machine) với đầy đủ 9 chuyển tiếp nghiệp vụ (bao gồm các trạng thái \texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), giao diện web chuyên dụng dành riêng cho nhân viên pha chế tại quầy chưa nằm trong phạm vi giao diện của bản phát hành MVP này.
+    \item \textbf{Quản trị viên nâng cao (Advanced Admin Portal):} Hệ thống tập trung vào trải nghiệm đặt hàng của khách hàng (B2C); các chức năng quản trị kho nâng cao và báo cáo doanh thu sẽ được triển khai ở pha tiếp theo.
+\end{itemize}
+
+\section{Ngăn xếp công nghệ (Technology Stack)}
+Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiện đại, phân tách độc lập giữa Client và Server (Bảng~\ref{tab:tech-stack}):
+
+\begin{table}[htbp]
+\centering
+\caption{Ngăn xếp công nghệ sử dụng trong dự án BrewLite}
+\label{tab:tech-stack}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Thành phần} & \textbf{Công nghệ} & \textbf{Vai trò và Đặc tính kỹ thuật} \\
+\midrule
+\textbf{Frontend} & Next.js 15 & Framework React hiện đại sử dụng App Router, hỗ trợ Server Components và Client Components tối ưu SEO và thời gian phản hồi. \\
+& TypeScript & Đảm bảo an toàn kiểu dữ liệu (Type Safety) đồng nhất từ giao diện đến API. \\
+& TailwindCSS & Thiết kế giao diện phản hồi nhanh (Responsive UI) theo chuẩn thiết kế hiện đại. \\
+& Zustand / React Hooks & Quản lý trạng thái giỏ hàng và dữ liệu cục bộ phía Client. \\
+\midrule
+\textbf{Backend} & NestJS 11 & Framework Node.js kiến trúc module hướng dịch vụ (Service-Oriented Architecture), hỗ trợ Dependency Injection mạnh mẽ. \\
+& Prisma ORM 6 & Ánh xạ quan hệ đối tượng hiện đại, cung cấp Type-safe Database Client và migration tự động. \\
+& Bcrypt & Mã hóa mật khẩu người dùng với cơ chế salt rounds an toàn (10 rounds). \\
+& Passport \& JWT & Xác thực và phân quyền bằng cơ chế JSON Web Token không trạng thái (Stateless). \\
+\midrule
+\textbf{Database} & PostgreSQL 16 & Hệ quản trị cơ sở dữ liệu quan hệ mạnh mẽ, đảm bảo tính toàn vẹn ACID, hỗ trợ JSONB và lập chỉ mục tối ưu. \\
+\midrule
+\textbf{Triển khai} & Docker \& Compose & Đóng gói toàn bộ ứng dụng thành 3 container chuẩn hóa (\texttt{frontend}, \texttt{backend}, \texttt{postgres}), đảm bảo môi trường đồng nhất. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Quy trình phát triển phần mềm}
+Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum}. Quy trình được tổ chức thành các chu kỳ lặp (Sprint) kéo dài 2 tuần:
+\begin{itemize}
+    \item \textbf{Sprint Planning:} Nhóm họp định kỳ đầu mỗi sprint để phân tích Product Backlog, làm rõ User Story, ước lượng điểm công việc (Story Points) và cam kết phạm vi cho Sprint Backlog.
+    \item \textbf{Daily Scrum:} Các thành viên đồng bộ tiến độ hàng ngày, báo cáo các công việc đã hoàn thành, công việc dự kiến và các trở ngại kỹ thuật (blockers).
+    \item \textbf{Sprint Review:} Trình diễn các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (Definition of Done) trước toàn nhóm.
+    \item \textbf{Sprint Retrospective:} Đánh giá những điểm làm tốt, các tồn tại về mặt quy trình và kỹ thuật, từ đó đề ra các hành động cải tiến cụ thể cho sprint tiếp theo.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.9\textwidth}
+    \begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
+        \begin{itemize}[leftmargin=1.5cm]
+            \item \textbf{Phân công vai trò:} \todo{Ghi rõ Product Owner (PO): ..., Scrum Master (SM): ...}
+            \item \textbf{Thời gian chu kỳ Sprint:}
+            \begin{itemize}
+                \item Sprint 1 (Giai đoạn 1): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
+                \item Sprint 2 (Giai đoạn 2): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
+            \end{itemize}
+            \item \textbf{Số liệu Burndown \& Velocity:} \todo{Điền tổng số Story Points cam kết vs hoàn thành trong Sprint 1 và Sprint 2}
+            \item \textbf{Kết quả Retrospective:} \todo{Ghi nhận tóm tắt bài học kinh nghiệm của nhóm sau 2 Sprint}
+        \end{itemize}
+    \end{tcolorbox}
+\end{minipage}
+\caption{Kế hoạch vận hành Scrum thực tế của Nhóm}
+\label{fig:scrum-record}
+\end{figure}
