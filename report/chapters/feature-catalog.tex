@@ -15,21 +15,25 @@ Phân hệ Danh mục Sản phẩm cho phép người dùng khám phá toàn b�
 \small
 \caption{Đặc tả Use Case: Xem và Tìm kiếm Danh mục Sản phẩm (UC-CAT-01)}
 \label{tab:uc-spec-catalog}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Hệ thống có dữ liệu sản phẩm và danh mục đã được kích hoạt trong CSDL. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách sản phẩm tương ứng hiển thị trực quan trên giao diện thực đơn. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng truy cập trang Thực đơn (\texttt{/products}).\\
-2. Giao diện gửi request \texttt{GET /api/v1/categories} và \texttt{GET /api/v1/products}.\\
-3. Hệ thống trả về danh sách danh mục (Cà phê, Trà) và danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data).\\
-4. Khách hàng nhấp chọn tab phân loại (ví dụ "Cà phê") hoặc nhập từ khóa tìm kiếm (ví dụ "Latte").\\
+1. Người dùng truy cập trang Thực đơn (\texttt{/products}).\newline
+2. Giao diện gửi request \texttt{GET /api/v1/categories} và \texttt{GET /api/v1/products}.\newline
+3. Hệ thống trả về danh sách danh mục (Cà phê, Trà) và danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data).\newline
+4. Khách hàng nhấp chọn tab phân loại (ví dụ "Cà phê") hoặc nhập từ khóa tìm kiếm (ví dụ "Latte").\newline
 5. Hook \texttt{useProductCatalog} lọc lại danh sách hiển thị tương ứng kèm nhãn giá cơ bản và trạng thái còn hàng/hết hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Lỗi kết nối mạng hoặc máy chủ backend: Hiển thị thông báo tải dữ liệu thất bại và cung cấp nút thử lại.\\
+- Lỗi kết nối mạng hoặc máy chủ backend: Hiển thị thông báo tải dữ liệu thất bại và cung cấp nút thử lại.\newline
 - Không tìm thấy sản phẩm phù hợp: Hiển thị thông báo "Không tìm thấy sản phẩm nào phù hợp". \\
 \bottomrule
 \end{tabularx}
@@ -84,7 +88,7 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Danh mục}
 \label{tab:tc-catalog}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

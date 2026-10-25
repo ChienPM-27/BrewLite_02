@@ -15,27 +15,31 @@ Phân hệ Xác thực quản lý vòng đời tài khoản của người dùng
 \small
 \caption{Đặc tả Use Case: Đăng ký và Đăng nhập người dùng}
 \label{tab:uc-spec-auth}
-\begin{tabularx}{\textwidth}{lp{3.5cm}X}
+\begin{tabularx}{\textwidth}{p{2.3cm}XX}
 \toprule
 \textbf{Mục} & \textbf{Đăng ký (UC-AUTH-01)} & \textbf{Đăng nhập (UC-AUTH-02)} \\
 \midrule
 \textbf{Actor} & Khách vãng lai (Guest) & Khách hàng đã có tài khoản \\
+\midrule
 \textbf{Tiền điều kiện} & Chưa đăng nhập; địa chỉ email chưa tồn tại trên hệ thống. & Đã có tài khoản trên hệ thống; tài khoản ở trạng thái hoạt động. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi mới được tạo trong bảng \texttt{users}; mật khẩu được băm Bcrypt 10 rounds; khởi tạo 0 điểm loyalty. & Cấp phát mã thông báo JWT \texttt{accessToken}; lưu trữ tại client để xác thực các request kế tiếp. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng nhập email, mật khẩu (\(\ge\) 6 ký tự), họ tên.\\
-2. Nhấn "Đăng ký".\\
-3. Hệ thống kiểm tra hợp lệ DTO và tính duy nhất của email.\\
-4. Băm mật khẩu bằng \texttt{bcrypt.hash(password, 10)}.\\
+1. Người dùng nhập email, mật khẩu (\(\ge\) 6 ký tự), họ tên.\newline
+2. Nhấn "Đăng ký".\newline
+3. Hệ thống kiểm tra hợp lệ DTO và tính duy nhất của email.\newline
+4. Băm mật khẩu bằng \texttt{bcrypt.hash(password, 10)}.\newline
 5. Tạo người dùng trong DB và trả về thông tin (loại trừ \texttt{password\_hash}). & 
-1. Người dùng nhập email và mật khẩu.\\
-2. Nhấn "Đăng nhập".\\
-3. Hệ thống tìm người dùng theo email.\\
-4. So sánh mật khẩu bằng \texttt{bcrypt.compare(password, hash)}.\\
-5. Sinh mã JWT chứa payload \texttt{\{sub, email\}}.\\
+1. Người dùng nhập email và mật khẩu.\newline
+2. Nhấn "Đăng nhập".\newline
+3. Hệ thống tìm người dùng theo email.\newline
+4. So sánh mật khẩu bằng \texttt{bcrypt.compare(password, hash)}.\newline
+5. Sinh mã JWT chứa payload \texttt{\{sub, email\}}.\newline
 6. Trả về token và thông tin hồ sơ người dùng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- DTO không hợp lệ: Trả về mã \texttt{400 Bad Request}.\\
+- DTO không hợp lệ: Trả về mã \texttt{400 Bad Request}.\newline
 - Trùng email: Trả về \texttt{409 Conflict} ("Email đã được sử dụng"). & 
 - Email không tồn tại hoặc sai mật khẩu: Trả về \texttt{401 Unauthorized} ("Email hoặc mật khẩu không chính xác"). \\
 \bottomrule
@@ -92,7 +96,7 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Xác thực}
 \label{tab:tc-auth}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

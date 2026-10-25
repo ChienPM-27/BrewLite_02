@@ -15,32 +15,36 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \small
 \caption{Đặc tả Use Case: Tạo đơn hàng trực tuyến (UC-ORD-01)}
 \label{tab:uc-spec-order}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập (Registered Customer) \\
+\midrule
 \textbf{Tiền điều kiện} & Khách hàng đã đăng nhập (mang Bearer JWT Token); giỏ hàng có ít nhất 1 sản phẩm. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi đơn hàng mới được tạo ở trạng thái \texttt{PENDING}; tồn kho sản phẩm được cập nhật; voucher được áp dụng; bản ghi lịch sử trạng thái được khởi tạo. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\\
-2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\\
-3. Nhấn nút "Xác nhận đặt hàng".\\
-4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\\
-5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\\
-\quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\\
-\quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\\
-\quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\\
-\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\\
-\quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\\
-\quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\\
-\quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\\
-6. Transaction commit thành công, trả về thông tin đơn hàng và mã số tự tăng \texttt{orderNumber} (ví dụ \#1042).\\
+1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\newline
+2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\newline
+3. Nhấn nút "Xác nhận đặt hàng".\newline
+4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\newline
+5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\newline
+\quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\newline
+\quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\newline
+\quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\newline
+\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\newline
+\quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\newline
+\quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\newline
+\quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\newline
+6. Transaction commit thành công, trả về thông tin đơn hàng và mã số tự tăng \texttt{orderNumber} (ví dụ \#1042).\newline
 7. Giao diện xóa giỏ hàng và điều hướng sang trang thanh toán (\texttt{/payment/[orderId]}). \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\\
-- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\\
-- Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\\
+- Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\newline
+- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\newline
+- Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\newline
 - Chưa đăng nhập: Báo lỗi \texttt{401 Unauthorized}, điều hướng về trang đăng nhập. \\
 \bottomrule
 \end{tabularx}
@@ -112,7 +116,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Đặt hàng}
 \label{tab:tc-order}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

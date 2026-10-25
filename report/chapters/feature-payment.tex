@@ -15,33 +15,37 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \small
 \caption{Đặc tả Use Case: Thực hiện Thanh toán Trực tuyến (UC-PAY-01)}
 \label{tab:uc-spec-payment}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập, Cổng thanh toán giả lập (Mock Gateway) \\
+\midrule
 \textbf{Tiền điều kiện} & Đơn hàng tồn tại ở trạng thái \texttt{PENDING}; chưa được thanh toán thành công. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi thanh toán được lưu trữ; trạng thái đơn hàng chuyển thành \texttt{PAID}; điểm loyalty được cộng vào tài khoản khách hàng. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng truy cập trang thanh toán \texttt{/payment/[orderId]}.\\
-2. Chọn phương thức thanh toán: Thẻ ngân hàng (\texttt{BANK\_CARD}) hoặc Ví điện tử (\texttt{E\_WALLET}).\\
-3. Nhấn "Thanh toán ngay".\\
-4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\\
-5. PaymentsService kiểm tra \texttt{idempotencyKey}:\\
-\quad a. Nếu khóa đã tồn tại trong DB với kết quả thành công: Trả về kết quả trước đó mà không xử lý lại.\\
-\quad b. Nếu khóa đang trong trạng thái xử lý (\texttt{PENDING}): Ném lỗi \texttt{409 Conflict}.\\
-\quad c. Nếu là khóa mới: Tạo bản ghi \texttt{payments} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\\
-6. Backend gọi Mock Payment Gateway để xác thực giao dịch.\\
-7. Khi Gateway phản hồi thành công (\texttt{SUCCESS}):\\
-\quad a. Cập nhật bản ghi \texttt{payments} thành \texttt{SUCCESS} kèm \texttt{transactionRef}.\\
-\quad b. Cập nhật đơn hàng: \texttt{status = PAID}, \texttt{paidAt = NOW()}.\\
-\quad c. Cộng điểm tích lũy mới vào \texttt{users.loyalty\_points}.\\
-\quad d. Ghi nhận giao dịch cộng điểm vào \texttt{loyalty\_transactions} (type: \texttt{EARNED}).\\
-\quad e. Ghi nhật ký vào \texttt{order\_status\_history} (PENDING \(\to\) PAID).\\
+1. Khách hàng truy cập trang thanh toán \texttt{/payment/[orderId]}.\newline
+2. Chọn phương thức thanh toán: Thẻ ngân hàng (\texttt{BANK\_CARD}) hoặc Ví điện tử (\texttt{E\_WALLET}).\newline
+3. Nhấn "Thanh toán ngay".\newline
+4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\newline
+5. PaymentsService kiểm tra \texttt{idempotencyKey}:\newline
+\quad a. Nếu khóa đã tồn tại trong DB với kết quả thành công: Trả về kết quả trước đó mà không xử lý lại.\newline
+\quad b. Nếu khóa đang trong trạng thái xử lý (\texttt{PENDING}): Ném lỗi \texttt{409 Conflict}.\newline
+\quad c. Nếu là khóa mới: Tạo bản ghi \texttt{payments} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\newline
+6. Backend gọi Mock Payment Gateway để xác thực giao dịch.\newline
+7. Khi Gateway phản hồi thành công (\texttt{SUCCESS}):\newline
+\quad a. Cập nhật bản ghi \texttt{payments} thành \texttt{SUCCESS} kèm \texttt{transactionRef}.\newline
+\quad b. Cập nhật đơn hàng: \texttt{status = PAID}, \texttt{paidAt = NOW()}.\newline
+\quad c. Cộng điểm tích lũy mới vào \texttt{users.loyalty\_points}.\newline
+\quad d. Ghi nhận giao dịch cộng điểm vào \texttt{loyalty\_transactions} (type: \texttt{EARNED}).\newline
+\quad e. Ghi nhật ký vào \texttt{order\_status\_history} (PENDING \(\to\) PAID).\newline
 8. Giao diện thông báo thanh toán thành công và điều hướng sang trang Lịch sử đơn hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\\
-- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\\
+- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
+- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\newline
 - Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{422 Unprocessable Entity}. \\
 \bottomrule
 \end{tabularx}
@@ -112,7 +116,7 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Thanh toán}
 \label{tab:tc-payment}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

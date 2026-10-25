@@ -15,21 +15,25 @@ Phân hệ Lịch sử Đơn hàng cho phép khách hàng tra cứu toàn bộ c
 \small
 \caption{Đặc tả Use Case: Tra cứu Lịch sử và Chi tiết Đơn hàng (UC-HIS-01)}
 \label{tab:uc-spec-history}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Khách hàng đã đăng nhập vào hệ thống. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách các đơn hàng và trạng thái chi tiết hiển thị trực quan. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng nhấp vào mục "Lịch sử đơn hàng" trên thanh điều hướng hoặc truy cập \texttt{/orders}.\\
-2. Giao diện gửi request \texttt{GET /api/v1/orders} kèm Bearer Token.\\
-3. Backend truy vấn các đơn hàng thuộc về \texttt{userId} hiện tại, sắp xếp giảm dần theo thời gian tạo (\texttt{createdAt desc}).\\
-4. Màn hình hiển thị danh sách các thẻ đơn hàng: mã hiển thị \texttt{\#orderNumber}, ngày giờ đặt, tổng tiền, huy hiệu trạng thái (ví dụ "Đã thanh toán", "Đã hủy").\\
+1. Khách hàng nhấp vào mục "Lịch sử đơn hàng" trên thanh điều hướng hoặc truy cập \texttt{/orders}.\newline
+2. Giao diện gửi request \texttt{GET /api/v1/orders} kèm Bearer Token.\newline
+3. Backend truy vấn các đơn hàng thuộc về \texttt{userId} hiện tại, sắp xếp giảm dần theo thời gian tạo (\texttt{createdAt desc}).\newline
+4. Màn hình hiển thị danh sách các thẻ đơn hàng: mã hiển thị \texttt{\#orderNumber}, ngày giờ đặt, tổng tiền, huy hiệu trạng thái (ví dụ "Đã thanh toán", "Đã hủy").\newline
 5. Khách hàng nhấp vào một đơn hàng để xem chi tiết hóa đơn (\texttt{/orders/[id]}): danh sách từng món, size, topping, số tiền giảm giá và phương thức thanh toán. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Người dùng chưa có đơn hàng nào: Giao diện hiển thị thông báo "Bạn chưa có đơn hàng nào" và nút liên kết "Bắt đầu đặt món".\\
+- Người dùng chưa có đơn hàng nào: Giao diện hiển thị thông báo "Bạn chưa có đơn hàng nào" và nút liên kết "Bắt đầu đặt món".\newline
 - Phiên đăng nhập hết hạn: Báo lỗi \texttt{401 Unauthorized}, tự động chuyển hướng về trang đăng nhập. \\
 \bottomrule
 \end{tabularx}
@@ -89,7 +93,7 @@ ORDER BY created_at DESC;
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Lịch sử}
 \label{tab:tc-history}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

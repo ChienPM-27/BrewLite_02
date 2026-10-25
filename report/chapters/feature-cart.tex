@@ -15,20 +15,24 @@ Phân hệ Giỏ hàng quản lý danh sách các món đồ uống mà khách h
 \small
 \caption{Đặc tả Use Case: Quản lý Giỏ hàng (UC-CART-01)}
 \label{tab:uc-spec-cart}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Người dùng đã truy cập ứng dụng trên trình duyệt web. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách món trong giỏ hàng, số lượng và tổng tiền tạm tính được cập nhật đồng bộ trong bộ nhớ máy khách (\texttt{localStorage} / Zustand state). \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng thêm món từ trang chi tiết hoặc nhấn vào biểu tượng giỏ hàng tại thanh điều hướng (\texttt{Navbar}).\\
-2. Giao diện điều hướng sang trang \texttt{/cart}.\\
-3. Hệ thống nạp danh sách các món trong giỏ từ bộ nhớ cục bộ.\\
-4. Người dùng có thể tăng/giảm số lượng từng món, xóa từng món hoặc xóa toàn bộ giỏ.\\
-5. Bộ tính giá phía client tự động tính toán lại mục "Tạm tính" cho từng dòng và tổng giá trị đơn hàng.\\
+1. Người dùng thêm món từ trang chi tiết hoặc nhấn vào biểu tượng giỏ hàng tại thanh điều hướng (\texttt{Navbar}).\newline
+2. Giao diện điều hướng sang trang \texttt{/cart}.\newline
+3. Hệ thống nạp danh sách các món trong giỏ từ bộ nhớ cục bộ.\newline
+4. Người dùng có thể tăng/giảm số lượng từng món, xóa từng món hoặc xóa toàn bộ giỏ.\newline
+5. Bộ tính giá phía client tự động tính toán lại mục "Tạm tính" cho từng dòng và tổng giá trị đơn hàng.\newline
 6. Khi người dùng nhấn "Thanh toán" (hoặc "Tiến hành đặt hàng"), hệ thống kiểm tra điều kiện đăng nhập trước khi chuyển sang bước đặt hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
 - Giỏ hàng không có sản phẩm nào: Giao diện hiển thị thông báo "Giỏ hàng của bạn đang trống" và nút điều hướng "Xem thực đơn". \\
 \bottomrule
@@ -78,7 +82,7 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Giỏ hàng}
 \label{tab:tc-cart}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule

@@ -15,22 +15,26 @@ Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ
 \small
 \caption{Đặc tả Use Case: Xem chi tiết và Tùy biến món (UC-DET-01)}
 \label{tab:uc-spec-detail}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Sản phẩm tồn tại trên hệ thống và có trạng thái \texttt{is\_available = true}. \\
+\midrule
 \textbf{Hậu điều kiện} & Thông tin món, các lựa chọn kích cỡ, mức ngọt, mức đá, danh sách topping và đơn giá tính toán động hiển thị đầy đủ trên màn hình. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\\
-2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\\
-3. Frontend gọi đồng thời \texttt{GET /api/v1/products/:id} và \texttt{GET /api/v1/toppings}.\\
-4. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\\
-5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\\
+1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\newline
+2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\newline
+3. Frontend gọi đồng thời \texttt{GET /api/v1/products/:id} và \texttt{GET /api/v1/toppings}.\newline
+4. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\newline
+5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\newline
 6. Khách hàng nhấn "Thêm vào giỏ hàng" để lưu món vào giỏ. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Sản phẩm không tồn tại: API trả về mã lỗi \texttt{404 Not Found}, giao diện hiển thị thông báo sản phẩm không tìm thấy và nút quay về thực đơn.\\
+- Sản phẩm không tồn tại: API trả về mã lỗi \texttt{404 Not Found}, giao diện hiển thị thông báo sản phẩm không tìm thấy và nút quay về thực đơn.\newline
 - Sản phẩm hết hàng (\texttt{stock = 0}): Nút "Thêm vào giỏ hàng" bị vô hiệu hóa (\texttt{disabled}). \\
 \bottomrule
 \end{tabularx}
@@ -84,7 +88,7 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Chi tiết Sản phẩm}
 \label{tab:tc-detail}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
