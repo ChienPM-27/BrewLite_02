@@ -1,5 +1,5 @@
 @startuml sequence-auth
-title Sequence Diagram - Luồng Xác Thực Auth (Register & Login)
+title Sequence Diagram - Toàn Diện Xác Thực Auth (Register, Login & JwtAuthGuard)
 autonumber
 skinparam defaultFontName Arial
 skinparam shadowing false
@@ -9,14 +9,16 @@ skinparam ParticipantPadding 10
 
 actor "Khách hàng (User)" as User
 box "Frontend (Next.js)" #F9F9F9
-    participant "Page: Login / Register\n(app/auth/.../page.tsx)" as Page
+    participant "Page / Component\n(app/auth/..., app/checkout/...)" as Page
     participant "Zustand: useAuthStore\n(store/useAuthStore.ts)" as Store
-    participant "Client: auth.service.ts\n(services/auth.service.ts)" as ClientService
+    participant "Client: API Service\n(services/auth.service.ts, order.service.ts)" as ClientService
 end box
 
 box "Backend (NestJS)" #F0F7FF
-    participant "Controller: AuthController\n(modules/auth/auth.controller.ts)" as Controller
-    participant "Service: AuthService\n(modules/auth/auth.service.ts)" as Service
+    participant "Guard: JwtAuthGuard\n(modules/auth/guards/jwt-auth.guard.ts)" as Guard
+    participant "Strategy: JwtStrategy\n(modules/auth/strategies/jwt.strategy.ts)" as Strategy
+    participant "Controller: AuthController / OrdersController\n(modules/auth/..., modules/orders/...)" as Controller
+    participant "Service: AuthService / OrdersService\n(modules/auth/..., modules/orders/...)" as Service
     participant "Security: bcrypt & JwtService\n(@nestjs/jwt, bcrypt)" as Crypto
     participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
 end box
@@ -44,10 +46,10 @@ alt Email đã được sử dụng
 else Email chưa tồn tại (Hợp lệ)
     Service -> Crypto: bcrypt.hash(dto.password, 10)
     activate Crypto
-    Crypto --> Service: passwordHash
+    Crypto --> Service: passwordHash (saltRounds = 10)
     deactivate Crypto
 
-    Service -> DB: prisma.user.create({ data: { email, passwordHash, fullName, loyaltyPoints: 0 } })
+    Service -> DB: prisma.user.create({\n  data: { email, passwordHash, fullName, loyaltyPoints: 0 }\n})
     activate DB
     DB --> Service: user record (id, email, fullName, loyaltyPoints)
     deactivate DB
@@ -131,6 +133,51 @@ else Tìm thấy user
         Page --> User: router.replace(next || '/menu')
         deactivate Page
     end
+end
+
+== Luồng 3: Xác Thực JWT Qua JwtAuthGuard Bảo Vệ Tuyến API (Protected Routes) ==
+User -> Page: Thao tác yêu cầu xác thực (ví dụ: Nhấn "Xác nhận đặt hàng")
+activate Page
+Page -> ClientService: createOrder(dto)
+activate ClientService
+
+ClientService -> Guard: POST /api/v1/orders\nHeaders: Authorization: Bearer <accessToken>
+activate Guard
+
+Guard -> Strategy: ExtractJwt & Passport verification\n(Kiểm tra JWT_SECRET & hạn dùng JWT_EXPIRATION)
+activate Strategy
+
+alt Token không tồn tại, hết hạn hoặc sai chữ ký
+    Strategy --> Guard: Verification failure
+    Guard --> Controller: Chặn request, ném UnauthorizedException
+    Controller --> ClientService: 401 Unauthorized: {\n  success: false,\n  statusCode: 401,\n  message: "Vui lòng đăng nhập để tiếp tục",\n  path: "/api/v1/orders"\n}
+    ClientService --> Page: Ném ApiError(401)
+    Page --> User: Chuyển hướng về trang đăng nhập (/auth/login?next=/checkout)
+else Token hợp lệ
+    Strategy -> Strategy: validate(payload: JwtPayload)\nKiểm tra { sub, email }
+    Strategy --> Guard: return { sub: payload.sub, email: payload.email }
+    deactivate Strategy
+
+    Guard -> Controller: Gắn req.user = { sub: userId, email }\nChuyển tiếp request vào OrdersController.create()
+    deactivate Guard
+    activate Controller
+
+    Controller -> Service: create(req.user.sub, dto)
+    activate Service
+    Service -> DB: Thực thi nghiệp vụ tạo đơn hàng gắn với userId
+    activate DB
+    DB --> Service: newOrder record (#1042)
+    deactivate DB
+    Service --> Controller: newOrder
+    deactivate Service
+
+    Controller --> ClientService: 201 Created: { success: true, statusCode: 201, data: newOrder }
+    deactivate Controller
+
+    ClientService --> Page: OrderDetail
+    deactivate ClientService
+    Page --> User: Điều hướng sang trang Thanh toán (/checkout/payment?orderId=...)
+    deactivate Page
 end
 
 @enduml
