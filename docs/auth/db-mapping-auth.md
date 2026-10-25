@@ -106,7 +106,7 @@ Bảng `users` đóng vai trò là thực thể gốc (parent entity) liên kế
 ## 4. NGUYÊN TẮC BẢO MẬT & DỮ LIỆU BẢO VỆ
 
 * **Mật khẩu người dùng (`passwordHash`):**
-  - Tuyệt đối **KHÔNG BAO GIỜ** được trả về trong bất kỳ phản hồi API nào (kể cả đăng ký, đăng nhập hay tra cứu hồ sơ).
+  - Tuyệt đối **KHÔNG BAO GIỜ** được trả về trong bất kỳ phản hồi API nào (kể cả đăng ký hay đăng nhập).
   - Dữ liệu `user` trả về cho Frontend chỉ bao gồm các trường an toàn:
     ```typescript
     user: {
