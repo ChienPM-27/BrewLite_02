@@ -3,7 +3,17 @@
 
 Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lượng từ yêu cầu chức năng (FR), đặc tả Use Case (UC), API Endpoint, bảng cơ sở dữ liệu cho đến các ca kiểm thử (TC) tương ứng.
 
-\begin{longtable}{p{1.2cm}p{2.2cm}p{3.2cm}p{3cm}p{2.5cm}p{2.2cm}}
+{\small % Giảm nhẹ cỡ chữ để bảng 6 cột hiển thị thoáng và đẹp hơn
+\setlength{\tabcolsep}{4pt} % Thu hẹp khoảng cách đệm giữa các cột (mặc định là 6pt)
+
+\begin{longtable}{
+    >{\raggedright\arraybackslash}p{1.2cm}
+    >{\raggedright\arraybackslash}p{2.1cm}
+    >{\raggedright\arraybackslash}p{2.9cm}
+    >{\raggedright\arraybackslash}p{2.7cm}
+    >{\raggedright\arraybackslash}p{3.3cm}
+    >{\raggedright\arraybackslash}p{2.4cm}
+}
 \caption{Ma trận Truy vết Toàn diện Yêu cầu - Thiết kế - Cài đặt - Kiểm thử} \label{tab:traceability-full} \\
 \toprule
 \textbf{Mã FR} & \textbf{Mã UC} & \textbf{API Endpoint} & \textbf{Bảng CSDL} & \textbf{Mã Test Case} & \textbf{Màn hình} \\
@@ -42,3 +52,4 @@ Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lư�
 \textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
 & & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-API-02} & \texttt{/orders/:id} \\
 \end{longtable}
+}

@@ -1,16 +1,17 @@
+\clearpage
 \section{Phân hệ Danh mục Sản phẩm (Product Catalog)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Danh mục Sản phẩm cho phép người dùng khám phá toàn bộ thực đơn của BrewLite, tìm kiếm đồ uống theo tên và lọc theo các phân loại như Cà phê hoặc Trà. Sơ đồ Use Case được biểu diễn tại Hình~\ref{fig:usecase-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-product-catalog.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Danh mục Sản phẩm}
     \label{fig:usecase-product-catalog}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Xem và Tìm kiếm Danh mục Sản phẩm (UC-CAT-01)}
@@ -39,28 +40,31 @@ Phân hệ Danh mục Sản phẩm cho phép người dùng khám phá toàn b�
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình nạp và lọc danh mục sản phẩm được mô tả tại Hình~\ref{fig:activity-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-product-catalog.pdf}
+    \includegraphics[width=\textwidth, height=0.98\textheight, keepaspectratio]{figures/activity-product-catalog.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Danh mục Sản phẩm}
     \label{fig:activity-product-catalog}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản phẩm từ Frontend đến Backend Controller, Service và Prisma tại Hình~\ref{fig:sequence-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-product-catalog.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-product-catalog.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Danh mục Sản phẩm}
     \label{fig:sequence-product-catalog}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Danh mục Sản phẩm}
@@ -83,7 +87,7 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Danh mục}
@@ -101,7 +105,7 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/ui-catalog.png}
     \caption{Giao diện Thực đơn sản phẩm và Bộ lọc danh mục BrewLite}

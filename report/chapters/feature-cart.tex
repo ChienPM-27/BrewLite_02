@@ -1,16 +1,17 @@
+\clearpage
 \section{Phân hệ Giỏ hàng (Cart)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Giỏ hàng quản lý danh sách các món đồ uống mà khách hàng đã lựa chọn kèm theo các tùy biến cụ thể trước khi tiến hành tạo đơn hàng chính thức. Để tối ưu hóa tài nguyên máy chủ và mang lại phản hồi tức thì cho người dùng, phân hệ này được thiết kế theo kiến trúc lưu trữ phía máy khách (\textit{Client-side State Management}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-cart.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Giỏ hàng}
     \label{fig:usecase-cart}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Quản lý Giỏ hàng (UC-CART-01)}
@@ -39,26 +40,29 @@ Phân hệ Giỏ hàng quản lý danh sách các món đồ uống mà khách h
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình quản lý thêm, sửa, xóa và tính toán giá trị giỏ hàng được thể hiện tại Hình~\ref{fig:activity-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-cart.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-cart.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Giỏ hàng}
     \label{fig:activity-cart}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở phía Frontend giữa giao diện, Store quản lý trạng thái và LocalStorage tại Hình~\ref{fig:sequence-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-cart.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-cart.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Giỏ hàng (Client-side Architecture)}
     \label{fig:sequence-cart}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API và Ánh xạ Cơ sở dữ liệu}
 \begin{itemize}
     \item \textbf{Đặc tính kỹ thuật (FE-Only):} Giỏ hàng trong BrewLite hoạt động hoàn toàn ở phía máy khách (\textit{Frontend-only}). Không có API endpoint riêng trên Backend và không tạo bản ghi trong cơ sở dữ liệu cho giỏ hàng tạm thời.
@@ -77,7 +81,7 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Giỏ hàng}
@@ -95,7 +99,7 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/ui-cart.png}
     \caption{Giao diện Quản lý Giỏ hàng và Điều chỉnh số lượng BrewLite}

@@ -1,16 +1,17 @@
+\clearpage
 \section{Phân hệ Chi tiết Sản phẩm (Product Detail)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ uống, bao gồm mô tả, thành phần dinh dưỡng/nguyên liệu và cho phép khách hàng cá nhân hóa món đồ uống theo sở thích cá nhân. Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-product-detail.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Chi tiết Sản phẩm}
     \label{fig:usecase-product-detail}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Xem chi tiết và Tùy biến món (UC-DET-01)}
@@ -40,28 +41,31 @@ Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình người dùng tương tác, chọn lựa tùy biến và kiểm tra trạng thái tồn kho được biểu diễn tại Hình~\ref{fig:activity-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-product-detail.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-product-detail.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Chi tiết Sản phẩm}
     \label{fig:activity-product-detail}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi tiết sản phẩm và danh mục topping tại Hình~\ref{fig:sequence-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-product-detail.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-product-detail.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Chi tiết Sản phẩm}
     \label{fig:sequence-product-detail}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Chi tiết Sản phẩm}
@@ -83,7 +87,7 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Chi tiết Sản phẩm}
@@ -101,7 +105,7 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/ui-detail.png}
     \caption{Giao diện Chi tiết món và Tùy biến Size / Topping}

@@ -1,16 +1,17 @@
+\clearpage
 \section{Phân hệ Đặt hàng (Order)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), tích lũy điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-order.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Đặt hàng}
     \label{fig:usecase-order}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Tạo đơn hàng trực tuyến (UC-ORD-01)}
@@ -50,28 +51,31 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Luồng hoạt động kiểm tra điều kiện tồn kho, tính giá và cam kết giao dịch tạo đơn được biểu diễn tại Hình~\ref{fig:activity-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-order.pdf}
+    \includegraphics[width=\textwidth, height=\textheight, keepaspectratio]{figures/activity-order.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Đặt hàng}
     \label{fig:activity-order}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch vụ phối hợp trong một transaction tạo đơn hàng tại Hình~\ref{fig:sequence-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-order.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-order.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Đặt hàng (Interactive Transaction \& Pricing Engine)}
     \label{fig:sequence-order}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Đặt hàng}
@@ -111,7 +115,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \end{lstlisting}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Đặt hàng}
@@ -130,7 +134,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/ui-checkout.png}
     \caption{Giao diện Xác nhận Đặt hàng và Áp dụng Khuyến mại}
