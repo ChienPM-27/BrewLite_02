@@ -55,42 +55,66 @@ return result;
 \subsection{Interactive Transaction và Khóa Lạc quan trong OrdersService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/orders/orders.service.ts
-return await this.prisma.$transaction(async (tx) => {
-  for (const item of dto.items) {
-    const product = await tx.product.findUnique({ where: { id: item.productId } });
-    if (!product || product.stock < item.quantity) {
-      throw new BadRequestException(`San pham ${product?.name} khong du ton kho`);
-    }
-
-    const updated = await tx.product.updateMany({
-      where: { id: item.productId, version: product.version },
-      data: {
-        stock: { decrement: item.quantity },
-        version: { increment: 1 },
-      },
-    });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Xung dot ton kho, vui long thu lai');
-    }
+// Product: optimistic locking theo version va ton kho trong tx
+for (const [productId, quantity] of productQuantities) {
+  const product = productById.get(productId);
+  if (!product) {
+    throw new BadRequestException(`Product ${productId} is unavailable.`);
   }
-  // Tiep tuc tao Order va OrderItems trong cung transaction...
-});
+
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      isAvailable: true,
+      version: product.version,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: { decrement: quantity },
+      version: { increment: 1 },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new BadRequestException(
+      `Insufficient stock or concurrent update for product ${productId}.`,
+    );
+  }
+}
 \end{lstlisting}
 
-\subsection{Kiểm tra Bất biến Idempotency trong PaymentsService}
+\subsection{Kiểm tra Bất biến Idempotency và Xử lý Tranh chấp trong PaymentsService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/payments/payments.service.ts
-const existing = await this.prisma.payment.findUnique({
-  where: { idempotencyKey: key },
-});
+// 1. Tinh requestHash tren { orderId, method }
+const requestHash = createHash('sha256')
+  .update(JSON.stringify({ orderId: body.orderId, method: body.method }))
+  .digest('hex');
 
-if (existing) {
-  if (existing.status === PaymentStatus.SUCCESS) {
-    return existing; // Tra ve ngay ket qua da xu ly
+// 2. Kiem tra key da ton tai: phat lai ket qua da luu (replay)
+const existingPayment = await this.prisma.payment.findUnique({
+  where: { idempotencyKey: normalizedKey },
+  include: { order: true },
+});
+if (existingPayment) {
+  return this.replayExistingPayment(existingPayment, userId, requestHash);
+}
+
+// 3. Bat tranh chap dong thoi (Race Condition P2002) de replay an toan
+try {
+  return await this.prisma.$transaction(async (tx) => {
+    // Tao payment voi unique idempotencyKey va requestHash...
+  });
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const paymentAfterRace = await this.prisma.payment.findUnique({
+      where: { idempotencyKey: normalizedKey },
+      include: { order: true },
+    });
+    if (paymentAfterRace) {
+      return this.replayExistingPayment(paymentAfterRace, userId, requestHash);
+    }
   }
-  if (existing.status === PaymentStatus.PENDING) {
-    throw new ConflictException('Giao dich dang duoc xu ly, vui long cho');
-  }
+  throw error;
 }
 \end{lstlisting}

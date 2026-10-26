@@ -1110,7 +1110,7 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \midrule
 \textbf{Luồng ngoại lệ} & 
 - Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\newline
-- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\newline
+- Thiếu tồn kho hoặc xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{400 Bad Request} (\texttt{\"Insufficient stock or concurrent update...\"}), tự động rollback transaction.\newline
 - Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\newline
 - Chưa đăng nhập: Báo lỗi \texttt{401 Unauthorized}, điều hướng về trang đăng nhập. \\
 \bottomrule
@@ -1152,7 +1152,7 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
 \texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
-\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400}, \texttt{401}, \texttt{409}. \\
+\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
 \bottomrule
@@ -1192,7 +1192,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \midrule
 \texttt{TC-ORD-API-01} & Hợp lệ & Đủ tồn kho, có token & \texttt{POST /orders} & HTTP 201, tạo đơn trạng thái PENDING, trừ kho & Chưa chạy \\
 \texttt{TC-ORD-API-03} & Lỗi & Tồn kho không đủ & \texttt{POST /orders} & HTTP 400, rollback transaction, không trừ kho & Chưa chạy \\
-\texttt{TC-ORD-API-04} & Lỗi & Sai version (Optimistic) & \texttt{POST /orders} & HTTP 409 Conflict, ném lỗi xung đột & Chưa chạy \\
+\texttt{TC-ORD-API-04} & Lỗi & Xung đột version (Optimistic) & \texttt{POST /orders} & HTTP 400 Bad Request (\"Insufficient stock or concurrent update...\"), rollback & Đạt \\
 \texttt{TC-ORD-API-06} & Hợp lệ & Áp voucher WELCOME10 & \texttt{POST /orders} & Giảm 10\% (tối đa 20k), finalAmount chính xác & Đạt \\
 \texttt{TC-ORD-UI-01} & Giao diện & Đã đăng nhập & Trang \texttt{/checkout} & Hiển thị tóm tắt đơn, ô nhập voucher và nút đặt & Chưa chạy \\
 \bottomrule
@@ -1245,9 +1245,9 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 3. Nhấn "Thanh toán ngay".\newline
 4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\newline
 5. PaymentsService kiểm tra \texttt{idempotencyKey}:\newline
-\quad a. Nếu khóa đã tồn tại trong DB với kết quả thành công: Trả về kết quả trước đó mà không xử lý lại.\newline
-\quad b. Nếu khóa đang trong trạng thái xử lý (\texttt{PENDING}): Ném lỗi \texttt{409 Conflict}.\newline
-\quad c. Nếu là khóa mới: Tạo bản ghi \texttt{payments} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\newline
+\quad a. Nếu khóa đã tồn tại trong DB: Gọi \texttt{replayExistingPayment()} đối chiếu mã băm SHA-256 trên \texttt{\{orderId, method\}}. Nếu trùng khớp, trả lại kết quả đã lưu mà không gọi lại Mock Gateway; nếu sai lệch tải trọng, ném ngoại lệ \texttt{409 Conflict}.\newline
+\quad b. Nếu là khóa mới: Khởi tạo giao dịch \texttt{payments} trong \texttt{prisma.\$transaction} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\newline
+\quad c. Xử lý tranh chấp đồng thời: Nếu hai request cùng gửi một khóa, lỗi trùng khóa Unique (\texttt{P2002}) được bắt trong khối \texttt{catch}, tự động truy vấn lại giao dịch vừa tạo và phát lại (\textit{replay}) kết quả an toàn.\newline
 6. Backend gọi Mock Payment Gateway để xác thực giao dịch.\newline
 7. Khi Gateway phản hồi thành công (\texttt{SUCCESS}):\newline
 \quad a. Cập nhật bản ghi \texttt{payments} thành \texttt{SUCCESS} kèm \texttt{transactionRef}.\newline
@@ -1260,7 +1260,7 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \textbf{Luồng ngoại lệ} & 
 - Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
 - Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\newline
-- Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{422 Unprocessable Entity}. \\
+- Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{409 Conflict} (\"Idempotency-Key đã được sử dụng với nội dung khác\"). \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1299,8 +1299,8 @@ Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa 
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Headers \& Body} & \textbf{Phản hồi chính} \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/payments} & 
-Header: \texttt{Idempotency-Key: <UUID>}, Bearer Token.\newline Body: \texttt{\{orderId, paymentMethod\}} & 
-\texttt{200 OK} / \texttt{201 Created}: Trả về chi tiết thanh toán thành công. Lỗi: \texttt{400}, \texttt{401}, \texttt{404}, \texttt{409 Conflict}. \\
+Header: \texttt{Idempotency-Key: <UUID>}, Bearer Token.\newline Body: \texttt{\{orderId, method\}} & 
+\texttt{200 OK}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không hợp lệ). \\
 \texttt{GET} & \texttt{/api/v1/payments/:id} & Tham số \texttt{id} bản ghi thanh toán & 
 \texttt{200 OK}: Tra cứu trạng thái giao dịch thanh toán hiện tại. \\
 \bottomrule
@@ -1530,13 +1530,13 @@ Trong môi trường mạng không ổn định, khách hàng thường có xu h
 BrewLite giải quyết triệt để vấn đề này bằng cơ chế \textbf{Idempotency} cấp độ doanh nghiệp:
 \begin{enumerate}
     \item \textbf{Sinh khóa định danh duy nhất (\texttt{Idempotency-Key}):} Mỗi khi người dùng bấm xác nhận thanh toán, client tự động sinh một mã UUIDv4 duy nhất và đính kèm vào HTTP Header: \texttt{Idempotency-Key: <UUID>}.
-    \item \textbf{Mã hóa toàn vẹn dữ liệu (\texttt{request\_hash}):} Backend nhận request và tính toán mã băm SHA-256 trên nội dung JSON của request body. Mã băm này đại diện cho tính nguyên vẹn của giao dịch.
+    \item \textbf{Mã hóa toàn vẹn dữ liệu (\texttt{request\_hash}):} Backend nhận request và tính toán mã băm SHA-256 trên chuỗi JSON chứa thông tin đơn hàng và phương thức thanh toán: \texttt{\{ orderId, method \}}. Mã băm này đại diện cho tính toàn vẹn của giao dịch.
     \item \textbf{Kiểm tra và Điều phối giao dịch:}
     \begin{itemize}
-        \item \textbf{Trường hợp 1 (Trùng lặp thành công - Replay):} Nếu \texttt{idempotency\_key} đã tồn tại trong bảng \texttt{payments} và có trạng thái \texttt{SUCCESS}, hệ thống lập tức trả về kết quả đã lưu trước đó mà không thực hiện gọi sang Mock Gateway.
-        \item \textbf{Trường hợp 2 (Xung đột đồng thời - Concurrent Request):} Nếu \texttt{idempotency\_key} đang ở trạng thái \texttt{PENDING} (giao dịch trước đó đang xử lý dở dang), hệ thống lập tức từ chối và ném lỗi \texttt{409 Conflict}.
-        \item \textbf{Trường hợp 3 (Sai lệch tải trọng - Payload Tampering):} Nếu \texttt{idempotency\_key} trùng nhưng \texttt{request\_hash} khác nhau (ví dụ cố tình gửi cùng key nhưng đổi số tiền hoặc ID đơn hàng), hệ thống ném lỗi \texttt{422 Unprocessable Entity}.
-        \item \textbf{Trường hợp 4 (Giao dịch mới):} Bản ghi thanh toán được tạo với trạng thái \texttt{PENDING}, gọi cổng thanh toán, sau đó cập nhật kết quả cuối cùng.
+        \item \textbf{Trường hợp 1 (Khóa đã tồn tại \& Trùng khớp nội dung):} Nếu \texttt{idempotency\_key} đã tồn tại trong cơ sở dữ liệu và \texttt{request\_hash} trùng khớp, hệ thống gọi hàm \texttt{replayExistingPayment()} để phát lại (\textit{replay}) ngay kết quả thanh toán đã lưu trước đó mà không gọi lại Mock Gateway.
+        \item \textbf{Trường hợp 2 (Sai lệch tải trọng - Payload Tampering):} Nếu \texttt{idempotency\_key} đã được sử dụng nhưng \texttt{request\_hash} khác nhau (ví dụ cố tình gửi cùng key nhưng đổi phương thức thanh toán hoặc ID đơn hàng), hệ thống ném ngoại lệ \texttt{409 ConflictException} (\texttt{"Idempotency-Key đã được sử dụng với nội dung khác"}).
+        \item \textbf{Trường hợp 3 (Tranh chấp đồng thời - Concurrency Race Condition):} Khi hai request mang cùng một khóa đến gần như đồng thời, cơ sở dữ liệu chặn lại bằng ràng buộc duy nhất (\texttt{@unique}) và trả về mã lỗi \texttt{P2002}. Khối \texttt{catch} ở tầng Service nhận diện mã lỗi \texttt{P2002}, truy vấn lại bản ghi thanh toán vừa được tạo thành công và phát lại (\textit{replay}) kết quả an toàn mà không ném lỗi \texttt{409} hay gây trừ tiền lặp.
+        \item \textbf{Trường hợp 4 (Giao dịch mới):} Bản ghi thanh toán được tạo với trạng thái \texttt{PENDING}, gọi cổng thanh toán giả lập, sau đó cập nhật kết quả cuối cùng (\texttt{SUCCESS} hoặc \texttt{FAILED}).
     \end{itemize}
 \end{enumerate}
 
@@ -1556,7 +1556,7 @@ WHERE id = :productId
   AND stock >= :quantity;
     \end{lstlisting}
     \item Nếu hai giao dịch đồng thời cùng đọc phiên bản \(version = 0\), giao dịch thứ nhất thực thi thành công sẽ đẩy phiên bản lên \(version = 1\). Giao dịch thứ hai khi cập nhật sẽ nhận số dòng bị ảnh hưởng là 0 (\texttt{affected\_rows = 0}).
-    \item Khi phát hiện số dòng cập nhật bằng 0, hệ thống ngay lập tức ném lỗi \texttt{409 ConflictException} ("Sản phẩm vừa có thay đổi, vui lòng thử lại"), đồng thời tự động rollback toàn bộ giao dịch tạo đơn, đảm bảo tồn kho tuyệt đối không bao giờ bị âm.
+    \item Khi phát hiện số dòng cập nhật khác 1 (\texttt{result.count !== 1}), hệ thống ngay lập tức ném ngoại lệ \texttt{400 BadRequestException} (\texttt{"Insufficient stock or concurrent update for product <id>."}), đồng thời tự động rollback toàn bộ giao dịch tạo đơn, đảm bảo tồn kho tuyệt đối không bao giờ bị âm.
 \end{itemize}
 
 \section{Nghiệp vụ Khuyến mãi và Điểm tích lũy Thành viên}
@@ -1663,43 +1663,67 @@ return result;
 \subsection{Interactive Transaction và Khóa Lạc quan trong OrdersService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/orders/orders.service.ts
-return await this.prisma.$transaction(async (tx) => {
-  for (const item of dto.items) {
-    const product = await tx.product.findUnique({ where: { id: item.productId } });
-    if (!product || product.stock < item.quantity) {
-      throw new BadRequestException(`San pham ${product?.name} khong du ton kho`);
-    }
-
-    const updated = await tx.product.updateMany({
-      where: { id: item.productId, version: product.version },
-      data: {
-        stock: { decrement: item.quantity },
-        version: { increment: 1 },
-      },
-    });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Xung dot ton kho, vui long thu lai');
-    }
+// Product: optimistic locking theo version va ton kho trong tx
+for (const [productId, quantity] of productQuantities) {
+  const product = productById.get(productId);
+  if (!product) {
+    throw new BadRequestException(`Product ${productId} is unavailable.`);
   }
-  // Tiep tuc tao Order va OrderItems trong cung transaction...
-});
+
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      isAvailable: true,
+      version: product.version,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: { decrement: quantity },
+      version: { increment: 1 },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new BadRequestException(
+      `Insufficient stock or concurrent update for product ${productId}.`,
+    );
+  }
+}
 \end{lstlisting}
 
-\subsection{Kiểm tra Bất biến Idempotency trong PaymentsService}
+\subsection{Kiểm tra Bất biến Idempotency và Xử lý Tranh chấp trong PaymentsService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/payments/payments.service.ts
-const existing = await this.prisma.payment.findUnique({
-  where: { idempotencyKey: key },
-});
+// 1. Tinh requestHash tren { orderId, method }
+const requestHash = createHash('sha256')
+  .update(JSON.stringify({ orderId: body.orderId, method: body.method }))
+  .digest('hex');
 
-if (existing) {
-  if (existing.status === PaymentStatus.SUCCESS) {
-    return existing; // Tra ve ngay ket qua da xu ly
+// 2. Kiem tra key da ton tai: phat lai ket qua da luu (replay)
+const existingPayment = await this.prisma.payment.findUnique({
+  where: { idempotencyKey: normalizedKey },
+  include: { order: true },
+});
+if (existingPayment) {
+  return this.replayExistingPayment(existingPayment, userId, requestHash);
+}
+
+// 3. Bat tranh chap dong thoi (Race Condition P2002) de replay an toan
+try {
+  return await this.prisma.$transaction(async (tx) => {
+    // Tao payment voi unique idempotencyKey va requestHash...
+  });
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const paymentAfterRace = await this.prisma.payment.findUnique({
+      where: { idempotencyKey: normalizedKey },
+      include: { order: true },
+    });
+    if (paymentAfterRace) {
+      return this.replayExistingPayment(paymentAfterRace, userId, requestHash);
+    }
   }
-  if (existing.status === PaymentStatus.PENDING) {
-    throw new ConflictException('Giao dich dang duoc xu ly, vui long cho');
-  }
+  throw error;
 }
 \end{lstlisting}
 
@@ -1720,7 +1744,7 @@ Trải qua hai giai đoạn phân tích, thiết kế và hiện thực hóa (Gi
 \section{Các Hạn chế Hiện tại}
 Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫn tồn tại một số điểm giới hạn kỹ thuật cần được ghi nhận trung thực:
 \begin{enumerate}
-    \item \textbf{Cơ chế Retry tự động cho Khóa Lạc quan:} Khi xảy ra xung đột phiên bản giữa các request đặt hàng đồng thời, Backend ném mã lỗi \texttt{409 Conflict}. Hiện tại, giao diện người dùng mới dừng ở mức hiển thị thông báo lỗi và yêu cầu khách hàng bấm thử lại thủ công, chưa trang bị cơ chế tự động thử lại ở tầng Client với thuật toán lùi thời gian ngẫu nhiên (\textit{Exponential Backoff with Jitter}).
+    \item \textbf{Gộp chung mã lỗi xung đột tồn kho và phiên bản:} Tại tầng Backend (\texttt{OrdersService}), cả hai trường hợp hết tồn kho thực tế (\texttt{stock < quantity}) và xung đột phiên bản Khóa lạc quan (\texttt{version} không khớp) hiện đang được xử lý chung thông qua ngoại lệ \texttt{400 BadRequestException}. Việc chưa phân tách riêng mã \texttt{409 Conflict} cho trường hợp xung đột phiên bản khiến phía Client chưa thể kích hoạt cơ chế tự động thử lại (Auto-Retry) ngầm mà người dùng phải thao tác lại thủ công.
     \item \textbf{Phân hệ Loyalty chỉ mới kích hoạt chiều tích điểm (Earn Points):} Phiên bản MVP hiện tại đã hoàn thiện trọn vẹn luồng tự động tích lũy điểm thưởng khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)). Tính năng dùng điểm để giảm trừ trực tiếp vào đơn hàng mới (\textit{Redeem Points}) và xử lý hoàn điểm tự động khi hủy đơn được lên kế hoạch bàn giao ở bản phát hành tiếp theo.
     \item \textbf{Giao diện Quầy Pha chế (Barista UI) ngoài phạm vi MVP:} Dù Backend đã hoàn thiện trọn vẹn logic chuyển tiếp trạng thái (\texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), nhưng giao diện web/tablet dành riêng cho nhân viên pha chế tại quầy chưa được hiện thực hóa trong phạm vi bản phát hành MVP này.
     \item \textbf{Tích hợp Cổng thanh toán Thực tế:} Hệ thống hiện đang sử dụng dịch vụ Mock Payment Gateway để giả lập luồng thanh toán. Việc tích hợp các cổng thanh toán thương mại thực tế tại Việt Nam (như VNPay, MoMo, ZaloPay) đòi hỏi quy trình đăng ký doanh nghiệp và thẩm định pháp lý phức tạp nên được định hướng ở giai đoạn sau.
@@ -1732,7 +1756,7 @@ Nhằm đưa BrewLite trở thành một nền tảng vận hành hoàn chỉnh 
     \item \textbf{Hiện thực hóa tính năng Đổi điểm thưởng (Redeem Loyalty Points):} Cung cấp giao diện cho phép khách hàng chủ động chọn số điểm muốn sử dụng tại bước thanh toán để khấu trừ trực tiếp vào giá trị đơn hàng, tích hợp cơ chế hoàn trả điểm tự động khi đơn hàng bị hủy theo chuẩn cấu trúc cơ sở dữ liệu đã thiết kế sẵn.
     \item \textbf{Xây dựng Màn hình Pha chế (Barista POS Display):} Phát triển giao diện chuyên dụng cho quầy bar, cập nhật danh sách đơn hàng theo thời gian thực sử dụng công nghệ WebSockets hoặc Server-Sent Events (SSE).
     \item \textbf{Tích hợp Cổng thanh toán VNPay / MoMo:} Kết nối trực tiếp qua Webhook và chuẩn thanh toán mã VietQR, hỗ trợ hoàn tiền tự động khi đơn hàng bị hủy sau khi đã thanh toán.
-    \item \textbf{Cơ chế Client-side Auto-Retry:} Nâng cấp lớp thư viện gọi API (API Client) để tự động thử lại các thao tác đặt hàng khi gặp mã lỗi \texttt{409 Conflict} mà không gây phiền toái cho trải nghiệm người dùng.
+    \item \textbf{Phân tách mã lỗi 409 Conflict và Cơ chế Client-side Auto-Retry:} Nâng cấp \texttt{OrdersService} để phân tách rõ ràng giữa mã lỗi \texttt{400 Bad Request} (khi hết hàng thực tế) và mã lỗi \texttt{409 Conflict} (khi tồn kho còn nhưng xảy ra xung đột version giữa các request đồng thời), kết hợp xây dựng lớp client tự động thử lại (Retry với Exponential Backoff) giúp nâng cao trải nghiệm người dùng trong các đợt cao điểm.
     \item \textbf{Phân hệ Báo cáo và Quản trị Doanh thu (Admin Analytics):} Bổ sung biểu đồ trực quan hóa dữ liệu bán hàng, dự báo nhu cầu nguyên vật liệu và quản lý các chiến dịch khuyến mãi theo mùa.
 \end{itemize}
 

@@ -45,13 +45,13 @@ Trong môi trường mạng không ổn định, khách hàng thường có xu h
 BrewLite giải quyết triệt để vấn đề này bằng cơ chế \textbf{Idempotency} cấp độ doanh nghiệp:
 \begin{enumerate}
     \item \textbf{Sinh khóa định danh duy nhất (\texttt{Idempotency-Key}):} Mỗi khi người dùng bấm xác nhận thanh toán, client tự động sinh một mã UUIDv4 duy nhất và đính kèm vào HTTP Header: \texttt{Idempotency-Key: <UUID>}.
-    \item \textbf{Mã hóa toàn vẹn dữ liệu (\texttt{request\_hash}):} Backend nhận request và tính toán mã băm SHA-256 trên nội dung JSON của request body. Mã băm này đại diện cho tính nguyên vẹn của giao dịch.
+    \item \textbf{Mã hóa toàn vẹn dữ liệu (\texttt{request\_hash}):} Backend nhận request và tính toán mã băm SHA-256 trên chuỗi JSON chứa thông tin đơn hàng và phương thức thanh toán: \texttt{\{ orderId, method \}}. Mã băm này đại diện cho tính toàn vẹn của giao dịch.
     \item \textbf{Kiểm tra và Điều phối giao dịch:}
     \begin{itemize}
-        \item \textbf{Trường hợp 1 (Trùng lặp thành công - Replay):} Nếu \texttt{idempotency\_key} đã tồn tại trong bảng \texttt{payments} và có trạng thái \texttt{SUCCESS}, hệ thống lập tức trả về kết quả đã lưu trước đó mà không thực hiện gọi sang Mock Gateway.
-        \item \textbf{Trường hợp 2 (Xung đột đồng thời - Concurrent Request):} Nếu \texttt{idempotency\_key} đang ở trạng thái \texttt{PENDING} (giao dịch trước đó đang xử lý dở dang), hệ thống lập tức từ chối và ném lỗi \texttt{409 Conflict}.
-        \item \textbf{Trường hợp 3 (Sai lệch tải trọng - Payload Tampering):} Nếu \texttt{idempotency\_key} trùng nhưng \texttt{request\_hash} khác nhau (ví dụ cố tình gửi cùng key nhưng đổi số tiền hoặc ID đơn hàng), hệ thống ném lỗi \texttt{422 Unprocessable Entity}.
-        \item \textbf{Trường hợp 4 (Giao dịch mới):} Bản ghi thanh toán được tạo với trạng thái \texttt{PENDING}, gọi cổng thanh toán, sau đó cập nhật kết quả cuối cùng.
+        \item \textbf{Trường hợp 1 (Khóa đã tồn tại \& Trùng khớp nội dung):} Nếu \texttt{idempotency\_key} đã tồn tại trong cơ sở dữ liệu và \texttt{request\_hash} trùng khớp, hệ thống gọi hàm \texttt{replayExistingPayment()} để phát lại (\textit{replay}) ngay kết quả thanh toán đã lưu trước đó mà không gọi lại Mock Gateway.
+        \item \textbf{Trường hợp 2 (Sai lệch tải trọng - Payload Tampering):} Nếu \texttt{idempotency\_key} đã được sử dụng nhưng \texttt{request\_hash} khác nhau (ví dụ cố tình gửi cùng key nhưng đổi phương thức thanh toán hoặc ID đơn hàng), hệ thống ném ngoại lệ \texttt{409 ConflictException} (\texttt{"Idempotency-Key đã được sử dụng với nội dung khác"}).
+        \item \textbf{Trường hợp 3 (Tranh chấp đồng thời - Concurrency Race Condition):} Khi hai request mang cùng một khóa đến gần như đồng thời, cơ sở dữ liệu chặn lại bằng ràng buộc duy nhất (\texttt{@unique}) và trả về mã lỗi \texttt{P2002}. Khối \texttt{catch} ở tầng Service nhận diện mã lỗi \texttt{P2002}, truy vấn lại bản ghi thanh toán vừa được tạo thành công và phát lại (\textit{replay}) kết quả an toàn mà không ném lỗi \texttt{409} hay gây trừ tiền lặp.
+        \item \textbf{Trường hợp 4 (Giao dịch mới):} Bản ghi thanh toán được tạo với trạng thái \texttt{PENDING}, gọi cổng thanh toán giả lập, sau đó cập nhật kết quả cuối cùng (\texttt{SUCCESS} hoặc \texttt{FAILED}).
     \end{itemize}
 \end{enumerate}
 
@@ -71,7 +71,7 @@ WHERE id = :productId
   AND stock >= :quantity;
     \end{lstlisting}
     \item Nếu hai giao dịch đồng thời cùng đọc phiên bản \(version = 0\), giao dịch thứ nhất thực thi thành công sẽ đẩy phiên bản lên \(version = 1\). Giao dịch thứ hai khi cập nhật sẽ nhận số dòng bị ảnh hưởng là 0 (\texttt{affected\_rows = 0}).
-    \item Khi phát hiện số dòng cập nhật bằng 0, hệ thống ngay lập tức ném lỗi \texttt{409 ConflictException} ("Sản phẩm vừa có thay đổi, vui lòng thử lại"), đồng thời tự động rollback toàn bộ giao dịch tạo đơn, đảm bảo tồn kho tuyệt đối không bao giờ bị âm.
+    \item Khi phát hiện số dòng cập nhật khác 1 (\texttt{result.count !== 1}), hệ thống ngay lập tức ném ngoại lệ \texttt{400 BadRequestException} (\texttt{"Insufficient stock or concurrent update for product <id>."}), đồng thời tự động rollback toàn bộ giao dịch tạo đơn, đảm bảo tồn kho tuyệt đối không bao giờ bị âm.
 \end{itemize}
 
 \section{Nghiệp vụ Khuyến mãi và Điểm tích lũy Thành viên}
