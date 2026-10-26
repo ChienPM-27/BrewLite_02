@@ -1,0 +1,26 @@
+﻿
+> brewlite-backend@1.0.0 test:e2e
+> jest --config test/jest-e2e.json --runInBand
+
+node.exe : PASS test/orders-concurrency.e2e-spec.ts (24.08 s)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS test/order...ec.ts (24.08 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Orders & Payments Concurrency (e2e)
+    √ (c) Tạo product stock = 3, bắn 10 POST /orders song song, mỗi đơn quantity 1 -> 201 <= 3, tồn kho cuối >= 0, 
+không có 500 (1016 ms)
+    √ (c2) Tạo topping stock = 2, bắn 10 POST /orders song song có topping -> 201 <= 2, tồn kho cuối >= 0, không có 
+500 (544 ms)
+    √ (b) Cùng Idempotency-Key gửi 5 POST /payments song song: cùng payment id, DB có 1 Payment, 0 lỗi 500, loyalty 
+cộng 1 lần (651 ms)
+    √ (b2) Cùng key nhưng body khác (method khác) trả 409 Conflict (526 ms)
+    √ (a) Chuyển trạng thái sai qua API: hủy đơn đã PAID trả 409; hủy 2 lần trả 409 (893 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        24.452 s
+Ran all test suites.
