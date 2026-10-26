@@ -163,7 +163,7 @@ Hệ thống đặt cà phê trực tuyến \textbf{BrewLite} được nghiên c
 Mục tiêu cốt lõi của đề tài bao gồm:
 \begin{itemize}
     \item \textbf{Trải nghiệm người dùng mượt mà:} Khách hàng có thể tương tác trực quan với thực đơn, phân loại theo danh mục, tùy biến linh hoạt các thông số đồ uống trước khi thêm vào giỏ hàng.
-    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và đổi điểm thành viên thân thiết (loyalty points).
+    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và tích lũy điểm thưởng thành viên thân thiết (Loyalty Points) sau khi hoàn tất thanh toán.
     \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toàn vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
 \end{itemize}
 
@@ -175,7 +175,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
     \item \textbf{Phân hệ Danh mục sản phẩm (Product Catalog):} Hiển thị danh sách sản phẩm phân nhóm theo danh mục (Cà phê, Trà...), lọc món còn hàng và tìm kiếm.
     \item \textbf{Phân hệ Chi tiết sản phẩm (Product Detail):} Xem thông tin mô tả chi tiết, hình ảnh, đơn giá và cho phép lựa chọn size, mức đường, mức đá cùng danh sách topping đi kèm.
     \item \textbf{Phân hệ Giỏ hàng (Cart):} Quản lý các món đã chọn ở phía trình duyệt (Client-side), cập nhật số lượng, chỉnh sửa tùy chọn và tạm tính giá trị đơn hàng.
-    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, quy đổi điểm tích lũy và chuyển đổi trạng thái đơn hàng.
+    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, tự động tính điểm tích lũy dự kiến và chuyển đổi trạng thái đơn hàng.
     \item \textbf{Phân hệ Thanh toán (Payment):} Khởi tạo giao dịch thanh toán trực tuyến qua cổng giả lập (Mock Payment Gateway), xử lý bảo mật chống trùng lặp với \texttt{Idempotency-Key}.
     \item \textbf{Phân hệ Lịch sử đơn hàng (Order History):} Tra cứu danh sách các đơn hàng đã thực hiện, xem chi tiết từng đơn hàng và trạng thái thanh toán/xử lý.
 \end{enumerate}
@@ -183,6 +183,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
 \paragraph{Giới hạn phạm vi (Out-of-Scope trong MVP):}
 Để đảm bảo tiến độ và chất lượng cho các nghiệp vụ trọng tâm của khách hàng:
 \begin{itemize}
+    \item \textbf{Đổi điểm thưởng trừ tiền (Redeem Loyalty Points):} Hệ thống đã hiện thực trọn vẹn cơ chế tự động tích lũy điểm thưởng (\textit{Earn Points}) cho khách hàng sau khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)) và thiết kế sẵn sàng cấu trúc dữ liệu cho việc chi tiêu/hoàn điểm (\texttt{LoyaltyTransactionType.SPENT}, \texttt{REFUNDED}). Tuy nhiên, tính năng cho phép nhập điểm để trừ trực tiếp vào giá trị đơn hàng mới (\textit{Redeem Points}) được phân loại vào phạm vi mở rộng sau MVP (Post-MVP Backlog) để đảm bảo an toàn tuyệt đối cho luồng thanh toán và nghiệp vụ hoàn điểm khi hủy đơn.
     \item \textbf{Giao diện Pha chế (Barista Web UI):} Mặc dù hệ thống đã hiện thực toàn diện Máy trạng thái đơn hàng (Order State Machine) với đầy đủ 9 chuyển tiếp nghiệp vụ (bao gồm các trạng thái \texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), giao diện web chuyên dụng dành riêng cho nhân viên pha chế tại quầy chưa nằm trong phạm vi giao diện của bản phát hành MVP này.
     \item \textbf{Quản trị viên nâng cao (Advanced Admin Portal):} Hệ thống tập trung vào trải nghiệm đặt hàng của khách hàng (B2C); các chức năng quản trị kho nâng cao và báo cáo doanh thu sẽ được triển khai ở pha tiếp theo.
 \end{itemize}
@@ -264,7 +265,7 @@ Dựa trên phân tích phạm vi nghiệp vụ của hệ thống BrewLite tron
 
 \begin{itemize}
     \item \textbf{Khách vãng lai (Guest):} Người dùng truy cập hệ thống qua trình duyệt web mà chưa thực hiện đăng nhập. Tác nhân này có thể duyệt danh mục thực đơn, xem chi tiết món ăn, lựa chọn các tùy biến đồ uống và lưu trữ giỏ hàng tạm thời trên trình duyệt. Khi thực hiện thanh toán hoặc đặt hàng, hệ thống yêu cầu xác thực tài khoản.
-    \item \textbf{Khách hàng đã đăng ký (Registered Customer):} Khách hàng sở hữu tài khoản định danh trên hệ thống. Tác nhân này có đầy đủ quyền lợi: đặt hàng chính thức, áp dụng mã voucher ưu đãi, tích lũy và đổi điểm thưởng thành viên (Loyalty points), thanh toán trực tuyến và tra cứu toàn bộ lịch sử đơn hàng cá nhân.
+    \item \textbf{Khách hàng đã đăng ký (Registered Customer):} Khách hàng sở hữu tài khoản định danh trên hệ thống. Tác nhân này có đầy đủ quyền lợi: đặt hàng chính thức, áp dụng mã voucher ưu đãi, tích lũy điểm thưởng thành viên (Loyalty Points), thanh toán trực tuyến và tra cứu toàn bộ lịch sử đơn hàng cá nhân.
     \item \textbf{Cổng thanh toán giả lập (Mock Payment Gateway):} Tác nhân hệ thống bên ngoài mô phỏng trung gian tài chính. Cổng tiếp nhận yêu cầu thanh toán kèm mã định danh bất biến (\texttt{Idempotency-Key}), kiểm tra thông tin và trả về kết quả giao dịch (\texttt{SUCCESS} hoặc \texttt{FAILED}).
     \item \textbf{Hệ thống Quản trị dữ liệu (PostgreSQL Database Engine):} Đóng vai trò thực thi các ràng buộc toàn vẹn, đảm bảo tính bền vững (Durability) và cách ly (Isolation) cho các giao dịch đồng thời.
 \end{itemize}
@@ -283,7 +284,7 @@ Hệ thống BrewLite được phân rã thành 6 nhóm yêu cầu chức năng 
 \textbf{FR-01} & Quản lý Xác thực \& Tài khoản & Cho phép người dùng đăng ký tài khoản với email duy nhất, họ tên, mật khẩu băm an toàn; Đăng nhập nhận JWT Token hợp lệ; Kiểm soát truy cập bảo vệ các endpoint nghiệp vụ. \\
 \textbf{FR-02} & Duyệt thực đơn \& Chi tiết món & Cung cấp danh mục sản phẩm phân nhóm theo phân loại (Cà phê, Trà...); Tìm kiếm món; Xem thông tin chi tiết về kích cỡ, giá phụ thu, mức đường, mức đá và danh sách topping khả dụng. \\
 \textbf{FR-03} & Quản lý Giỏ hàng & Cho phép thêm sản phẩm kèm tùy biến vào giỏ hàng cục bộ; Điều chỉnh số lượng món; Xóa từng món hoặc làm rỗng giỏ; Tạm tính tổng chi phí tự động. \\
-\textbf{FR-04} & Đặt hàng \& Xử lý Chiết khấu & Khởi tạo đơn hàng từ giỏ hàng; Kiểm tra tồn kho sản phẩm với Optimistic Locking; Áp dụng mã giảm giá hợp lệ; Quy đổi điểm tích lũy thành viên; Lưu vết snapshot giá tại thời điểm đặt. \\
+\textbf{FR-04} & Đặt hàng \& Xử lý Chiết khấu & Khởi tạo đơn hàng từ giỏ hàng; Kiểm tra tồn kho sản phẩm với Optimistic Locking; Áp dụng mã giảm giá hợp lệ (\texttt{promotionCode}); Tự động tính điểm tích lũy thành viên dự kiến; Lưu vết snapshot giá tại thời điểm đặt. \\
 \textbf{FR-05} & Thanh toán Trực tuyến & Khởi tạo giao dịch thanh toán; Kiểm tra trùng lặp giao dịch bằng cơ chế \texttt{Idempotency-Key} và băm \texttt{request\_hash}; Cập nhật trạng thái đơn hàng sang \texttt{PAID} khi giao dịch thành công. \\
 \textbf{FR-06} & Tra cứu Lịch sử Đơn hàng & Hiển thị danh sách các đơn hàng đã đặt của người dùng theo thứ tự thời gian giảm dần; Xem chi tiết thông tin thanh toán, danh mục món và trạng thái xử lý hiện tại. \\
 \bottomrule
@@ -313,17 +314,17 @@ Các yêu cầu phi chức năng đặt ra các tiêu chuẩn kỹ thuật nhằ
 
 \begin{tcolorbox}[colback=blue!3,colframe=blue!40,title=\textbf{User Story US-05: Đặt hàng trực tuyến với mã ưu đãi}]
 \textbf{Là một:} Khách hàng đã đăng nhập vào hệ thống BrewLite,\\
-\textbf{Tôi muốn:} Thực hiện đặt các món trong giỏ hàng và áp dụng mã giảm giá hợp lệ kèm điểm tích lũy thành viên,\\
-\textbf{Để:} Mua được đồ uống yêu thích với chi phí tiết kiệm nhất mà không phải xếp hàng thanh toán tại quầy.
+\textbf{Tôi muốn:} Thực hiện đặt các món trong giỏ hàng, áp dụng mã ưu đãi hợp lệ và được tích lũy điểm thưởng thành viên sau khi thanh toán,\\
+\textbf{Để:} Mua được đồ uống yêu thích với chi phí tiết kiệm nhất và tích lũy ưu đãi cho các đơn hàng tương lai.
 \end{tcolorbox}
 
 \paragraph{Tiêu chí chấp nhận (Acceptance Criteria - Gherkin Syntax):}
 \begin{enumerate}[label=\textbf{Kịch bản \arabic*:}]
-    \item \textit{Đặt hàng thành công với mã giảm giá hợp lệ và điểm tích lũy:}
+    \item \textit{Đặt hàng thành công với mã giảm giá hợp lệ và ghi nhận tích lũy điểm thưởng:}
     \begin{itemize}
-        \item \textbf{Given:} Khách hàng có 3 món đồ uống trong giỏ hàng với tổng giá trị tạm tính là 120.000 VNĐ, tài khoản có 10 điểm thưởng và nhập mã voucher \texttt{WELCOME10}.
-        \item \textbf{When:} Khách hàng chọn áp dụng mã voucher và nhấn nút "Xác nhận đặt hàng".
-        \item \textbf{Then:} Hệ thống áp dụng chiết khấu 10\% (12.000 VNĐ), trừ 10 điểm thưởng (tương đương 10.000 VNĐ), tính tổng số tiền thanh toán là 98.000 VNĐ, kiểm tra đủ tồn kho, tạo đơn hàng ở trạng thái \texttt{PENDING\_PAYMENT} và điều hướng sang trang thanh toán.
+        \item \textbf{Given:} Khách hàng có các món đồ uống trong giỏ hàng với tổng giá trị tạm tính là 120.000 VNĐ và nhập mã voucher \texttt{WELCOME10}.
+        \item \textbf{When:} Khách hàng chọn áp dụng mã voucher và gửi yêu cầu tạo đơn hàng (\texttt{POST /api/v1/orders}).
+        \item \textbf{Then:} Hệ thống áp dụng chiết khấu 10\% (12.000 VNĐ), tính tổng số tiền thanh toán chính xác là 108.000 VNĐ, kiểm tra đủ tồn kho với Optimistic Locking, tạo đơn hàng ở trạng thái \texttt{PENDING}, đồng thời tính toán điểm thưởng dự kiến tích lũy là +108 điểm khi thanh toán thành công và chuyển hướng sang trang thanh toán.
     \end{itemize}
     \item \textit{Xử lý ngoại lệ khi số lượng tồn kho không đủ (Out of Stock):}
     \begin{itemize}
@@ -365,7 +366,7 @@ Hệ thống bao gồm các thành phần cốt lõi:
         \item \textbf{AuthModule:} Đảm nhận đăng ký, băm mật khẩu bằng \texttt{bcrypt}, đăng nhập và cấp phát JSON Web Token; bảo vệ hệ thống thông qua \texttt{JwtAuthGuard}.
         \item \textbf{ProductsModule:} Quản lý danh mục (\texttt{categories}), sản phẩm (\texttt{products}), các tùy chọn size/đường/đá/topping và kiểm tra tính khả dụng của kho hàng.
         \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{OrderStateMachine}) và kiểm soát giao dịch tạo đơn.
-        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập thực thi chính sách phụ thu tùy biến, kiểm tra hợp lệ của mã giảm giá \texttt{WELCOME10} và quy đổi điểm tích lũy thành viên.
+        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập: \texttt{PricingModule} tính toán phụ thu kích cỡ/topping; \texttt{PromotionsModule} kiểm tra tính hợp lệ và chiết khấu của mã giảm giá (\texttt{WELCOME10}); \texttt{LoyaltyModule} đảm nhận cơ chế tự động tích lũy điểm thưởng thành viên theo tỷ lệ thực trả sau khi thanh toán thành công.
         \item \textbf{PaymentsModule:} Xử lý thanh toán trực tuyến, quản lý bảng idempotency (\texttt{PaymentIdempotency}) và kết nối giao tiếp với cổng thanh toán.
         \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptionsFilter}) và bộ chuẩn hóa phản hồi (\texttt{TransformInterceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
     \end{itemize}
@@ -1067,7 +1068,7 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \section{Phân hệ Đặt hàng (Order)}
 
 \subsection{Đặc tả Use Case}
-Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), quy đổi điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
+Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), tích lũy điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
 
 \begin{figure}[H]
     \centering
@@ -1150,7 +1151,7 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Mô tả Request Payload} & \textbf{Phản hồi chính} \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
-\texttt{\{items: [\{productId, size, quantity, toppings\}], voucherCode?, pointsToRedeem?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
+\texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
 \texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400}, \texttt{401}, \texttt{409}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
@@ -1576,12 +1577,20 @@ Hệ thống hỗ trợ cấu hình mã giảm giá đa dạng được quản l
 
 \subsection{Cơ chế Điểm thưởng Thành viên (Loyalty Points)}
 \begin{itemize}
-    \item \textbf{Tích lũy điểm (Earn Points):} Với mỗi đơn hàng được thanh toán thành công, khách hàng được tích lũy 1 điểm thưởng cho mỗi 10.000 VNĐ giá trị thực trả (\texttt{finalAmount}):
+    \item \textbf{Tích lũy điểm tự động (Earn Points - Đã hiện thực trong MVP):}
+    Nhằm tri ân và tăng tính gắn kết của khách hàng, hệ thống hiện thực cơ chế tích lũy điểm tự động được kích hoạt ngay khi đơn hàng chuyển sang trạng thái \texttt{PAID} thông qua phương thức \texttt{LoyaltyService.award()}. Tỷ lệ tích điểm thực tế trong mã nguồn là 1 điểm thưởng cho mỗi 1.000 VNĐ thanh toán thực trả (\texttt{finalAmount}):
     \[
-    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{10.000} \right\rfloor
+    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{1.000} \right\rfloor
     \]
-    \item \textbf{Quy đổi điểm (Redeem Points):} Khách hàng có thể sử dụng điểm tích lũy để trừ trực tiếp vào đơn hàng mới. Giá trị quy đổi là \(1 \text{ điểm} = 1.000 \text{ VNĐ}\). Nhằm đảm bảo an toàn doanh thu, hệ thống đặt ra quy tắc cứng: số tiền giảm từ điểm thưởng tối đa không được vượt quá 50\% giá trị đơn hàng sau khi đã trừ mã giảm giá.
-    \item Mọi biến động cộng/trừ điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
+    Tiến trình cộng điểm được thực thi nguyên tử trong cùng cơ chế giao dịch (\texttt{tx}), tự động tăng biến \texttt{loyaltyPoints} của người dùng, cập nhật trường \texttt{pointsEarned} của đơn hàng và ghi nhận một bản ghi biến động dạng \texttt{EARNED} vào bảng \texttt{loyalty\_transactions}. Cơ chế kiểm tra tồn tại giao dịch đảm bảo tính Idempotent, loại trừ nguy cơ cộng điểm trùng lặp khi có webhook gọi lại.
+
+    \item \textbf{Quy đổi điểm trừ tiền (Redeem Points - Đặc tả Thiết kế phạm vi mở rộng Post-MVP):}
+    Tại phiên bản MVP 1.0, nhằm tập trung bảo đảm an toàn tuyệt đối cho luồng thanh toán và giao dịch tài chính cốt lõi, tính năng nhập điểm để trừ trực tiếp vào đơn hàng mới được xếp vào danh mục phát triển mở rộng (\textit{Post-MVP Backlog}). Cấu trúc cơ sở dữ liệu đã được thiết kế sẵn sàng để đón đầu tính năng này trong các Sprint tiếp theo:
+    \begin{itemize}
+        \item Enum \texttt{LoyaltyTransactionType} đã hỗ trợ sẵn các loại giao dịch \texttt{SPENT} (tiêu điểm) và \texttt{REFUNDED} (hoàn trả điểm khi hủy đơn).
+        \item Quy tắc quy đổi dự kiến: \(1 \text{ điểm} = 1.000 \text{ VNĐ}\), với trần khống chế số tiền giảm trừ tối đa không vượt quá 50\% giá trị đơn hàng sau chiết khấu khuyến mãi để đảm bảo tính an toàn tài chính.
+    \end{itemize}
+    \item Mọi biến động cộng điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
 \end{itemize}
 
 % ====== END INLINE: chapters/ch6-advanced-logic ======
@@ -1703,6 +1712,7 @@ Trải qua hai giai đoạn phân tích, thiết kế và hiện thực hóa (Gi
 Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫn tồn tại một số điểm giới hạn kỹ thuật cần được ghi nhận trung thực:
 \begin{enumerate}
     \item \textbf{Cơ chế Retry tự động cho Khóa Lạc quan:} Khi xảy ra xung đột phiên bản giữa các request đặt hàng đồng thời, Backend ném mã lỗi \texttt{409 Conflict}. Hiện tại, giao diện người dùng mới dừng ở mức hiển thị thông báo lỗi và yêu cầu khách hàng bấm thử lại thủ công, chưa trang bị cơ chế tự động thử lại ở tầng Client với thuật toán lùi thời gian ngẫu nhiên (\textit{Exponential Backoff with Jitter}).
+    \item \textbf{Phân hệ Loyalty chỉ mới kích hoạt chiều tích điểm (Earn Points):} Phiên bản MVP hiện tại đã hoàn thiện trọn vẹn luồng tự động tích lũy điểm thưởng khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)). Tính năng dùng điểm để giảm trừ trực tiếp vào đơn hàng mới (\textit{Redeem Points}) và xử lý hoàn điểm tự động khi hủy đơn được lên kế hoạch bàn giao ở bản phát hành tiếp theo.
     \item \textbf{Giao diện Quầy Pha chế (Barista UI) ngoài phạm vi MVP:} Dù Backend đã hoàn thiện trọn vẹn logic chuyển tiếp trạng thái (\texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), nhưng giao diện web/tablet dành riêng cho nhân viên pha chế tại quầy chưa được hiện thực hóa trong phạm vi bản phát hành MVP này.
     \item \textbf{Tích hợp Cổng thanh toán Thực tế:} Hệ thống hiện đang sử dụng dịch vụ Mock Payment Gateway để giả lập luồng thanh toán. Việc tích hợp các cổng thanh toán thương mại thực tế tại Việt Nam (như VNPay, MoMo, ZaloPay) đòi hỏi quy trình đăng ký doanh nghiệp và thẩm định pháp lý phức tạp nên được định hướng ở giai đoạn sau.
 \end{enumerate}
@@ -1710,6 +1720,7 @@ Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫ
 \section{Hướng Phát triển trong Tương lai}
 Nhằm đưa BrewLite trở thành một nền tảng vận hành hoàn chỉnh cho các chuỗi cửa hàng cà phê thương mại, các định hướng phát triển tiếp theo bao gồm:
 \begin{itemize}
+    \item \textbf{Hiện thực hóa tính năng Đổi điểm thưởng (Redeem Loyalty Points):} Cung cấp giao diện cho phép khách hàng chủ động chọn số điểm muốn sử dụng tại bước thanh toán để khấu trừ trực tiếp vào giá trị đơn hàng, tích hợp cơ chế hoàn trả điểm tự động khi đơn hàng bị hủy theo chuẩn cấu trúc cơ sở dữ liệu đã thiết kế sẵn.
     \item \textbf{Xây dựng Màn hình Pha chế (Barista POS Display):} Phát triển giao diện chuyên dụng cho quầy bar, cập nhật danh sách đơn hàng theo thời gian thực sử dụng công nghệ WebSockets hoặc Server-Sent Events (SSE).
     \item \textbf{Tích hợp Cổng thanh toán VNPay / MoMo:} Kết nối trực tiếp qua Webhook và chuẩn thanh toán mã VietQR, hỗ trợ hoàn tiền tự động khi đơn hàng bị hủy sau khi đã thanh toán.
     \item \textbf{Cơ chế Client-side Auto-Retry:} Nâng cấp lớp thư viện gọi API (API Client) để tự động thử lại các thao tác đặt hàng khi gặp mã lỗi \texttt{409 Conflict} mà không gây phiền toái cho trải nghiệm người dùng.

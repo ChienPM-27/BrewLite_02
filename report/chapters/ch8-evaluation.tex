@@ -12,6 +12,7 @@ Trải qua hai giai đoạn phân tích, thiết kế và hiện thực hóa (Gi
 Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫn tồn tại một số điểm giới hạn kỹ thuật cần được ghi nhận trung thực:
 \begin{enumerate}
     \item \textbf{Cơ chế Retry tự động cho Khóa Lạc quan:} Khi xảy ra xung đột phiên bản giữa các request đặt hàng đồng thời, Backend ném mã lỗi \texttt{409 Conflict}. Hiện tại, giao diện người dùng mới dừng ở mức hiển thị thông báo lỗi và yêu cầu khách hàng bấm thử lại thủ công, chưa trang bị cơ chế tự động thử lại ở tầng Client với thuật toán lùi thời gian ngẫu nhiên (\textit{Exponential Backoff with Jitter}).
+    \item \textbf{Phân hệ Loyalty chỉ mới kích hoạt chiều tích điểm (Earn Points):} Phiên bản MVP hiện tại đã hoàn thiện trọn vẹn luồng tự động tích lũy điểm thưởng khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)). Tính năng dùng điểm để giảm trừ trực tiếp vào đơn hàng mới (\textit{Redeem Points}) và xử lý hoàn điểm tự động khi hủy đơn được lên kế hoạch bàn giao ở bản phát hành tiếp theo.
     \item \textbf{Giao diện Quầy Pha chế (Barista UI) ngoài phạm vi MVP:} Dù Backend đã hoàn thiện trọn vẹn logic chuyển tiếp trạng thái (\texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), nhưng giao diện web/tablet dành riêng cho nhân viên pha chế tại quầy chưa được hiện thực hóa trong phạm vi bản phát hành MVP này.
     \item \textbf{Tích hợp Cổng thanh toán Thực tế:} Hệ thống hiện đang sử dụng dịch vụ Mock Payment Gateway để giả lập luồng thanh toán. Việc tích hợp các cổng thanh toán thương mại thực tế tại Việt Nam (như VNPay, MoMo, ZaloPay) đòi hỏi quy trình đăng ký doanh nghiệp và thẩm định pháp lý phức tạp nên được định hướng ở giai đoạn sau.
 \end{enumerate}
@@ -19,6 +20,7 @@ Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫ
 \section{Hướng Phát triển trong Tương lai}
 Nhằm đưa BrewLite trở thành một nền tảng vận hành hoàn chỉnh cho các chuỗi cửa hàng cà phê thương mại, các định hướng phát triển tiếp theo bao gồm:
 \begin{itemize}
+    \item \textbf{Hiện thực hóa tính năng Đổi điểm thưởng (Redeem Loyalty Points):} Cung cấp giao diện cho phép khách hàng chủ động chọn số điểm muốn sử dụng tại bước thanh toán để khấu trừ trực tiếp vào giá trị đơn hàng, tích hợp cơ chế hoàn trả điểm tự động khi đơn hàng bị hủy theo chuẩn cấu trúc cơ sở dữ liệu đã thiết kế sẵn.
     \item \textbf{Xây dựng Màn hình Pha chế (Barista POS Display):} Phát triển giao diện chuyên dụng cho quầy bar, cập nhật danh sách đơn hàng theo thời gian thực sử dụng công nghệ WebSockets hoặc Server-Sent Events (SSE).
     \item \textbf{Tích hợp Cổng thanh toán VNPay / MoMo:} Kết nối trực tiếp qua Webhook và chuẩn thanh toán mã VietQR, hỗ trợ hoàn tiền tự động khi đơn hàng bị hủy sau khi đã thanh toán.
     \item \textbf{Cơ chế Client-side Auto-Retry:} Nâng cấp lớp thư viện gọi API (API Client) để tự động thử lại các thao tác đặt hàng khi gặp mã lỗi \texttt{409 Conflict} mà không gây phiền toái cho trải nghiệm người dùng.

@@ -1,7 +1,7 @@
 \section{Phân hệ Đặt hàng (Order)}
 
 \subsection{Đặc tả Use Case}
-Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), quy đổi điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
+Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), tích lũy điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
 
 \begin{figure}[htbp]
     \centering
@@ -81,7 +81,7 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Mô tả Request Payload} & \textbf{Phản hồi chính} \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
-\texttt{\{items: [\{productId, size, quantity, toppings\}], voucherCode?, pointsToRedeem?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
+\texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
 \texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400}, \texttt{401}, \texttt{409}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\

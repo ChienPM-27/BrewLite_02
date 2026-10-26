@@ -10,9 +10,12 @@
 \addtolength{\topmargin}{-3pt}
 \usepackage{pdflscape}
 \usepackage{afterpage}
+\usepackage{rotating}
 
 % Graphics & Tables
 \usepackage{graphicx}
+\usepackage{float}
+\usepackage[section]{placeins} % Khóa float không cho trôi qua các section
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{array}
@@ -90,16 +93,16 @@
 
 % 1. Cover Page
 
-% === BEGIN INCLUDED: chapters/cover.tex ===
+% ====== BEGIN INLINE: chapters/cover ======
 \begin{titlepage}
     \newgeometry{top=2.0cm, bottom=2.0cm, left=2.5cm, right=2.5cm}
     \begin{center}
         {\large \textbf{TRƯỜNG ĐẠI HỌC SÀI GÒN}}\\[0.2cm]
         {\large \textbf{KHOA CÔNG NGHỆ THÔNG TIN}}\\[0.25cm]
         
-        \noindent\rule{0.25\textwidth}{0.8pt} $\diamond$ \rule{0.25\textwidth}{0.8pt}\\[0.6cm]
+        \noindent\rule{0.25\textwidth}{0.8pt} $\diamond$ \rule{0.25\textwidth}{0.8pt}\\[1.3cm]
 
-        \includegraphics[width=3.6cm]{figures/SGU-LOGO.png}\\[0.6cm]
+        \includegraphics[width=8.0cm]{figures/SGU-LOGO.png}\\[1.3cm]
 
         {\Large \textbf{BÁO CÁO ĐỒ ÁN HỌC PHẦN}}\\[0.2cm]
         {\LARGE \textbf{CÔNG NGHỆ PHẦN MỀM}}\\[0.6cm]
@@ -118,7 +121,6 @@
                                                & Tôn Thất Hạnh -- 3124410079   & (Thành viên -- Order) \\
                                                & Nguyễn Trần Gia Kiệt -- 3124410176 & (Thành viên -- Payment) \\
                                                & Nguyễn Quang Huy -- 3124560034 & (Thành viên -- History) \\[0.35cm]
-                \textbf{Lớp / Khóa:}           & \multicolumn{2}{l}{\todo{DCT12...} \quad -- \quad \todo{2024 -- 2028}} \\
             \end{tabular}
         \end{minipage}
 
@@ -128,7 +130,7 @@
     \restoregeometry
 \end{titlepage}
 
-% === END INCLUDED: chapters/cover.tex ===
+% ====== END INLINE: chapters/cover ======
 
 
 % 2. Front Matter (Roman numerals)
@@ -147,7 +149,7 @@
 \setcounter{page}{1}
 
 
-% === BEGIN INCLUDED: chapters/ch1-introduction.tex ===
+% ====== BEGIN INLINE: chapters/ch1-introduction ======
 \chapter{GIỚI THIỆU DỰ ÁN}
 
 \section{Tổng quan đề tài và Product Vision}
@@ -161,8 +163,8 @@ Hệ thống đặt cà phê trực tuyến \textbf{BrewLite} được nghiên c
 Mục tiêu cốt lõi của đề tài bao gồm:
 \begin{itemize}
     \item \textbf{Trải nghiệm người dùng mượt mà:} Khách hàng có thể tương tác trực quan với thực đơn, phân loại theo danh mục, tùy biến linh hoạt các thông số đồ uống trước khi thêm vào giỏ hàng.
-    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và đổi điểm thành viên thân thiết (loyalty points).
-    \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toán vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
+    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và tích lũy điểm thưởng thành viên thân thiết (Loyalty Points) sau khi hoàn tất thanh toán.
+    \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toàn vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
 \end{itemize}
 
 \section{Phạm vi hệ thống (MVP Scope)}
@@ -173,7 +175,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
     \item \textbf{Phân hệ Danh mục sản phẩm (Product Catalog):} Hiển thị danh sách sản phẩm phân nhóm theo danh mục (Cà phê, Trà...), lọc món còn hàng và tìm kiếm.
     \item \textbf{Phân hệ Chi tiết sản phẩm (Product Detail):} Xem thông tin mô tả chi tiết, hình ảnh, đơn giá và cho phép lựa chọn size, mức đường, mức đá cùng danh sách topping đi kèm.
     \item \textbf{Phân hệ Giỏ hàng (Cart):} Quản lý các món đã chọn ở phía trình duyệt (Client-side), cập nhật số lượng, chỉnh sửa tùy chọn và tạm tính giá trị đơn hàng.
-    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, quy đổi điểm tích lũy và chuyển đổi trạng thái đơn hàng.
+    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, tự động tính điểm tích lũy dự kiến và chuyển đổi trạng thái đơn hàng.
     \item \textbf{Phân hệ Thanh toán (Payment):} Khởi tạo giao dịch thanh toán trực tuyến qua cổng giả lập (Mock Payment Gateway), xử lý bảo mật chống trùng lặp với \texttt{Idempotency-Key}.
     \item \textbf{Phân hệ Lịch sử đơn hàng (Order History):} Tra cứu danh sách các đơn hàng đã thực hiện, xem chi tiết từng đơn hàng và trạng thái thanh toán/xử lý.
 \end{enumerate}
@@ -181,6 +183,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
 \paragraph{Giới hạn phạm vi (Out-of-Scope trong MVP):}
 Để đảm bảo tiến độ và chất lượng cho các nghiệp vụ trọng tâm của khách hàng:
 \begin{itemize}
+    \item \textbf{Đổi điểm thưởng trừ tiền (Redeem Loyalty Points):} Hệ thống đã hiện thực trọn vẹn cơ chế tự động tích lũy điểm thưởng (\textit{Earn Points}) cho khách hàng sau khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)) và thiết kế sẵn sàng cấu trúc dữ liệu cho việc chi tiêu/hoàn điểm (\texttt{LoyaltyTransactionType.SPENT}, \texttt{REFUNDED}). Tuy nhiên, tính năng cho phép nhập điểm để trừ trực tiếp vào giá trị đơn hàng mới (\textit{Redeem Points}) được phân loại vào phạm vi mở rộng sau MVP (Post-MVP Backlog) để đảm bảo an toàn tuyệt đối cho luồng thanh toán và nghiệp vụ hoàn điểm khi hủy đơn.
     \item \textbf{Giao diện Pha chế (Barista Web UI):} Mặc dù hệ thống đã hiện thực toàn diện Máy trạng thái đơn hàng (Order State Machine) với đầy đủ 9 chuyển tiếp nghiệp vụ (bao gồm các trạng thái \texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), giao diện web chuyên dụng dành riêng cho nhân viên pha chế tại quầy chưa nằm trong phạm vi giao diện của bản phát hành MVP này.
     \item \textbf{Quản trị viên nâng cao (Advanced Admin Portal):} Hệ thống tập trung vào trải nghiệm đặt hàng của khách hàng (B2C); các chức năng quản trị kho nâng cao và báo cáo doanh thu sẽ được triển khai ở pha tiếp theo.
 \end{itemize}
@@ -188,7 +191,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
 \section{Ngăn xếp công nghệ (Technology Stack)}
 Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiện đại, phân tách độc lập giữa Client và Server (Bảng~\ref{tab:tech-stack}):
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Ngăn xếp công nghệ sử dụng trong dự án BrewLite}
 \label{tab:tech-stack}
@@ -214,38 +217,47 @@ Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiệ
 \end{table}
 
 \section{Quy trình phát triển phần mềm}
-Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum}. Quy trình được tổ chức thành các chu kỳ lặp (Sprint) kéo dài 2 tuần:
+Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum tinh gọn (Lean Agile)}. Quy trình được tổ chức thành các chu kỳ phát triển linh hoạt theo từng giai đoạn thực tế của dự án:
 \begin{itemize}
-    \item \textbf{Sprint Planning:} Nhóm họp định kỳ đầu mỗi sprint để phân tích Product Backlog, làm rõ User Story, ước lượng điểm công việc (Story Points) và cam kết phạm vi cho Sprint Backlog.
-    \item \textbf{Daily Scrum:} Các thành viên đồng bộ tiến độ hàng ngày, báo cáo các công việc đã hoàn thành, công việc dự kiến và các trở ngại kỹ thuật (blockers).
-    \item \textbf{Sprint Review:} Trình diễn các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (Definition of Done) trước toàn nhóm.
-    \item \textbf{Sprint Retrospective:} Đánh giá những điểm làm tốt, các tồn tại về mặt quy trình và kỹ thuật, từ đó đề ra các hành động cải tiến cụ thể cho sprint tiếp theo.
+    \item \textbf{Sprint Planning:} Nhóm họp đầu mỗi giai đoạn để phân tích Product Backlog, làm rõ User Story, phân rã yêu cầu thành danh mục công việc cụ thể (Task Backlog) theo lát cắt dọc (\textit{Vertical Slice}), thống nhất các quyết định kỹ thuật cốt lõi (D1--D9) và cam kết phạm vi bàn giao thay vì ước lượng bằng Story Points trừu tượng.
+    \item \textbf{Daily Scrum / Sync:} Các thành viên đồng bộ tiến độ thường xuyên, cập nhật trạng thái các task (TODO, IN PROGRESS, DONE) trên bảng quản lý công việc, rà soát mã nguồn (Code Review qua Pull Request) và tháo gỡ kịp thời các trở ngại kỹ thuật (blockers).
+    \item \textbf{Sprint Review:} Nghiệm thu và kiểm thử các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (\textit{Definition of Done}: vượt qua bộ kiểm thử tự động, tích hợp hoàn chỉnh và triển khai thực tế trên môi trường live).
+    \item \textbf{Sprint Retrospective:} Đánh giá hiệu quả phối hợp, rút kinh nghiệm về thiết kế API, tính toàn vẹn dữ liệu đồng thời và đề ra các giải pháp cải tiến quy trình kỹ thuật cho giai đoạn tiếp theo.
 \end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\begin{minipage}{0.9\textwidth}
-    \begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
-        \begin{itemize}[leftmargin=1.5cm]
-            \item \textbf{Phân công vai trò:} \todo{Ghi rõ Product Owner (PO): ..., Scrum Master (SM): ...}
-            \item \textbf{Thời gian chu kỳ Sprint:}
-            \begin{itemize}
-                \item Sprint 1 (Giai đoạn 1): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-                \item Sprint 2 (Giai đoạn 2): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-            \end{itemize}
-            \item \textbf{Số liệu Burndown \& Velocity:} \todo{Điền tổng số Story Points cam kết vs hoàn thành trong Sprint 1 và Sprint 2}
-            \item \textbf{Kết quả Retrospective:} \todo{Ghi nhận tóm tắt bài học kinh nghiệm của nhóm sau 2 Sprint}
-        \end{itemize}
-    \end{tcolorbox}
-\end{minipage}
-\caption{Kế hoạch vận hành Scrum thực tế của Nhóm}
-\label{fig:scrum-record}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Mô hình tổ chức:} Mỗi thành viên sở hữu trọn một feature theo chiều dọc (Vertical Slice: phân tích ca sử dụng, đặc tả hợp đồng API, kiểm thử và hỗ trợ tích hợp giao diện), vận hành theo mô hình Development Team đa chức năng (Cross-functional Team).
+  
+  \item \textbf{Vai trò Scrum:} Nhóm áp dụng Scrum tinh gọn (Lean Agile). Bạn \textbf{Phạm Minh Chiến} (Trưởng nhóm) kiêm nhiệm vai trò \textbf{Scrum Master} (điều phối tiến độ, quản lý Git branch, review Pull Request) và \textbf{Product Owner đại diện} (thống nhất hợp đồng API và bộ 9 Quyết định kỹ thuật D1--D9). Toàn bộ 7 thành viên đóng vai trò \textbf{Development Team} chủ động tự quản.
+  
+  \item \textbf{Chu kỳ phát triển:}
+  \begin{itemize}
+    \item \textbf{Giai đoạn 1 (Hiện thực Backend, 12 task GD1-01 -- GD1-12):} Từ 16/10/2026 đến 23/10/2026 (hoàn thành kiến trúc NestJS, Prisma ORM, kiểm soát tranh chấp tồn kho bằng Optimistic Locking, thanh toán Idempotency và kiểm thử Race-Condition tự động).
+    \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
+  \end{itemize}
+  
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request, bộ kiểm thử tự động (\textit{Concurrency Test}, \textit{Idempotency Test}) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
+  
+  \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
+  \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
+    \item \textit{Tiếp cận API-First giảm thiểu xung đột:} Thống nhất đặc tả Hợp đồng API (API Contract) và phong cách đóng gói phản hồi chuẩn (\texttt{ApiResponse<T>}) từ đầu giúp các thành viên độc lập phát triển frontend/backend mà không bị vướng mắc giao tiếp.
+    \item \textit{Nghiệp vụ tài chính \& tồn kho đòi hỏi khóa đa tầng:} Không thể phụ thuộc vào kiểm tra dữ liệu ở phía Client; bắt buộc phải kết hợp Transaction cơ sở dữ liệu với khóa lạc quan (\textit{Optimistic Locking}) và \textit{Idempotency-Key} ở Backend để ngăn chặn triệt để hiện tượng đặt âm hàng hoặc trừ tiền hai lần.
+    \item \textit{Đồng bộ trạng thái Client-Server thông minh:} Quản lý giỏ hàng phía Client qua LocalStorage giúp trải nghiệm liền mạch, nhưng cần cơ chế tính chữ ký giỏ hàng (\texttt{pendingCartSignature}) để hủy kịp thời đơn hàng cũ nếu khách đổi món trước khi thanh toán.
+    \item \textit{Tự động hóa kiểm thử và container hóa:} Thiết lập Docker Compose chuẩn hóa môi trường PostgreSQL và chạy kiểm thử tự động ngay trên Git giúp nhóm phát hiện và sửa triệt để các lỗi logic phức tạp trước khi bàn giao.
+  \end{enumerate}
+\end{itemize}
+\end{tcolorbox}
+\caption{Tổng kết tiến độ, vai trò phân công và bài học cải tiến quy trình của nhóm}
+\label{fig:team-progress-metrics}
 \end{figure}
 
-% === END INCLUDED: chapters/ch1-introduction.tex ===
+% ====== END INLINE: chapters/ch1-introduction ======
 
 
-% === BEGIN INCLUDED: chapters/ch2-requirements.tex ===
+% ====== BEGIN INLINE: chapters/ch2-requirements ======
 \chapter{YÊU CẦU HỆ THỐNG}
 
 \section{Các tác nhân hệ thống (Stakeholders \& Actors)}
@@ -253,7 +265,7 @@ Dựa trên phân tích phạm vi nghiệp vụ của hệ thống BrewLite tron
 
 \begin{itemize}
     \item \textbf{Khách vãng lai (Guest):} Người dùng truy cập hệ thống qua trình duyệt web mà chưa thực hiện đăng nhập. Tác nhân này có thể duyệt danh mục thực đơn, xem chi tiết món ăn, lựa chọn các tùy biến đồ uống và lưu trữ giỏ hàng tạm thời trên trình duyệt. Khi thực hiện thanh toán hoặc đặt hàng, hệ thống yêu cầu xác thực tài khoản.
-    \item \textbf{Khách hàng đã đăng ký (Registered Customer):} Khách hàng sở hữu tài khoản định danh trên hệ thống. Tác nhân này có đầy đủ quyền lợi: đặt hàng chính thức, áp dụng mã voucher ưu đãi, tích lũy và đổi điểm thưởng thành viên (Loyalty points), thanh toán trực tuyến và tra cứu toàn bộ lịch sử đơn hàng cá nhân.
+    \item \textbf{Khách hàng đã đăng ký (Registered Customer):} Khách hàng sở hữu tài khoản định danh trên hệ thống. Tác nhân này có đầy đủ quyền lợi: đặt hàng chính thức, áp dụng mã voucher ưu đãi, tích lũy điểm thưởng thành viên (Loyalty Points), thanh toán trực tuyến và tra cứu toàn bộ lịch sử đơn hàng cá nhân.
     \item \textbf{Cổng thanh toán giả lập (Mock Payment Gateway):} Tác nhân hệ thống bên ngoài mô phỏng trung gian tài chính. Cổng tiếp nhận yêu cầu thanh toán kèm mã định danh bất biến (\texttt{Idempotency-Key}), kiểm tra thông tin và trả về kết quả giao dịch (\texttt{SUCCESS} hoặc \texttt{FAILED}).
     \item \textbf{Hệ thống Quản trị dữ liệu (PostgreSQL Database Engine):} Đóng vai trò thực thi các ràng buộc toàn vẹn, đảm bảo tính bền vững (Durability) và cách ly (Isolation) cho các giao dịch đồng thời.
 \end{itemize}
@@ -261,7 +273,7 @@ Dựa trên phân tích phạm vi nghiệp vụ của hệ thống BrewLite tron
 \section{Danh mục yêu cầu chức năng (Functional Requirements)}
 Hệ thống BrewLite được phân rã thành 6 nhóm yêu cầu chức năng chính (FR-01 đến FR-06), tương ứng với các phân hệ nghiệp vụ cốt lõi:
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Bảng tổng hợp Yêu cầu Chức năng (Functional Requirements)}
 \label{tab:functional-requirements}
@@ -272,7 +284,7 @@ Hệ thống BrewLite được phân rã thành 6 nhóm yêu cầu chức năng 
 \textbf{FR-01} & Quản lý Xác thực \& Tài khoản & Cho phép người dùng đăng ký tài khoản với email duy nhất, họ tên, mật khẩu băm an toàn; Đăng nhập nhận JWT Token hợp lệ; Kiểm soát truy cập bảo vệ các endpoint nghiệp vụ. \\
 \textbf{FR-02} & Duyệt thực đơn \& Chi tiết món & Cung cấp danh mục sản phẩm phân nhóm theo phân loại (Cà phê, Trà...); Tìm kiếm món; Xem thông tin chi tiết về kích cỡ, giá phụ thu, mức đường, mức đá và danh sách topping khả dụng. \\
 \textbf{FR-03} & Quản lý Giỏ hàng & Cho phép thêm sản phẩm kèm tùy biến vào giỏ hàng cục bộ; Điều chỉnh số lượng món; Xóa từng món hoặc làm rỗng giỏ; Tạm tính tổng chi phí tự động. \\
-\textbf{FR-04} & Đặt hàng \& Xử lý Chiết khấu & Khởi tạo đơn hàng từ giỏ hàng; Kiểm tra tồn kho sản phẩm với Optimistic Locking; Áp dụng mã giảm giá hợp lệ; Quy đổi điểm tích lũy thành viên; Lưu vết snapshot giá tại thời điểm đặt. \\
+\textbf{FR-04} & Đặt hàng \& Xử lý Chiết khấu & Khởi tạo đơn hàng từ giỏ hàng; Kiểm tra tồn kho sản phẩm với Optimistic Locking; Áp dụng mã giảm giá hợp lệ (\texttt{promotionCode}); Tự động tính điểm tích lũy thành viên dự kiến; Lưu vết snapshot giá tại thời điểm đặt. \\
 \textbf{FR-05} & Thanh toán Trực tuyến & Khởi tạo giao dịch thanh toán; Kiểm tra trùng lặp giao dịch bằng cơ chế \texttt{Idempotency-Key} và băm \texttt{request\_hash}; Cập nhật trạng thái đơn hàng sang \texttt{PAID} khi giao dịch thành công. \\
 \textbf{FR-06} & Tra cứu Lịch sử Đơn hàng & Hiển thị danh sách các đơn hàng đã đặt của người dùng theo thứ tự thời gian giảm dần; Xem chi tiết thông tin thanh toán, danh mục món và trạng thái xử lý hiện tại. \\
 \bottomrule
@@ -302,17 +314,17 @@ Các yêu cầu phi chức năng đặt ra các tiêu chuẩn kỹ thuật nhằ
 
 \begin{tcolorbox}[colback=blue!3,colframe=blue!40,title=\textbf{User Story US-05: Đặt hàng trực tuyến với mã ưu đãi}]
 \textbf{Là một:} Khách hàng đã đăng nhập vào hệ thống BrewLite,\\
-\textbf{Tôi muốn:} Thực hiện đặt các món trong giỏ hàng và áp dụng mã giảm giá hợp lệ kèm điểm tích lũy thành viên,\\
-\textbf{Để:} Mua được đồ uống yêu thích với chi phí tiết kiệm nhất mà không phải xếp hàng thanh toán tại quầy.
+\textbf{Tôi muốn:} Thực hiện đặt các món trong giỏ hàng, áp dụng mã ưu đãi hợp lệ và được tích lũy điểm thưởng thành viên sau khi thanh toán,\\
+\textbf{Để:} Mua được đồ uống yêu thích với chi phí tiết kiệm nhất và tích lũy ưu đãi cho các đơn hàng tương lai.
 \end{tcolorbox}
 
 \paragraph{Tiêu chí chấp nhận (Acceptance Criteria - Gherkin Syntax):}
 \begin{enumerate}[label=\textbf{Kịch bản \arabic*:}]
-    \item \textit{Đặt hàng thành công với mã giảm giá hợp lệ và điểm tích lũy:}
+    \item \textit{Đặt hàng thành công với mã giảm giá hợp lệ và ghi nhận tích lũy điểm thưởng:}
     \begin{itemize}
-        \item \textbf{Given:} Khách hàng có 3 món đồ uống trong giỏ hàng với tổng giá trị tạm tính là 120.000 VNĐ, tài khoản có 10 điểm thưởng và nhập mã voucher \texttt{WELCOME10}.
-        \item \textbf{When:} Khách hàng chọn áp dụng mã voucher và nhấn nút "Xác nhận đặt hàng".
-        \item \textbf{Then:} Hệ thống áp dụng chiết khấu 10\% (12.000 VNĐ), trừ 10 điểm thưởng (tương đương 10.000 VNĐ), tính tổng số tiền thanh toán là 98.000 VNĐ, kiểm tra đủ tồn kho, tạo đơn hàng ở trạng thái \texttt{PENDING\_PAYMENT} và điều hướng sang trang thanh toán.
+        \item \textbf{Given:} Khách hàng có các món đồ uống trong giỏ hàng với tổng giá trị tạm tính là 120.000 VNĐ và nhập mã voucher \texttt{WELCOME10}.
+        \item \textbf{When:} Khách hàng chọn áp dụng mã voucher và gửi yêu cầu tạo đơn hàng (\texttt{POST /api/v1/orders}).
+        \item \textbf{Then:} Hệ thống áp dụng chiết khấu 10\% (12.000 VNĐ), tính tổng số tiền thanh toán chính xác là 108.000 VNĐ, kiểm tra đủ tồn kho với Optimistic Locking, tạo đơn hàng ở trạng thái \texttt{PENDING}, đồng thời tính toán điểm thưởng dự kiến tích lũy là +108 điểm khi thanh toán thành công và chuyển hướng sang trang thanh toán.
     \end{itemize}
     \item \textit{Xử lý ngoại lệ khi số lượng tồn kho không đủ (Out of Stock):}
     \begin{itemize}
@@ -322,10 +334,10 @@ Các yêu cầu phi chức năng đặt ra các tiêu chuẩn kỹ thuật nhằ
     \end{itemize}
 \end{enumerate}
 
-% === END INCLUDED: chapters/ch2-requirements.tex ===
+% ====== END INLINE: chapters/ch2-requirements ======
 
 
-% === BEGIN INCLUDED: chapters/ch3-architecture.tex ===
+% ====== BEGIN INLINE: chapters/ch3-architecture ======
 \chapter{KIẾN TRÚC HỆ THỐNG}
 
 \section{Kiến trúc thành phần (Component Architecture)}
@@ -333,9 +345,9 @@ Hệ thống BrewLite được thiết kế theo mô hình kiến trúc phân t�
 
 Sơ đồ kiến trúc thành phần tổng thể của BrewLite được biểu diễn tại Hình~\ref{fig:component-architecture}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/component-architecture.pdf}
+    \includegraphics[width=0.95\textwidth, height=0.80\textheight, keepaspectratio]{figures/component-architecture.pdf}
     \caption{Sơ đồ Kiến trúc thành phần tổng thể hệ thống BrewLite}
     \label{fig:component-architecture}
 \end{figure}
@@ -354,7 +366,7 @@ Hệ thống bao gồm các thành phần cốt lõi:
         \item \textbf{AuthModule:} Đảm nhận đăng ký, băm mật khẩu bằng \texttt{bcrypt}, đăng nhập và cấp phát JSON Web Token; bảo vệ hệ thống thông qua \texttt{JwtAuthGuard}.
         \item \textbf{ProductsModule:} Quản lý danh mục (\texttt{categories}), sản phẩm (\texttt{products}), các tùy chọn size/đường/đá/topping và kiểm tra tính khả dụng của kho hàng.
         \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{OrderStateMachine}) và kiểm soát giao dịch tạo đơn.
-        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập thực thi chính sách phụ thu tùy biến, kiểm tra hợp lệ của mã giảm giá \texttt{WELCOME10} và quy đổi điểm tích lũy thành viên.
+        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập: \texttt{PricingModule} tính toán phụ thu kích cỡ/topping; \texttt{PromotionsModule} kiểm tra tính hợp lệ và chiết khấu của mã giảm giá (\texttt{WELCOME10}); \texttt{LoyaltyModule} đảm nhận cơ chế tự động tích lũy điểm thưởng thành viên theo tỷ lệ thực trả sau khi thanh toán thành công.
         \item \textbf{PaymentsModule:} Xử lý thanh toán trực tuyến, quản lý bảng idempotency (\texttt{PaymentIdempotency}) và kết nối giao tiếp với cổng thanh toán.
         \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptionsFilter}) và bộ chuẩn hóa phản hồi (\texttt{TransformInterceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
     \end{itemize}
@@ -364,14 +376,16 @@ Hệ thống bao gồm các thành phần cốt lõi:
     \textbf{Mock Payment Gateway} giả lập cổng thanh toán trực tuyến của bên thứ ba, cung cấp endpoint xử lý thẻ/ví điện tử và phản hồi kết quả giao dịch về backend.
 \end{enumerate}
 
-\section{Kiến trúc triển khai với Docker (Deployment Architecture)}
+\section{Kiến trúc triển khai hệ thống (Deployment Architecture)}
+
+\subsection{Triển khai cục bộ đa container với Docker Compose}
 Toàn bộ môi trường ứng dụng BrewLite được đóng gói và cấu hình tự động thông qua \textbf{Docker} và \textbf{Docker Compose}, giúp loại bỏ sự sai lệch giữa môi trường phát triển (Development) và môi trường kiểm thử/triển khai.
 
 Sơ đồ kiến trúc triển khai container được minh họa tại Hình~\ref{fig:deployment-docker}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/deployment-docker.pdf}
+    \includegraphics[width=0.9\textwidth, height=0.80\textheight, keepaspectratio]{figures/deployment-docker.pdf}
     \caption{Sơ đồ Triển khai hệ thống đa container với Docker Compose}
     \label{fig:deployment-docker}
 \end{figure}
@@ -382,13 +396,13 @@ Hệ thống bao gồm 3 container độc lập kết nối thông qua mạng n�
     \begin{itemize}
         \item Base image: \texttt{node:20-alpine}.
         \item Port ánh xạ: \texttt{3000:3000}.
-        \item Biến môi trường: \texttt{NEXT\_PUBLIC\_API\_BASE\_URL=http://localhost:3001/api/v1}.
+        \item Biến môi trường: \texttt{NEXT\_PUBLIC\_API\_BASE\_URL=http://localhost:4000/api/v1}.
     \end{itemize}
     \item \textbf{Backend Container (\texttt{brewlite-backend}):}
     \begin{itemize}
         \item Base image: \texttt{node:20-alpine}.
-        \item Port ánh xạ: \texttt{3001:3001}.
-        \item Biến môi trường: \texttt{DATABASE\_URL=postgresql://user:pass@postgres:5432/brewlite}, \texttt{JWT\_SECRET=...}, \texttt{JWT\_EXPIRES\_IN=24h}, \texttt{PORT=3001}.
+        \item Port ánh xạ: \texttt{4000:4000}.
+        \item Biến môi trường: \texttt{DATABASE\_URL=postgresql://user:pass@postgres:5432/brewlite}, \texttt{JWT\_SECRET=...}, \texttt{JWT\_EXPIRES\_IN=7d}, \texttt{PORT=4000}.
         \item Phụ thuộc (\texttt{depends\_on}): Chờ container \texttt{postgres} sẵn sàng nhận kết nối trước khi khởi chạy và tự động thực thi lệnh \texttt{prisma migrate deploy}.
     \end{itemize}
     \item \textbf{Database Container (\texttt{brewlite-postgres}):}
@@ -399,12 +413,53 @@ Hệ thống bao gồm 3 container độc lập kết nối thông qua mạng n�
     \end{itemize}
 \end{itemize}
 
+\subsection{Triển khai trực tuyến trên nền tảng Đám mây (Cloud Production Deployment)}
+Bên cạnh môi trường đóng gói cục bộ bằng Docker Compose phục vụ phát triển và kiểm thử nội bộ, hệ thống BrewLite được triển khai thực tế trên hạ tầng đám mây phân tán theo mô hình tích hợp và phân phối liên tục (CI/CD) từ nhánh \texttt{main} trên GitHub:
+
+\begin{itemize}
+    \item \textbf{Frontend Web App (Vercel):} Ứng dụng Next.js 15 được triển khai tự động lên nền tảng máy chủ Serverless của Vercel tại địa chỉ chính thức \url{https://brew-lite.vercel.app/}, tận dụng mạng phân phối nội dung toàn cầu (Edge Network CDN) để tối ưu hóa tốc độ tải trang và hỗ trợ Server-Side Rendering (SSR).
+    \item \textbf{Backend REST API (Render):} Dịch vụ NestJS được đóng gói dưới dạng Web Service trên Render, cung cấp endpoint công khai an toàn qua giao thức HTTPS, tự động kích hoạt tiến trình triển khai lại (Auto-deploy) mỗi khi có Pull Request được hợp nhất vào nhánh chính.
+    \item \textbf{Cơ sở dữ liệu Đám mây (Supabase):} Cung cấp cụm máy chủ PostgreSQL 16 được quản trị hoàn toàn (Managed Cloud Database). Để tối ưu hóa hiệu năng và tránh cạn kiệt tài nguyên kết nối khi ứng dụng backend chạy trên môi trường đám mây, hệ thống cấu hình song song hai chuỗi kết nối thông qua Prisma ORM:
+    \begin{itemize}
+        \item \texttt{DATABASE\_URL}: Kết nối thông qua bộ điều phối kết nối \textbf{PgBouncer (Port 6543)} ở chế độ Transaction Pooling phục vụ các truy vấn nghiệp vụ hàng ngày.
+        \item \texttt{DIRECT\_URL}: Kết nối trực tiếp đến PostgreSQL \textbf{(Port 5432)} dành riêng cho tiến trình đồng bộ cấu trúc cơ sở dữ liệu (\texttt{prisma migrate deploy}).
+    \end{itemize}
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Bảng tổng hợp hạ tầng và biến môi trường triển khai Cloud Production}
+\label{tab:cloud-deployment-env}
+\begin{tabularx}{\textwidth}{lp{3.5cm}X}
+\toprule
+\textbf{Thành phần} & \textbf{Nền tảng / Địa chỉ} & \textbf{Cấu hình biến môi trường chính} \\
+\midrule
+\textbf{Frontend} & Vercel (Edge CDN) \newline \url{https://brew-lite.vercel.app} & 
+\texttt{NEXT\_PUBLIC\_API\_URL = https://brewlite-api.onrender.com/api/v1} \newline
+\texttt{NEXT\_PUBLIC\_DEMO\_MODE = false} \\
+\midrule
+\textbf{Backend} & Render \newline (Web Service Container) & 
+\texttt{PORT = 4000} \newline
+\texttt{NODE\_ENV = production} \newline
+\texttt{CORS\_ORIGIN = https://brew-lite.vercel.app} \newline
+\texttt{DATABASE\_URL = postgresql://postgres:***@...pooler.supabase.com:6543/...} \newline
+\texttt{DIRECT\_URL = postgresql://postgres:***@...supabase.com:5432/...} \newline
+\texttt{JWT\_SECRET = [Khoá bảo mật chuẩn sản xuất]} \newline
+\texttt{JWT\_EXPIRES\_IN = 7d} \\
+\midrule
+\textbf{Database} & Supabase \newline (Managed PostgreSQL 16) & Cụm máy chủ PostgreSQL 16 tại khu vực Đông Nam Á (Singapore), hỗ trợ kết nối bảo mật SSL (\texttt{sslmode=require}) và tự động sao lưu dữ liệu. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\clearpage
 \section{Sơ đồ lớp Backend (Backend Class Diagram)}
 Cấu trúc hướng đối tượng của hệ thống Backend được thể hiện thông qua Sơ đồ lớp tại Hình~\ref{fig:class-diagram-backend}. Sơ đồ mô tả rõ nét mối liên kết giữa các tầng Controller, Service, DTO và các Entity của Prisma Client.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{figures/class-diagram-backend.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/class-diagram-backend.pdf}
     \caption{Sơ đồ Lớp (Class Diagram) tầng Backend NestJS}
     \label{fig:class-diagram-backend}
 \end{figure}
@@ -427,26 +482,25 @@ Luồng tương tác nghiệp vụ từ đầu đến cuối (End-to-End) của 
     \item \textbf{Giai đoạn 5 - Cập nhật và Hoàn tất:} Đơn hàng được chuyển trạng thái sang \texttt{PAID}, ghi nhận điểm thưởng mới vào tài khoản khách hàng, giải phóng giỏ hàng và lưu vết vào Lịch sử đơn hàng (\texttt{/orders}).
 \end{enumerate}
 
-% === END INCLUDED: chapters/ch3-architecture.tex ===
+% ====== END INLINE: chapters/ch3-architecture ======
 
 
-% === BEGIN INCLUDED: chapters/ch4-database.tex ===
+% ====== BEGIN INLINE: chapters/ch4-database ======
 \chapter{THIẾT KẾ CƠ SỞ DỮ LIỆU}
 
 \section{Sơ đồ Thực thể Liên kết (ERD) toàn hệ thống}
 Cơ sở dữ liệu của hệ thống BrewLite được chuẩn hóa theo dạng chuẩn 3NF, thiết kế bám sát tập tin mô hình dữ liệu \texttt{backend/prisma/schema.prisma}. Toàn bộ hệ thống bao gồm 12 thực thể quan hệ, đảm bảo tính toàn vẹn dữ liệu, hiệu năng truy vấn và hỗ trợ chuyên sâu cho các nghiệp vụ phức tạp như kiểm soát đồng thời (Optimistic Locking) và thanh toán bất biến (Idempotency).
 
-Sơ đồ ERD toàn hệ thống được trình bày ở chế độ khổ ngang (Landscape) tại Hình~\ref{fig:database-erd}.
+Sơ đồ ERD toàn hệ thống được trình bày tại Hình~\ref{fig:database-erd}.
 
-\begin{landscape}
-\begin{figure}[p]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.98\linewidth,height=0.88\textheight,keepaspectratio]{figures/database-erd.pdf}
+    \includegraphics[width=\textwidth, height=0.78\textheight, keepaspectratio]{figures/database-erd.pdf}
     \caption{Sơ đồ Thực thể Liên kết (ERD) toàn hệ thống BrewLite}
     \label{fig:database-erd}
 \end{figure}
-\end{landscape}
 
+\clearpage
 \section{Chi tiết 12 thực thể trong Cơ sở dữ liệu}
 Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm nghiệp vụ chính:
 
@@ -460,7 +514,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
     \begin{itemize}
         \item \textbf{\texttt{categories}:} Phân loại thực đơn (Cà phê, Trà...). Gồm: \texttt{id} (PK), \texttt{name} (Unique), \texttt{slug} (Unique), \texttt{display\_order} (thứ tự hiển thị trên tab giao diện), \texttt{created\_at}, \texttt{updated\_at}.
         \item \textbf{\texttt{products}:} Thông tin đồ uống. Gồm: \texttt{id} (PK), \texttt{category\_id} (FK \(\to\) \texttt{categories.id}), \texttt{name}, \texttt{base\_price} (Decimal(12,0) tiền VNĐ nguyên chẵn), \texttt{image\_url}, \texttt{stock} (số lượng tồn kho khả dụng), \texttt{version} (Int, default 0 - trường phiên bản phục vụ Optimistic Locking), \texttt{is\_available} (Boolean), \texttt{created\_at}, \texttt{updated\_at}.
-        \item \textbf{\texttt{product\_size_prices}:} Cấu hình phụ thu theo từng kích cỡ (S, M, L) cho từng sản phẩm. Gồm: \texttt{id} (PK), \texttt{product\_id} (FK \(\to\) \texttt{products.id}, Cascade), \texttt{size} (Enum \texttt{ProductSize}: S, M, L), \texttt{price\_adjustment} (Decimal(12,0)). Có ràng buộc duy nhất \texttt{@@unique([product\_id, size])}.
+        \item \textbf{\texttt{product\_size\_prices}:} Cấu hình phụ thu theo từng kích cỡ (S, M, L) cho từng sản phẩm. Gồm: \texttt{id} (PK), \texttt{product\_id} (FK \(\to\) \texttt{products.id}, Cascade), \texttt{size} (Enum \texttt{ProductSize}: S, M, L), \texttt{price\_adjustment} (Decimal(12,0)). Có ràng buộc duy nhất \texttt{@@unique([product\_id, size])}.
         \item \textbf{\texttt{toppings}:} Danh mục topping dùng kèm. Gồm: \texttt{id} (PK), \texttt{name} (Unique), \texttt{price} (Decimal(12,0)), \texttt{stock} (Int, default 100), \texttt{is\_available} (Boolean), \texttt{created\_at}, \texttt{updated\_at}.
     \end{itemize}
 
@@ -474,7 +528,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
         \item \textbf{\texttt{orders}:} Bảng trung tâm lưu trữ thông tin đơn hàng. Gồm: \texttt{id} (PK), \texttt{order\_number} (Int, Unique, autoincrement - mã hiển thị cho khách dạng \#1042), \texttt{user\_id} (FK \(\to\) \texttt{users.id}), \texttt{promotion\_id} (FK \(\to\) \texttt{promotions.id}, có thể null), \texttt{status} (Enum \texttt{OrderStatus}), \texttt{total\_amount} (tạm tính trước giảm), \texttt{discount\_amount} (số tiền được giảm), \texttt{final\_amount} (số tiền thực trả), \texttt{points\_earned} (số điểm thưởng tích được từ đơn), \texttt{paid\_at} (thời điểm thanh toán), \texttt{version} (Int, default 0 - Optimistic Locking khi chuyển trạng thái), \texttt{created\_at}, \texttt{updated\_at}.
         \item \textbf{\texttt{order\_items}:} Chi tiết từng món trong đơn. Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{product\_id} (FK \(\to\) \texttt{products.id}), \texttt{size} (Enum \texttt{ProductSize}), \texttt{quantity} (Int), \texttt{unit\_price} (Decimal(12,0) - đơn giá snapshot đã cộng phụ thu size), \texttt{line\_total} (Decimal(12,0) = (unitPrice + toppings) \(\times\) quantity).
         \item \textbf{\texttt{order\_item\_toppings}:} Lưu trữ topping kèm theo từng món. Gồm: \texttt{id} (PK), \texttt{order\_item\_id} (FK \(\to\) \texttt{order\_items.id}, Cascade), \texttt{topping\_id} (FK \(\to\) \texttt{toppings.id}), \texttt{price} (Decimal(12,0) - snapshot giá topping tại thời điểm đặt).
-        \item \textbf{\texttt{order\_status_history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
+        \item \textbf{\texttt{order\_status\_history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
     \end{itemize}
 
     \item \textbf{Nhóm Thanh toán và Điểm thành viên:}
@@ -505,10 +559,10 @@ Cơ sở dữ liệu của BrewLite được tính toán kỹ lưỡng ngay từ
     \item \textbf{Snapshot Lịch sử Giá (Price Immutability):} Các trường \texttt{unit\_price} trong \texttt{order\_items} và \texttt{price} trong \texttt{order\_item\_toppings} sao lưu chính xác giá trị tại thời điểm khách hàng đặt, đảm bảo giá trị hóa đơn luôn cố định bất biến theo thời gian.
 \end{enumerate}
 
-% === END INCLUDED: chapters/ch4-database.tex ===
+% ====== END INLINE: chapters/ch4-database ======
 
 
-% === BEGIN INCLUDED: chapters/ch5-features.tex ===
+% ====== BEGIN INLINE: chapters/ch5-features ======
 \chapter{THIẾT KẾ CHI TIẾT CÁC PHÂN HỆ CHỨC NĂNG}
 
 Chương này trình bày chi tiết thiết kế kỹ thuật cho toàn bộ 7 phân hệ chức năng cốt lõi của hệ thống BrewLite. Mỗi phân hệ được chuẩn hóa theo cấu trúc toàn diện bao gồm:
@@ -523,73 +577,80 @@ Chương này trình bày chi tiết thiết kế kỹ thuật cho toàn bộ 7 
 \end{enumerate}
 
 
-% === BEGIN INCLUDED: chapters/feature-auth.tex ===
+% ====== BEGIN INLINE: chapters/feature-auth ======
 \section{Phân hệ Xác thực Người dùng (Auth)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Xác thực quản lý vòng đời tài khoản của người dùng, cung cấp cơ chế đăng ký và đăng nhập bảo mật bằng JSON Web Token (JWT). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-auth}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-auth.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Xác thực}
     \label{fig:usecase-auth}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Đăng ký và Đăng nhập người dùng}
 \label{tab:uc-spec-auth}
-\begin{tabularx}{\textwidth}{lp{3.5cm}X}
+\begin{tabularx}{\textwidth}{p{2.3cm}XX}
 \toprule
 \textbf{Mục} & \textbf{Đăng ký (UC-AUTH-01)} & \textbf{Đăng nhập (UC-AUTH-02)} \\
 \midrule
 \textbf{Actor} & Khách vãng lai (Guest) & Khách hàng đã có tài khoản \\
+\midrule
 \textbf{Tiền điều kiện} & Chưa đăng nhập; địa chỉ email chưa tồn tại trên hệ thống. & Đã có tài khoản trên hệ thống; tài khoản ở trạng thái hoạt động. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi mới được tạo trong bảng \texttt{users}; mật khẩu được băm Bcrypt 10 rounds; khởi tạo 0 điểm loyalty. & Cấp phát mã thông báo JWT \texttt{accessToken}; lưu trữ tại client để xác thực các request kế tiếp. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng nhập email, mật khẩu (\(\ge\) 6 ký tự), họ tên.\\
-2. Nhấn "Đăng ký".\\
-3. Hệ thống kiểm tra hợp lệ DTO và tính duy nhất của email.\\
-4. Băm mật khẩu bằng \texttt{bcrypt.hash(password, 10)}.\\
+1. Người dùng nhập email, mật khẩu (\(\ge\) 6 ký tự), họ tên.\newline
+2. Nhấn "Đăng ký".\newline
+3. Hệ thống kiểm tra hợp lệ DTO và tính duy nhất của email.\newline
+4. Băm mật khẩu bằng \texttt{bcrypt.hash(password, 10)}.\newline
 5. Tạo người dùng trong DB và trả về thông tin (loại trừ \texttt{password\_hash}). & 
-1. Người dùng nhập email và mật khẩu.\\
-2. Nhấn "Đăng nhập".\\
-3. Hệ thống tìm người dùng theo email.\\
-4. So sánh mật khẩu bằng \texttt{bcrypt.compare(password, hash)}.\\
-5. Sinh mã JWT chứa payload \texttt{\{sub, email\}}.\\
+1. Người dùng nhập email và mật khẩu.\newline
+2. Nhấn "Đăng nhập".\newline
+3. Hệ thống tìm người dùng theo email.\newline
+4. So sánh mật khẩu bằng \texttt{bcrypt.compare(password, hash)}.\newline
+5. Sinh mã JWT chứa payload \texttt{\{sub, email\}}.\newline
 6. Trả về token và thông tin hồ sơ người dùng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- DTO không hợp lệ: Trả về mã \texttt{400 Bad Request}.\\
+- DTO không hợp lệ: Trả về mã \texttt{400 Bad Request}.\newline
 - Trùng email: Trả về \texttt{409 Conflict} ("Email đã được sử dụng"). & 
 - Email không tồn tại hoặc sai mật khẩu: Trả về \texttt{401 Unauthorized} ("Email hoặc mật khẩu không chính xác"). \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Sơ đồ Hoạt động mô tả chi tiết quy trình xử lý luồng đăng nhập và kiểm tra xác thực người dùng được biểu diễn tại Hình~\ref{fig:activity-auth}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-auth.pdf}
+    \includegraphics[width=\textwidth, height=0.82\textheight, keepaspectratio]{figures/activity-auth.png}
     \caption{Sơ đồ Hoạt động - Phân hệ Xác thực}
     \label{fig:activity-auth}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh chuẩn xác các lời gọi hàm từ giao diện qua Controller đến Service và Prisma DB tại Hình~\ref{fig:sequence-auth}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-auth.pdf}
+    \includegraphics[width=\textwidth, height=0.82\textheight, keepaspectratio]{figures/sequence-auth.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Xác thực (Happy path \& Exception paths)}
     \label{fig:sequence-auth}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Xác thực}
@@ -613,12 +674,12 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Xác thực}
 \label{tab:tc-auth}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -632,81 +693,96 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
+    \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Đăng nhập (\texttt{/login}) và Đăng ký (\texttt{/register})}\\
-        \vspace{2cm}
-    \end{minipage}}
+        \includegraphics[width=\textwidth]{figures/ui-auth-login.png}
+        \caption{Màn hình Đăng nhập}
+        \label{fig:ui-auth-login}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/ui-auth-register.png}
+        \caption{Màn hình Đăng ký tài khoản}
+        \label{fig:ui-auth-register}
+    \end{subfigure}
     \caption{Giao diện Đăng nhập và Đăng ký người dùng}
     \label{fig:ui-auth}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-auth.tex ===
+% ====== END INLINE: chapters/feature-auth ======
 
 
-% === BEGIN INCLUDED: chapters/feature-catalog.tex ===
+% ====== BEGIN INLINE: chapters/feature-catalog ======
+\clearpage
 \section{Phân hệ Danh mục Sản phẩm (Product Catalog)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Danh mục Sản phẩm cho phép người dùng khám phá toàn bộ thực đơn của BrewLite, tìm kiếm đồ uống theo tên và lọc theo các phân loại như Cà phê hoặc Trà. Sơ đồ Use Case được biểu diễn tại Hình~\ref{fig:usecase-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-product-catalog.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Danh mục Sản phẩm}
     \label{fig:usecase-product-catalog}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Xem và Tìm kiếm Danh mục Sản phẩm (UC-CAT-01)}
 \label{tab:uc-spec-catalog}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Hệ thống có dữ liệu sản phẩm và danh mục đã được kích hoạt trong CSDL. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách sản phẩm tương ứng hiển thị trực quan trên giao diện thực đơn. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng truy cập trang Thực đơn (\texttt{/products}).\\
-2. Giao diện gửi request \texttt{GET /api/v1/categories} và \texttt{GET /api/v1/products}.\\
-3. Hệ thống trả về danh sách danh mục (Cà phê, Trà) và danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data).\\
-4. Khách hàng nhấp chọn tab phân loại (ví dụ "Cà phê") hoặc nhập từ khóa tìm kiếm (ví dụ "Latte").\\
+1. Người dùng truy cập trang Thực đơn (\texttt{/products}).\newline
+2. Giao diện gửi request \texttt{GET /api/v1/categories} và \texttt{GET /api/v1/products}.\newline
+3. Hệ thống trả về danh sách danh mục (Cà phê, Trà) và danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data).\newline
+4. Khách hàng nhấp chọn tab phân loại (ví dụ "Cà phê") hoặc nhập từ khóa tìm kiếm (ví dụ "Latte").\newline
 5. Hook \texttt{useProductCatalog} lọc lại danh sách hiển thị tương ứng kèm nhãn giá cơ bản và trạng thái còn hàng/hết hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Lỗi kết nối mạng hoặc máy chủ backend: Hiển thị thông báo tải dữ liệu thất bại và cung cấp nút thử lại.\\
+- Lỗi kết nối mạng hoặc máy chủ backend: Hiển thị thông báo tải dữ liệu thất bại và cung cấp nút thử lại.\newline
 - Không tìm thấy sản phẩm phù hợp: Hiển thị thông báo "Không tìm thấy sản phẩm nào phù hợp". \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình nạp và lọc danh mục sản phẩm được mô tả tại Hình~\ref{fig:activity-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-product-catalog.pdf}
+    \includegraphics[width=\textwidth, height=0.98\textheight, keepaspectratio]{figures/activity-product-catalog.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Danh mục Sản phẩm}
     \label{fig:activity-product-catalog}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản phẩm từ Frontend đến Backend Controller, Service và Prisma tại Hình~\ref{fig:sequence-product-catalog}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-product-catalog.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-product-catalog.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Danh mục Sản phẩm}
     \label{fig:sequence-product-catalog}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Danh mục Sản phẩm}
@@ -729,12 +805,12 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Danh mục}
 \label{tab:tc-catalog}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -747,82 +823,85 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Thực đơn sản phẩm (\texttt{/products})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Thực đơn sản phẩm BrewLite}
+    \includegraphics[width=0.92\textwidth]{figures/ui-catalog.png}
+    \caption{Giao diện Thực đơn sản phẩm và Bộ lọc danh mục BrewLite}
     \label{fig:ui-catalog}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-catalog.tex ===
+% ====== END INLINE: chapters/feature-catalog ======
 
 
-% === BEGIN INCLUDED: chapters/feature-detail.tex ===
+% ====== BEGIN INLINE: chapters/feature-detail ======
+\clearpage
 \section{Phân hệ Chi tiết Sản phẩm (Product Detail)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ uống, bao gồm mô tả, thành phần dinh dưỡng/nguyên liệu và cho phép khách hàng cá nhân hóa món đồ uống theo sở thích cá nhân. Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-product-detail.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Chi tiết Sản phẩm}
     \label{fig:usecase-product-detail}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Xem chi tiết và Tùy biến món (UC-DET-01)}
 \label{tab:uc-spec-detail}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Sản phẩm tồn tại trên hệ thống và có trạng thái \texttt{is\_available = true}. \\
+\midrule
 \textbf{Hậu điều kiện} & Thông tin món, các lựa chọn kích cỡ, mức ngọt, mức đá, danh sách topping và đơn giá tính toán động hiển thị đầy đủ trên màn hình. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\\
-2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\\
-3. Frontend gọi đồng thời \texttt{GET /api/v1/products/:id} và \texttt{GET /api/v1/toppings}.\\
-4. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\\
-5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\\
+1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\newline
+2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\newline
+3. Frontend gọi đồng thời \texttt{GET /api/v1/products/:id} và \texttt{GET /api/v1/toppings}.\newline
+4. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\newline
+5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\newline
 6. Khách hàng nhấn "Thêm vào giỏ hàng" để lưu món vào giỏ. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Sản phẩm không tồn tại: API trả về mã lỗi \texttt{404 Not Found}, giao diện hiển thị thông báo sản phẩm không tìm thấy và nút quay về thực đơn.\\
+- Sản phẩm không tồn tại: API trả về mã lỗi \texttt{404 Not Found}, giao diện hiển thị thông báo sản phẩm không tìm thấy và nút quay về thực đơn.\newline
 - Sản phẩm hết hàng (\texttt{stock = 0}): Nút "Thêm vào giỏ hàng" bị vô hiệu hóa (\texttt{disabled}). \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình người dùng tương tác, chọn lựa tùy biến và kiểm tra trạng thái tồn kho được biểu diễn tại Hình~\ref{fig:activity-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-product-detail.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-product-detail.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Chi tiết Sản phẩm}
     \label{fig:activity-product-detail}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi tiết sản phẩm và danh mục topping tại Hình~\ref{fig:sequence-product-detail}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-product-detail.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-product-detail.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Chi tiết Sản phẩm}
     \label{fig:sequence-product-detail}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Chi tiết Sản phẩm}
@@ -844,12 +923,12 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Chi tiết Sản phẩm}
 \label{tab:tc-detail}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -862,79 +941,82 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Chi tiết sản phẩm (\texttt{/products/[id]})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Tùy biến và Chi tiết sản phẩm}
+    \includegraphics[width=0.92\textwidth]{figures/ui-detail.png}
+    \caption{Giao diện Chi tiết món và Tùy biến Size / Topping}
     \label{fig:ui-detail}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-detail.tex ===
+% ====== END INLINE: chapters/feature-detail ======
 
 
-% === BEGIN INCLUDED: chapters/feature-cart.tex ===
+% ====== BEGIN INLINE: chapters/feature-cart ======
+\clearpage
 \section{Phân hệ Giỏ hàng (Cart)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Giỏ hàng quản lý danh sách các món đồ uống mà khách hàng đã lựa chọn kèm theo các tùy biến cụ thể trước khi tiến hành tạo đơn hàng chính thức. Để tối ưu hóa tài nguyên máy chủ và mang lại phản hồi tức thì cho người dùng, phân hệ này được thiết kế theo kiến trúc lưu trữ phía máy khách (\textit{Client-side State Management}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-cart.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Giỏ hàng}
     \label{fig:usecase-cart}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Quản lý Giỏ hàng (UC-CART-01)}
 \label{tab:uc-spec-cart}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách vãng lai, Khách hàng đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Người dùng đã truy cập ứng dụng trên trình duyệt web. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách món trong giỏ hàng, số lượng và tổng tiền tạm tính được cập nhật đồng bộ trong bộ nhớ máy khách (\texttt{localStorage} / Zustand state). \\
+\midrule
 \textbf{Luồng chính} & 
-1. Người dùng thêm món từ trang chi tiết hoặc nhấn vào biểu tượng giỏ hàng tại thanh điều hướng (\texttt{Navbar}).\\
-2. Giao diện điều hướng sang trang \texttt{/cart}.\\
-3. Hệ thống nạp danh sách các món trong giỏ từ bộ nhớ cục bộ.\\
-4. Người dùng có thể tăng/giảm số lượng từng món, xóa từng món hoặc xóa toàn bộ giỏ.\\
-5. Bộ tính giá phía client tự động tính toán lại mục "Tạm tính" cho từng dòng và tổng giá trị đơn hàng.\\
+1. Người dùng thêm món từ trang chi tiết hoặc nhấn vào biểu tượng giỏ hàng tại thanh điều hướng (\texttt{Navbar}).\newline
+2. Giao diện điều hướng sang trang \texttt{/cart}.\newline
+3. Hệ thống nạp danh sách các món trong giỏ từ bộ nhớ cục bộ.\newline
+4. Người dùng có thể tăng/giảm số lượng từng món, xóa từng món hoặc xóa toàn bộ giỏ.\newline
+5. Bộ tính giá phía client tự động tính toán lại mục "Tạm tính" cho từng dòng và tổng giá trị đơn hàng.\newline
 6. Khi người dùng nhấn "Thanh toán" (hoặc "Tiến hành đặt hàng"), hệ thống kiểm tra điều kiện đăng nhập trước khi chuyển sang bước đặt hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
 - Giỏ hàng không có sản phẩm nào: Giao diện hiển thị thông báo "Giỏ hàng của bạn đang trống" và nút điều hướng "Xem thực đơn". \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình quản lý thêm, sửa, xóa và tính toán giá trị giỏ hàng được thể hiện tại Hình~\ref{fig:activity-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-cart.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-cart.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Giỏ hàng}
     \label{fig:activity-cart}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở phía Frontend giữa giao diện, Store quản lý trạng thái và LocalStorage tại Hình~\ref{fig:sequence-cart}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-cart.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-cart.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Giỏ hàng (Client-side Architecture)}
     \label{fig:sequence-cart}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API và Ánh xạ Cơ sở dữ liệu}
 \begin{itemize}
     \item \textbf{Đặc tính kỹ thuật (FE-Only):} Giỏ hàng trong BrewLite hoạt động hoàn toàn ở phía máy khách (\textit{Frontend-only}). Không có API endpoint riêng trên Backend và không tạo bản ghi trong cơ sở dữ liệu cho giỏ hàng tạm thời.
@@ -953,12 +1035,12 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Giỏ hàng}
 \label{tab:tc-cart}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -971,92 +1053,95 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Giỏ hàng (\texttt{/cart})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Quản lý Giỏ hàng BrewLite}
+    \includegraphics[width=0.92\textwidth]{figures/ui-cart.png}
+    \caption{Giao diện Quản lý Giỏ hàng và Điều chỉnh số lượng BrewLite}
     \label{fig:ui-cart}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-cart.tex ===
+% ====== END INLINE: chapters/feature-cart ======
 
 
-% === BEGIN INCLUDED: chapters/feature-order.tex ===
+% ====== BEGIN INLINE: chapters/feature-order ======
+\clearpage
 \section{Phân hệ Đặt hàng (Order)}
 
 \subsection{Đặc tả Use Case}
-Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), quy đổi điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
+Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), tích lũy điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-order.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Đặt hàng}
     \label{fig:usecase-order}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Tạo đơn hàng trực tuyến (UC-ORD-01)}
 \label{tab:uc-spec-order}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập (Registered Customer) \\
+\midrule
 \textbf{Tiền điều kiện} & Khách hàng đã đăng nhập (mang Bearer JWT Token); giỏ hàng có ít nhất 1 sản phẩm. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi đơn hàng mới được tạo ở trạng thái \texttt{PENDING}; tồn kho sản phẩm được cập nhật; voucher được áp dụng; bản ghi lịch sử trạng thái được khởi tạo. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\\
-2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\\
-3. Nhấn nút "Xác nhận đặt hàng".\\
-4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\\
-5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\\
-\quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\\
-\quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\\
-\quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\\
-\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\\
-\quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\\
-\quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\\
-\quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\\
-6. Transaction commit thành công, trả về thông tin đơn hàng và mã số tự tăng \texttt{orderNumber} (ví dụ \#1042).\\
+1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\newline
+2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\newline
+3. Nhấn nút "Xác nhận đặt hàng".\newline
+4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\newline
+5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\newline
+\quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\newline
+\quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\newline
+\quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\newline
+\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\newline
+\quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\newline
+\quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\newline
+\quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\newline
+6. Transaction commit thành công, trả về thông tin đơn hàng và mã số tự tăng \texttt{orderNumber} (ví dụ \#1042).\newline
 7. Giao diện xóa giỏ hàng và điều hướng sang trang thanh toán (\texttt{/payment/[orderId]}). \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\\
-- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\\
-- Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\\
+- Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\newline
+- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\newline
+- Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\newline
 - Chưa đăng nhập: Báo lỗi \texttt{401 Unauthorized}, điều hướng về trang đăng nhập. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Luồng hoạt động kiểm tra điều kiện tồn kho, tính giá và cam kết giao dịch tạo đơn được biểu diễn tại Hình~\ref{fig:activity-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-order.pdf}
+    \includegraphics[width=\textwidth, height=\textheight, keepaspectratio]{figures/activity-order.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Đặt hàng}
     \label{fig:activity-order}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch vụ phối hợp trong một transaction tạo đơn hàng tại Hình~\ref{fig:sequence-order}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-order.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-order.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Đặt hàng (Interactive Transaction \& Pricing Engine)}
     \label{fig:sequence-order}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Đặt hàng}
@@ -1066,7 +1151,7 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Mô tả Request Payload} & \textbf{Phản hồi chính} \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
-\texttt{\{items: [\{productId, size, quantity, toppings\}], voucherCode?, pointsToRedeem?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
+\texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
 \texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400}, \texttt{401}, \texttt{409}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
@@ -1096,12 +1181,12 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \end{lstlisting}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Đặt hàng}
 \label{tab:tc-order}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -1115,93 +1200,96 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Đặt hàng (\texttt{/checkout})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Xác nhận Đặt hàng và Áp dụng Khuyến mãi}
+    \includegraphics[width=0.92\textwidth]{figures/ui-checkout.png}
+    \caption{Giao diện Xác nhận Đặt hàng và Áp dụng Khuyến mại}
     \label{fig:ui-order}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-order.tex ===
+% ====== END INLINE: chapters/feature-order ======
 
 
-% === BEGIN INCLUDED: chapters/feature-payment.tex ===
+% ====== BEGIN INLINE: chapters/feature-payment ======
+\clearpage
 \section{Phân hệ Thanh toán (Payment)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao dịch tài chính cho các đơn hàng đang ở trạng thái chờ. Phân hệ được thiết kế với cơ chế an toàn cấp cao: bảo vệ giao dịch bất biến (\textit{Idempotency}) để chống trùng lặp tiền khi người dùng nhấp đúp hoặc xảy ra lỗi chập chờn mạng, đồng thời hỗ trợ nhiều lượt thử lại (\textit{Retry}) cho cùng một đơn hàng thông qua quan hệ 1-N giữa \texttt{Order} và \texttt{Payment}. Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-payment}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-payment.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Thanh toán}
     \label{fig:usecase-payment}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Thực hiện Thanh toán Trực tuyến (UC-PAY-01)}
 \label{tab:uc-spec-payment}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập, Cổng thanh toán giả lập (Mock Gateway) \\
+\midrule
 \textbf{Tiền điều kiện} & Đơn hàng tồn tại ở trạng thái \texttt{PENDING}; chưa được thanh toán thành công. \\
+\midrule
 \textbf{Hậu điều kiện} & Bản ghi thanh toán được lưu trữ; trạng thái đơn hàng chuyển thành \texttt{PAID}; điểm loyalty được cộng vào tài khoản khách hàng. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng truy cập trang thanh toán \texttt{/payment/[orderId]}.\\
-2. Chọn phương thức thanh toán: Thẻ ngân hàng (\texttt{BANK\_CARD}) hoặc Ví điện tử (\texttt{E\_WALLET}).\\
-3. Nhấn "Thanh toán ngay".\\
-4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\\
-5. PaymentsService kiểm tra \texttt{idempotencyKey}:\\
-\quad a. Nếu khóa đã tồn tại trong DB với kết quả thành công: Trả về kết quả trước đó mà không xử lý lại.\\
-\quad b. Nếu khóa đang trong trạng thái xử lý (\texttt{PENDING}): Ném lỗi \texttt{409 Conflict}.\\
-\quad c. Nếu là khóa mới: Tạo bản ghi \texttt{payments} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\\
-6. Backend gọi Mock Payment Gateway để xác thực giao dịch.\\
-7. Khi Gateway phản hồi thành công (\texttt{SUCCESS}):\\
-\quad a. Cập nhật bản ghi \texttt{payments} thành \texttt{SUCCESS} kèm \texttt{transactionRef}.\\
-\quad b. Cập nhật đơn hàng: \texttt{status = PAID}, \texttt{paidAt = NOW()}.\\
-\quad c. Cộng điểm tích lũy mới vào \texttt{users.loyalty\_points}.\\
-\quad d. Ghi nhận giao dịch cộng điểm vào \texttt{loyalty\_transactions} (type: \texttt{EARNED}).\\
-\quad e. Ghi nhật ký vào \texttt{order\_status\_history} (PENDING \(\to\) PAID).\\
+1. Khách hàng truy cập trang thanh toán \texttt{/payment/[orderId]}.\newline
+2. Chọn phương thức thanh toán: Thẻ ngân hàng (\texttt{BANK\_CARD}) hoặc Ví điện tử (\texttt{E\_WALLET}).\newline
+3. Nhấn "Thanh toán ngay".\newline
+4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\newline
+5. PaymentsService kiểm tra \texttt{idempotencyKey}:\newline
+\quad a. Nếu khóa đã tồn tại trong DB với kết quả thành công: Trả về kết quả trước đó mà không xử lý lại.\newline
+\quad b. Nếu khóa đang trong trạng thái xử lý (\texttt{PENDING}): Ném lỗi \texttt{409 Conflict}.\newline
+\quad c. Nếu là khóa mới: Tạo bản ghi \texttt{payments} với trạng thái \texttt{PENDING} và lưu mã băm \texttt{requestHash}.\newline
+6. Backend gọi Mock Payment Gateway để xác thực giao dịch.\newline
+7. Khi Gateway phản hồi thành công (\texttt{SUCCESS}):\newline
+\quad a. Cập nhật bản ghi \texttt{payments} thành \texttt{SUCCESS} kèm \texttt{transactionRef}.\newline
+\quad b. Cập nhật đơn hàng: \texttt{status = PAID}, \texttt{paidAt = NOW()}.\newline
+\quad c. Cộng điểm tích lũy mới vào \texttt{users.loyalty\_points}.\newline
+\quad d. Ghi nhận giao dịch cộng điểm vào \texttt{loyalty\_transactions} (type: \texttt{EARNED}).\newline
+\quad e. Ghi nhật ký vào \texttt{order\_status\_history} (PENDING \(\to\) PAID).\newline
 8. Giao diện thông báo thanh toán thành công và điều hướng sang trang Lịch sử đơn hàng. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\\
-- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\\
+- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
+- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\newline
 - Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{422 Unprocessable Entity}. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình thẩm định Idempotency, gọi cổng thanh toán và xử lý kết quả giao dịch được mô tả tại Hình~\ref{fig:activity-payment}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-payment.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-payment.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Thanh toán}
     \label{fig:activity-payment}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa Frontend, PaymentsController, PaymentsService, Prisma DB và Mock Payment Gateway tại Hình~\ref{fig:sequence-payment}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-payment.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-payment.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Thanh toán (Idempotent Flow \& Gateway Integration)}
     \label{fig:sequence-payment}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Thanh toán}
@@ -1240,12 +1328,12 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Thanh toán}
 \label{tab:tc-payment}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -1258,81 +1346,84 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Thanh toán trực tuyến (\texttt{/payment/[orderId]})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Chọn Phương thức Thanh toán}
+    \includegraphics[width=0.92\textwidth]{figures/ui-payment.png}
+    \caption{Giao diện Cổng thanh toán không tiền mặt đa phương thức}
     \label{fig:ui-payment}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-payment.tex ===
+% ====== END INLINE: chapters/feature-payment ======
 
 
-% === BEGIN INCLUDED: chapters/feature-history.tex ===
+% ====== BEGIN INLINE: chapters/feature-history ======
+\clearpage
 \section{Phân hệ Lịch sử Đơn hàng (Order History)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Lịch sử Đơn hàng cho phép khách hàng tra cứu toàn bộ các đơn hàng đã đặt trong quá khứ, theo dõi trạng thái pha chế và kiểm tra hóa đơn chi tiết. Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order-history}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-order-history.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Lịch sử Đơn hàng}
     \label{fig:usecase-order-history}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Đặc tả Use Case: Tra cứu Lịch sử và Chi tiết Đơn hàng (UC-HIS-01)}
 \label{tab:uc-spec-history}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{p{2.8cm}X}
 \toprule
 \textbf{Mục} & \textbf{Chi tiết Đặc tả} \\
 \midrule
 \textbf{Actor} & Khách hàng đã đăng nhập \\
+\midrule
 \textbf{Tiền điều kiện} & Khách hàng đã đăng nhập vào hệ thống. \\
+\midrule
 \textbf{Hậu điều kiện} & Danh sách các đơn hàng và trạng thái chi tiết hiển thị trực quan. \\
+\midrule
 \textbf{Luồng chính} & 
-1. Khách hàng nhấp vào mục "Lịch sử đơn hàng" trên thanh điều hướng hoặc truy cập \texttt{/orders}.\\
-2. Giao diện gửi request \texttt{GET /api/v1/orders} kèm Bearer Token.\\
-3. Backend truy vấn các đơn hàng thuộc về \texttt{userId} hiện tại, sắp xếp giảm dần theo thời gian tạo (\texttt{createdAt desc}).\\
-4. Màn hình hiển thị danh sách các thẻ đơn hàng: mã hiển thị \texttt{\#orderNumber}, ngày giờ đặt, tổng tiền, huy hiệu trạng thái (ví dụ "Đã thanh toán", "Đã hủy").\\
+1. Khách hàng nhấp vào mục "Lịch sử đơn hàng" trên thanh điều hướng hoặc truy cập \texttt{/orders}.\newline
+2. Giao diện gửi request \texttt{GET /api/v1/orders} kèm Bearer Token.\newline
+3. Backend truy vấn các đơn hàng thuộc về \texttt{userId} hiện tại, sắp xếp giảm dần theo thời gian tạo (\texttt{createdAt desc}).\newline
+4. Màn hình hiển thị danh sách các thẻ đơn hàng: mã hiển thị \texttt{\#orderNumber}, ngày giờ đặt, tổng tiền, huy hiệu trạng thái (ví dụ "Đã thanh toán", "Đã hủy").\newline
 5. Khách hàng nhấp vào một đơn hàng để xem chi tiết hóa đơn (\texttt{/orders/[id]}): danh sách từng món, size, topping, số tiền giảm giá và phương thức thanh toán. \\
+\midrule
 \textbf{Luồng ngoại lệ} & 
-- Người dùng chưa có đơn hàng nào: Giao diện hiển thị thông báo "Bạn chưa có đơn hàng nào" và nút liên kết "Bắt đầu đặt món".\\
+- Người dùng chưa có đơn hàng nào: Giao diện hiển thị thông báo "Bạn chưa có đơn hàng nào" và nút liên kết "Bắt đầu đặt món".\newline
 - Phiên đăng nhập hết hạn: Báo lỗi \texttt{401 Unauthorized}, tự động chuyển hướng về trang đăng nhập. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình truy vấn danh sách và xem chi tiết trạng thái đơn hàng được thể hiện tại Hình~\ref{fig:activity-order-history}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{figures/activity-order-history.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-order-history.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Lịch sử Đơn hàng}
     \label{fig:activity-order-history}
 \end{figure}
 
+\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự minh họa tương tác nạp dữ liệu lịch sử đơn hàng từ Frontend đến Controller, Service và Prisma tại Hình~\ref{fig:sequence-order-history}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/sequence-order-history.pdf}
+    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-order-history.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Lịch sử Đơn hàng}
     \label{fig:sequence-order-history}
 \end{figure}
 
+\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Lịch sử Đơn hàng}
@@ -1360,12 +1451,12 @@ ORDER BY created_at DESC;
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Lịch sử}
 \label{tab:tc-history}
-\begin{tabularx}{\textwidth}{llllp{4cm}l}
+\begin{tabularx}{\textwidth}{llp{2.6cm}p{3cm}Xc}
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
@@ -1378,25 +1469,20 @@ ORDER BY created_at DESC;
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Lịch sử đơn hàng (\texttt{/orders})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Lịch sử Đơn hàng của Khách hàng}
+    \includegraphics[width=0.92\textwidth]{figures/ui-history.png}
+    \caption{Giao diện Lịch sử và Trạng thái Đơn hàng của Khách hàng}
     \label{fig:ui-history}
 \end{figure}
 
-% === END INCLUDED: chapters/feature-history.tex ===
+% ====== END INLINE: chapters/feature-history ======
 
 
-% === END INCLUDED: chapters/ch5-features.tex ===
+% ====== END INLINE: chapters/ch5-features ======
 
 
-% === BEGIN INCLUDED: chapters/ch6-advanced-logic.tex ===
+% ====== BEGIN INLINE: chapters/ch6-advanced-logic ======
 \chapter{HIỆN THỰC CÁC NGHIỆP VỤ NÂNG CAO}
 
 Chương này đi sâu vào các giải pháp kỹ thuật phức tạp đã được thiết kế và hiện thực hóa trong hệ thống BrewLite nhằm giải quyết các bài toán hóc búa về tính toàn vẹn dữ liệu, kiểm soát đồng thời và độ tin cậy giao dịch trong môi trường đa người dùng.
@@ -1406,9 +1492,9 @@ Quy trình luân chuyển trạng thái của một đơn hàng trong BrewLite �
 
 Sơ đồ máy trạng thái đơn hàng được trình bày chi tiết tại Hình~\ref{fig:order-state-machine}.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.88\textwidth]{figures/order-state-machine.pdf}
+    \includegraphics[width=0.88\textwidth, height=0.75\textheight, keepaspectratio]{figures/order-state-machine.pdf}
     \caption{Sơ đồ Máy trạng thái Đơn hàng BrewLite (9 chuyển tiếp hợp lệ)}
     \label{fig:order-state-machine}
 \end{figure}
@@ -1491,18 +1577,26 @@ Hệ thống hỗ trợ cấu hình mã giảm giá đa dạng được quản l
 
 \subsection{Cơ chế Điểm thưởng Thành viên (Loyalty Points)}
 \begin{itemize}
-    \item \textbf{Tích lũy điểm (Earn Points):} Với mỗi đơn hàng được thanh toán thành công, khách hàng được tích lũy 1 điểm thưởng cho mỗi 10.000 VNĐ giá trị thực trả (\texttt{finalAmount}):
+    \item \textbf{Tích lũy điểm tự động (Earn Points - Đã hiện thực trong MVP):}
+    Nhằm tri ân và tăng tính gắn kết của khách hàng, hệ thống hiện thực cơ chế tích lũy điểm tự động được kích hoạt ngay khi đơn hàng chuyển sang trạng thái \texttt{PAID} thông qua phương thức \texttt{LoyaltyService.award()}. Tỷ lệ tích điểm thực tế trong mã nguồn là 1 điểm thưởng cho mỗi 1.000 VNĐ thanh toán thực trả (\texttt{finalAmount}):
     \[
-    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{10.000} \right\rfloor
+    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{1.000} \right\rfloor
     \]
-    \item \textbf{Quy đổi điểm (Redeem Points):} Khách hàng có thể sử dụng điểm tích lũy để trừ trực tiếp vào đơn hàng mới. Giá trị quy đổi là \(1 \text{ điểm} = 1.000 \text{ VNĐ}\). Nhằm đảm bảo an toàn doanh thu, hệ thống đặt ra quy tắc cứng: số tiền giảm từ điểm thưởng tối đa không được vượt quá 50\% giá trị đơn hàng sau khi đã trừ mã giảm giá.
-    \item Mọi biến động cộng/trừ điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
+    Tiến trình cộng điểm được thực thi nguyên tử trong cùng cơ chế giao dịch (\texttt{tx}), tự động tăng biến \texttt{loyaltyPoints} của người dùng, cập nhật trường \texttt{pointsEarned} của đơn hàng và ghi nhận một bản ghi biến động dạng \texttt{EARNED} vào bảng \texttt{loyalty\_transactions}. Cơ chế kiểm tra tồn tại giao dịch đảm bảo tính Idempotent, loại trừ nguy cơ cộng điểm trùng lặp khi có webhook gọi lại.
+
+    \item \textbf{Quy đổi điểm trừ tiền (Redeem Points - Đặc tả Thiết kế phạm vi mở rộng Post-MVP):}
+    Tại phiên bản MVP 1.0, nhằm tập trung bảo đảm an toàn tuyệt đối cho luồng thanh toán và giao dịch tài chính cốt lõi, tính năng nhập điểm để trừ trực tiếp vào đơn hàng mới được xếp vào danh mục phát triển mở rộng (\textit{Post-MVP Backlog}). Cấu trúc cơ sở dữ liệu đã được thiết kế sẵn sàng để đón đầu tính năng này trong các Sprint tiếp theo:
+    \begin{itemize}
+        \item Enum \texttt{LoyaltyTransactionType} đã hỗ trợ sẵn các loại giao dịch \texttt{SPENT} (tiêu điểm) và \texttt{REFUNDED} (hoàn trả điểm khi hủy đơn).
+        \item Quy tắc quy đổi dự kiến: \(1 \text{ điểm} = 1.000 \text{ VNĐ}\), với trần khống chế số tiền giảm trừ tối đa không vượt quá 50\% giá trị đơn hàng sau chiết khấu khuyến mãi để đảm bảo tính an toàn tài chính.
+    \end{itemize}
+    \item Mọi biến động cộng điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
 \end{itemize}
 
-% === END INCLUDED: chapters/ch6-advanced-logic.tex ===
+% ====== END INLINE: chapters/ch6-advanced-logic ======
 
 
-% === BEGIN INCLUDED: chapters/ch7-implementation.tex ===
+% ====== BEGIN INLINE: chapters/ch7-implementation ======
 \chapter{HIỆN THỰC HÓA VÀ ĐỐI CHIẾU THIẾT KẾ}
 
 Chương này trình bày ngắn gọn các minh chứng kỹ thuật nhằm xác nhận rằng toàn bộ các thiết kế Use Case, sơ đồ tương tác và mô hình dữ liệu trong Giai đoạn 1 và Giai đoạn 2 đã được cài đặt đầy đủ vào mã nguồn thực tế của dự án BrewLite.
@@ -1510,7 +1604,7 @@ Chương này trình bày ngắn gọn các minh chứng kỹ thuật nhằm xá
 \section{Ma trận Ánh xạ Nhiệm vụ GD1 \& GD2 sang Mã nguồn}
 Bảng~\ref{tab:implementation-matrix} tổng hợp chi tiết mối liên kết giữa các nhiệm vụ thiết kế nghiệp vụ của Giai đoạn 1 và 2 với các tập tin và hàm cụ thể trong mã nguồn Backend (\texttt{backend/src}) và Frontend (\texttt{frontend/src}).
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Ma trận Đối chiếu Thiết kế GD1 \& GD2 sang Mã nguồn thực tế}
@@ -1600,10 +1694,10 @@ if (existing) {
 }
 \end{lstlisting}
 
-% === END INCLUDED: chapters/ch7-implementation.tex ===
+% ====== END INLINE: chapters/ch7-implementation ======
 
 
-% === BEGIN INCLUDED: chapters/ch8-evaluation.tex ===
+% ====== BEGIN INLINE: chapters/ch8-evaluation ======
 \chapter{ĐÁNH GIÁ VÀ HƯỚNG PHÁT TRIỂN}
 
 \section{Đánh giá Kết quả Đạt được}
@@ -1618,6 +1712,7 @@ Trải qua hai giai đoạn phân tích, thiết kế và hiện thực hóa (Gi
 Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫn tồn tại một số điểm giới hạn kỹ thuật cần được ghi nhận trung thực:
 \begin{enumerate}
     \item \textbf{Cơ chế Retry tự động cho Khóa Lạc quan:} Khi xảy ra xung đột phiên bản giữa các request đặt hàng đồng thời, Backend ném mã lỗi \texttt{409 Conflict}. Hiện tại, giao diện người dùng mới dừng ở mức hiển thị thông báo lỗi và yêu cầu khách hàng bấm thử lại thủ công, chưa trang bị cơ chế tự động thử lại ở tầng Client với thuật toán lùi thời gian ngẫu nhiên (\textit{Exponential Backoff with Jitter}).
+    \item \textbf{Phân hệ Loyalty chỉ mới kích hoạt chiều tích điểm (Earn Points):} Phiên bản MVP hiện tại đã hoàn thiện trọn vẹn luồng tự động tích lũy điểm thưởng khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)). Tính năng dùng điểm để giảm trừ trực tiếp vào đơn hàng mới (\textit{Redeem Points}) và xử lý hoàn điểm tự động khi hủy đơn được lên kế hoạch bàn giao ở bản phát hành tiếp theo.
     \item \textbf{Giao diện Quầy Pha chế (Barista UI) ngoài phạm vi MVP:} Dù Backend đã hoàn thiện trọn vẹn logic chuyển tiếp trạng thái (\texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), nhưng giao diện web/tablet dành riêng cho nhân viên pha chế tại quầy chưa được hiện thực hóa trong phạm vi bản phát hành MVP này.
     \item \textbf{Tích hợp Cổng thanh toán Thực tế:} Hệ thống hiện đang sử dụng dịch vụ Mock Payment Gateway để giả lập luồng thanh toán. Việc tích hợp các cổng thanh toán thương mại thực tế tại Việt Nam (như VNPay, MoMo, ZaloPay) đòi hỏi quy trình đăng ký doanh nghiệp và thẩm định pháp lý phức tạp nên được định hướng ở giai đoạn sau.
 \end{enumerate}
@@ -1625,25 +1720,36 @@ Bên cạnh những kết quả đã đạt được, hệ thống BrewLite vẫ
 \section{Hướng Phát triển trong Tương lai}
 Nhằm đưa BrewLite trở thành một nền tảng vận hành hoàn chỉnh cho các chuỗi cửa hàng cà phê thương mại, các định hướng phát triển tiếp theo bao gồm:
 \begin{itemize}
+    \item \textbf{Hiện thực hóa tính năng Đổi điểm thưởng (Redeem Loyalty Points):} Cung cấp giao diện cho phép khách hàng chủ động chọn số điểm muốn sử dụng tại bước thanh toán để khấu trừ trực tiếp vào giá trị đơn hàng, tích hợp cơ chế hoàn trả điểm tự động khi đơn hàng bị hủy theo chuẩn cấu trúc cơ sở dữ liệu đã thiết kế sẵn.
     \item \textbf{Xây dựng Màn hình Pha chế (Barista POS Display):} Phát triển giao diện chuyên dụng cho quầy bar, cập nhật danh sách đơn hàng theo thời gian thực sử dụng công nghệ WebSockets hoặc Server-Sent Events (SSE).
     \item \textbf{Tích hợp Cổng thanh toán VNPay / MoMo:} Kết nối trực tiếp qua Webhook và chuẩn thanh toán mã VietQR, hỗ trợ hoàn tiền tự động khi đơn hàng bị hủy sau khi đã thanh toán.
     \item \textbf{Cơ chế Client-side Auto-Retry:} Nâng cấp lớp thư viện gọi API (API Client) để tự động thử lại các thao tác đặt hàng khi gặp mã lỗi \texttt{409 Conflict} mà không gây phiền toái cho trải nghiệm người dùng.
     \item \textbf{Phân hệ Báo cáo và Quản trị Doanh thu (Admin Analytics):} Bổ sung biểu đồ trực quan hóa dữ liệu bán hàng, dự báo nhu cầu nguyên vật liệu và quản lý các chiến dịch khuyến mãi theo mùa.
 \end{itemize}
 
-% === END INCLUDED: chapters/ch8-evaluation.tex ===
+% ====== END INLINE: chapters/ch8-evaluation ======
 
 
 % 4. Appendices
 \appendix
 
-% === BEGIN INCLUDED: appendices/appendix-a.tex ===
+% ====== BEGIN INLINE: appendices/appendix-a ======
 \chapter{MA TRẬN TRUY VẾT YÊU CẦU (TRACEABILITY MATRIX)}
 \label{app:traceability-matrix}
 
 Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lượng từ yêu cầu chức năng (FR), đặc tả Use Case (UC), API Endpoint, bảng cơ sở dữ liệu cho đến các ca kiểm thử (TC) tương ứng.
 
-\begin{longtable}{p{1.2cm}p{2.2cm}p{3.2cm}p{3cm}p{2.5cm}p{2.2cm}}
+{\small % Giảm nhẹ cỡ chữ để bảng 6 cột hiển thị thoáng và đẹp hơn
+\setlength{\tabcolsep}{4pt} % Thu hẹp khoảng cách đệm giữa các cột (mặc định là 6pt)
+
+\begin{longtable}{
+    >{\raggedright\arraybackslash}p{1.2cm}
+    >{\raggedright\arraybackslash}p{2.1cm}
+    >{\raggedright\arraybackslash}p{2.9cm}
+    >{\raggedright\arraybackslash}p{2.7cm}
+    >{\raggedright\arraybackslash}p{3.3cm}
+    >{\raggedright\arraybackslash}p{2.4cm}
+}
 \caption{Ma trận Truy vết Toàn diện Yêu cầu - Thiết kế - Cài đặt - Kiểm thử} \label{tab:traceability-full} \\
 \toprule
 \textbf{Mã FR} & \textbf{Mã UC} & \textbf{API Endpoint} & \textbf{Bảng CSDL} & \textbf{Mã Test Case} & \textbf{Màn hình} \\
@@ -1682,17 +1788,17 @@ Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lư�
 \textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
 & & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-API-02} & \texttt{/orders/:id} \\
 \end{longtable}
+}
+% ====== END INLINE: appendices/appendix-a ======
 
-% === END INCLUDED: appendices/appendix-a.tex ===
 
-
-% === BEGIN INCLUDED: appendices/appendix-b.tex ===
+% ====== BEGIN INLINE: appendices/appendix-b ======
 \chapter{DANH MỤC API ENDPOINTS}
 \label{app:api-endpoints}
 
 Bảng~\ref{tab:full-api-list} liệt kê toàn bộ các API Endpoints được cài đặt và cung cấp bởi hệ thống Backend NestJS của BrewLite. Tất cả các endpoint đều có tiền tố chuẩn \texttt{/api/v1}.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \caption{Danh mục chi tiết toàn bộ các API Endpoints hệ thống BrewLite}
@@ -1741,17 +1847,17 @@ Mọi phản hồi lỗi đều được chuẩn hóa qua \texttt{AllExceptionsF
 }
 \end{lstlisting}
 
-% === END INCLUDED: appendices/appendix-b.tex ===
+% ====== END INLINE: appendices/appendix-b ======
 
 
-% === BEGIN INCLUDED: appendices/appendix-c.tex ===
+% ====== BEGIN INLINE: appendices/appendix-c ======
 \chapter{TỪ ĐIỂN DỮ LIỆU (DATA DICTIONARY)}
 \label{app:data-dictionary}
 
 Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ sở dữ liệu PostgreSQL của BrewLite, bám sát tập tin mô hình dữ liệu \texttt{backend/prisma/schema.prisma}.
 
 \section{Bảng \texttt{users}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1770,7 +1876,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{categories}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1788,7 +1894,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{products}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1810,7 +1916,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{product\_size\_prices}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1826,7 +1932,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{toppings}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1843,7 +1949,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{promotions}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1862,7 +1968,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{orders}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1884,7 +1990,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{order\_items}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1903,7 +2009,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{order\_item\_toppings}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1919,7 +2025,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{payments}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1939,7 +2045,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{loyalty\_transactions}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1957,7 +2063,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{table}
 
 \section{Bảng \texttt{order\_status\_history}}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llllX}
@@ -1975,7 +2081,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{tabularx}
 \end{table}
 
-% === END INCLUDED: appendices/appendix-c.tex ===
+% ====== END INLINE: appendices/appendix-c ======
 
 
 \end{document}

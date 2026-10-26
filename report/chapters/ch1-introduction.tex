@@ -11,7 +11,7 @@ Hệ thống đặt cà phê trực tuyến \textbf{BrewLite} được nghiên c
 Mục tiêu cốt lõi của đề tài bao gồm:
 \begin{itemize}
     \item \textbf{Trải nghiệm người dùng mượt mà:} Khách hàng có thể tương tác trực quan với thực đơn, phân loại theo danh mục, tùy biến linh hoạt các thông số đồ uống trước khi thêm vào giỏ hàng.
-    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và đổi điểm thành viên thân thiết (loyalty points).
+    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và tích lũy điểm thưởng thành viên thân thiết (Loyalty Points) sau khi hoàn tất thanh toán.
     \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toán vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
 \end{itemize}
 
@@ -23,7 +23,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
     \item \textbf{Phân hệ Danh mục sản phẩm (Product Catalog):} Hiển thị danh sách sản phẩm phân nhóm theo danh mục (Cà phê, Trà...), lọc món còn hàng và tìm kiếm.
     \item \textbf{Phân hệ Chi tiết sản phẩm (Product Detail):} Xem thông tin mô tả chi tiết, hình ảnh, đơn giá và cho phép lựa chọn size, mức đường, mức đá cùng danh sách topping đi kèm.
     \item \textbf{Phân hệ Giỏ hàng (Cart):} Quản lý các món đã chọn ở phía trình duyệt (Client-side), cập nhật số lượng, chỉnh sửa tùy chọn và tạm tính giá trị đơn hàng.
-    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, quy đổi điểm tích lũy và chuyển đổi trạng thái đơn hàng.
+    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, tự động tính điểm tích lũy dự kiến và chuyển đổi trạng thái đơn hàng.
     \item \textbf{Phân hệ Thanh toán (Payment):} Khởi tạo giao dịch thanh toán trực tuyến qua cổng giả lập (Mock Payment Gateway), xử lý bảo mật chống trùng lặp với \texttt{Idempotency-Key}.
     \item \textbf{Phân hệ Lịch sử đơn hàng (Order History):} Tra cứu danh sách các đơn hàng đã thực hiện, xem chi tiết từng đơn hàng và trạng thái thanh toán/xử lý.
 \end{enumerate}
@@ -31,6 +31,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
 \paragraph{Giới hạn phạm vi (Out-of-Scope trong MVP):}
 Để đảm bảo tiến độ và chất lượng cho các nghiệp vụ trọng tâm của khách hàng:
 \begin{itemize}
+    \item \textbf{Đổi điểm thưởng trừ tiền (Redeem Loyalty Points):} Hệ thống đã hiện thực trọn vẹn cơ chế tự động tích lũy điểm thưởng (\textit{Earn Points}) cho khách hàng sau khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)) và thiết kế sẵn sàng cấu trúc dữ liệu cho việc chi tiêu/hoàn điểm (\texttt{LoyaltyTransactionType.SPENT}, \texttt{REFUNDED}). Tuy nhiên, tính năng cho phép nhập điểm để trừ trực tiếp vào giá trị đơn hàng mới (\textit{Redeem Points}) được phân loại vào phạm vi mở rộng sau MVP (Post-MVP Backlog) để đảm bảo an toàn tuyệt đối cho luồng thanh toán và nghiệp vụ hoàn điểm khi hủy đơn.
     \item \textbf{Giao diện Pha chế (Barista Web UI):} Mặc dù hệ thống đã hiện thực toàn diện Máy trạng thái đơn hàng (Order State Machine) với đầy đủ 9 chuyển tiếp nghiệp vụ (bao gồm các trạng thái \texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), giao diện web chuyên dụng dành riêng cho nhân viên pha chế tại quầy chưa nằm trong phạm vi giao diện của bản phát hành MVP này.
     \item \textbf{Quản trị viên nâng cao (Advanced Admin Portal):} Hệ thống tập trung vào trải nghiệm đặt hàng của khách hàng (B2C); các chức năng quản trị kho nâng cao và báo cáo doanh thu sẽ được triển khai ở pha tiếp theo.
 \end{itemize}

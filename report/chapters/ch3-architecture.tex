@@ -26,7 +26,7 @@ Hệ thống bao gồm các thành phần cốt lõi:
         \item \textbf{AuthModule:} Đảm nhận đăng ký, băm mật khẩu bằng \texttt{bcrypt}, đăng nhập và cấp phát JSON Web Token; bảo vệ hệ thống thông qua \texttt{JwtAuthGuard}.
         \item \textbf{ProductsModule:} Quản lý danh mục (\texttt{categories}), sản phẩm (\texttt{products}), các tùy chọn size/đường/đá/topping và kiểm tra tính khả dụng của kho hàng.
         \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{OrderStateMachine}) và kiểm soát giao dịch tạo đơn.
-        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập thực thi chính sách phụ thu tùy biến, kiểm tra hợp lệ của mã giảm giá \texttt{WELCOME10} và quy đổi điểm tích lũy thành viên.
+        \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập: \texttt{PricingModule} tính toán phụ thu kích cỡ/topping; \texttt{PromotionsModule} kiểm tra tính hợp lệ và chiết khấu của mã giảm giá (\texttt{WELCOME10}); \texttt{LoyaltyModule} đảm nhận cơ chế tự động tích lũy điểm thưởng thành viên theo tỷ lệ thực trả sau khi thanh toán thành công.
         \item \textbf{PaymentsModule:} Xử lý thanh toán trực tuyến, quản lý bảng idempotency (\texttt{PaymentIdempotency}) và kết nối giao tiếp với cổng thanh toán.
         \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptionsFilter}) và bộ chuẩn hóa phản hồi (\texttt{TransformInterceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
     \end{itemize}

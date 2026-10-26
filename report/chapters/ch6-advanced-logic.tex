@@ -92,10 +92,18 @@ Hệ thống hỗ trợ cấu hình mã giảm giá đa dạng được quản l
 
 \subsection{Cơ chế Điểm thưởng Thành viên (Loyalty Points)}
 \begin{itemize}
-    \item \textbf{Tích lũy điểm (Earn Points):} Với mỗi đơn hàng được thanh toán thành công, khách hàng được tích lũy 1 điểm thưởng cho mỗi 10.000 VNĐ giá trị thực trả (\texttt{finalAmount}):
+    \item \textbf{Tích lũy điểm tự động (Earn Points - Đã hiện thực trong MVP):}
+    Nhằm tri ân và tăng tính gắn kết của khách hàng, hệ thống hiện thực cơ chế tích lũy điểm tự động được kích hoạt ngay khi đơn hàng chuyển sang trạng thái \texttt{PAID} thông qua phương thức \texttt{LoyaltyService.award()}. Tỷ lệ tích điểm thực tế trong mã nguồn là 1 điểm thưởng cho mỗi 1.000 VNĐ thanh toán thực trả (\texttt{finalAmount}):
     \[
-    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{10.000} \right\rfloor
+    \text{pointsEarned} = \left\lfloor \frac{\text{finalAmount}}{1.000} \right\rfloor
     \]
-    \item \textbf{Quy đổi điểm (Redeem Points):} Khách hàng có thể sử dụng điểm tích lũy để trừ trực tiếp vào đơn hàng mới. Giá trị quy đổi là \(1 \text{ điểm} = 1.000 \text{ VNĐ}\). Nhằm đảm bảo an toàn doanh thu, hệ thống đặt ra quy tắc cứng: số tiền giảm từ điểm thưởng tối đa không được vượt quá 50\% giá trị đơn hàng sau khi đã trừ mã giảm giá.
-    \item Mọi biến động cộng/trừ điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
+    Tiến trình cộng điểm được thực thi nguyên tử trong cùng cơ chế giao dịch (\texttt{tx}), tự động tăng biến \texttt{loyaltyPoints} của người dùng, cập nhật trường \texttt{pointsEarned} của đơn hàng và ghi nhận một bản ghi biến động dạng \texttt{EARNED} vào bảng \texttt{loyalty\_transactions}. Cơ chế kiểm tra tồn tại giao dịch đảm bảo tính Idempotent, loại trừ nguy cơ cộng điểm trùng lặp khi có webhook gọi lại.
+
+    \item \textbf{Quy đổi điểm trừ tiền (Redeem Points - Đặc tả Thiết kế phạm vi mở rộng Post-MVP):}
+    Tại phiên bản MVP 1.0, nhằm tập trung bảo đảm an toàn tuyệt đối cho luồng thanh toán và giao dịch tài chính cốt lõi, tính năng nhập điểm để trừ trực tiếp vào đơn hàng mới được xếp vào danh mục phát triển mở rộng (\textit{Post-MVP Backlog}). Cấu trúc cơ sở dữ liệu đã được thiết kế sẵn sàng để đón đầu tính năng này trong các Sprint tiếp theo:
+    \begin{itemize}
+        \item Enum \texttt{LoyaltyTransactionType} đã hỗ trợ sẵn các loại giao dịch \texttt{SPENT} (tiêu điểm) và \texttt{REFUNDED} (hoàn trả điểm khi hủy đơn).
+        \item Quy tắc quy đổi dự kiến: \(1 \text{ điểm} = 1.000 \text{ VNĐ}\), với trần khống chế số tiền giảm trừ tối đa không vượt quá 50\% giá trị đơn hàng sau chiết khấu khuyến mãi để đảm bảo tính an toàn tài chính.
+    \end{itemize}
+    \item Mọi biến động cộng điểm đều được ghi vết minh bạch trong bảng \texttt{loyalty\_transactions}.
 \end{itemize}
