@@ -17,9 +17,9 @@ Kiểm thử API `POST /api/v1/payments`, hai phương thức `E_WALLET`, `BANK_
 | TC-PAY-07 | Order không tồn tại | Trả lỗi phù hợp (`404 Not Found`), không gọi gateway |
 | TC-PAY-08 | Người dùng không có quyền thanh toán Order | Từ chối request (`403 Forbidden`) |
 | TC-PAY-09 | Order đã thanh toán (ở trạng thái `PAID` hoặc khác `PENDING`/`PAYMENT_FAILED`) | Từ chối request với mã lỗi `409 Conflict` |
-| TC-PAY-10 | Cùng key, cùng nội dung | Trả kết quả cũ đã lưu (HTTP 200), không tạo giao dịch trùng |
+| TC-PAY-10 | Cùng key, cùng nội dung | Trả kết quả cũ đã lưu (HTTP 201), không tạo giao dịch trùng |
 | TC-PAY-11 | Cùng key, nội dung khác (`requestHash` lệch) | Từ chối request (`409 Conflict`) |
-| TC-PAY-12 | Nhiều request đồng thời dùng cùng key | Chỉ tạo một giao dịch logic trong CSDL; request thua cuộc nhận kết quả HTTP 200 đã lưu, không bị lỗi 500 |
+| TC-PAY-12 | Nhiều request đồng thời dùng cùng key | Chỉ tạo một giao dịch logic trong CSDL; request thua cuộc nhận kết quả HTTP 201 đã lưu, không bị lỗi 500 |
 | TC-PAY-13 | Thử lại sau thất bại với key mới | Chuyển Order `PAYMENT_FAILED → PENDING`, tạo Payment mới với Idempotency-Key mới, không giới hạn số lần thử |
 | TC-PAY-14 | Gateway timeout | Ghi nhận Payment `FAILED` (`failureReason: "Gateway timeout"`), Order chuyển `PAYMENT_FAILED` |
 | TC-PAY-15 | Thử lại sau khi Gateway timeout với key mới | Chuyển Order `PAYMENT_FAILED → PENDING`, thanh toán thành công chuyển `PAID` |
@@ -39,4 +39,5 @@ Kiểm thử API `POST /api/v1/payments`, hai phương thức `E_WALLET`, `BANK_
 ## 4. Lịch sử thay đổi
 - v1.0 (2026-10-11): Khởi tạo danh mục Test Cases Payment.
 - v1.1 – áp dụng quyết định D1, D8 (ngày 2026-10-16).
+- v1.2 (2026-10-26): Thống nhất mã trạng thái HTTP trả về khi replay Idempotency là HTTP 201 Created (khớp với hành vi mặc định của phương thức POST trong NestJS và mã thành công của lần tạo đầu).
 

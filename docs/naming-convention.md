@@ -18,7 +18,7 @@
 | `POST` | `/api/v1/orders` | Tạo đơn hàng mới (`PENDING`) | 201 Created |
 | `POST` | `/api/v1/orders/:id/cancel` | Hủy đơn hàng (`PENDING`/`PAYMENT_FAILED` → `CANCELLED`) | 200 OK |
 | `GET` | `/api/v1/orders/me` | Lấy lịch sử đơn hàng của người dùng | 200 OK |
-| `POST` | `/api/v1/payments` | Thanh toán đơn hàng (kèm `Idempotency-Key` header) | 200 OK / 201 Created |
+| `POST` | `/api/v1/payments` | Thanh toán đơn hàng (kèm `Idempotency-Key` header) | 201 Created |
 
 ---
 

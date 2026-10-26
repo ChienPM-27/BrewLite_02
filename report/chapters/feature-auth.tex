@@ -112,12 +112,19 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \subsection{Giao diện Người dùng}
 \begin{figure}[htbp]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
+    \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Đăng nhập (\texttt{/login}) và Đăng ký (\texttt{/register})}\\
-        \vspace{2cm}
-    \end{minipage}}
+        \includegraphics[width=\textwidth]{figures/ui-auth-login.png}
+        \caption{Màn hình Đăng nhập}
+        \label{fig:ui-auth-login}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/ui-auth-register.png}
+        \caption{Màn hình Đăng ký tài khoản}
+        \label{fig:ui-auth-register}
+    \end{subfigure}
     \caption{Giao diện Đăng nhập và Đăng ký người dùng}
     \label{fig:ui-auth}
 \end{figure}

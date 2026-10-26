@@ -73,8 +73,8 @@ Theo đặc tả, Task 10 phải có unit/integration test chứng minh các ti�
 
 | Mã | Kịch bản | Loại | Mức | Ưu tiên | Kết quả mong đợi |
 |---|---|---|---|---|---|
-| TS-FR-08-01 | Gửi lại yêu cầu cùng key | Positive | Integration | High | Cùng Idempotency-Key + cùng nội dung (`requestHash`) trả về kết quả đã lưu (HTTP 200). Cùng key khác nội dung trả 409 Conflict (Quyết định D1). |
-| TS-FR-08-02 | Gửi đồng thời cùng key | Concurrency | Integration | High | Request đồng thời cùng key: request thua (lỗi unique) phải trả kết quả đã lưu, KHÔNG được trả 500 (Quyết định D1). |
+| TS-FR-08-01 | Gửi lại yêu cầu cùng key | Positive | Integration | High | Cùng Idempotency-Key + cùng nội dung (`requestHash`) trả về kết quả đã lưu (HTTP 201 Created). Cùng key khác nội dung trả 409 Conflict (Quyết định D1). |
+| TS-FR-08-02 | Gửi đồng thời cùng key | Concurrency | Integration | High | Request đồng thời cùng key: request thua (lỗi unique) phải trả kết quả đã lưu (HTTP 201 Created), KHÔNG được trả 500 (Quyết định D1). |
 | TS-FR-08-03 | Lưu key và trả kết quả nhất quán | Positive | Integration | High | Key được lưu cùng Payment; yêu cầu lặp nhận kết quả giống lần xử lý đầu. |
 | TS-FR-08-04 | Mock payment qua Header X-Mock-Outcome | Positive | Integration | High | Header `X-Mock-Outcome: SUCCESS | FAILED` điều khiển kết quả cổng thanh toán giả lập; mặc định SUCCESS. Backend chỉ đọc header khi `NODE_ENV !== 'production'` (ở production luôn bỏ qua và thành công - Quyết định D8). |
 | TS-FR-08-05 | Gateway timeout được xử lý như FAILED | Negative | Integration | High | Gateway timeout ghi nhận Payment FAILED (failureReason: "Gateway timeout"), đơn chuyển sang PAYMENT_FAILED, giỏ hàng giữ nguyên (Quyết định D1). |

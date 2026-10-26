@@ -10,23 +10,23 @@ Bảng~\ref{tab:implementation-matrix} tổng hợp chi tiết mối liên kết
 \small
 \caption{Ma trận Đối chiếu Thiết kế GD1 \& GD2 sang Mã nguồn thực tế}
 \label{tab:implementation-matrix}
-\begin{tabularx}{\textwidth}{lp{3.5cm}Xp{4cm}}
+\begin{tabularx}{\textwidth}{lp{3.2cm}Xp{4.3cm}}
 \toprule
 \textbf{Phân hệ} & \textbf{Nhiệm vụ GD1 \& GD2} & \textbf{Hiện thực Backend} & \textbf{Hiện thực Frontend} \\
 \midrule
-\textbf{Auth} & Đăng ký tài khoản, Đăng nhập nhận JWT & \texttt{auth.controller.ts}\newline (\texttt{register}, \texttt{login})\newline \texttt{auth.service.ts} & \texttt{useAuth.ts}\newline \texttt{app/login/page.tsx}\newline \texttt{app/register/page.tsx} \\
+\textbf{Auth} & Đăng ký tài khoản, Đăng nhập nhận JWT & \texttt{auth.controller.ts}\newline (\texttt{register}, \texttt{login})\newline \texttt{auth.service.ts} & \texttt{store/useAuthStore.ts}\newline \texttt{services/auth.service.ts}\newline \texttt{app/auth/login/page.tsx}\newline \texttt{app/auth/register/page.tsx} \\
 \midrule
-\textbf{Catalog} & Xem danh mục, Lọc món theo loại, Tìm kiếm & \texttt{products.controller.ts}\newline (\texttt{findAll}, \texttt{findCategories})\newline \texttt{products.service.ts} & \texttt{useProductCatalog.ts}\newline \texttt{app/products/page.tsx} \\
+\textbf{Catalog} & Xem danh mục, Lọc món theo loại, Tìm kiếm & \texttt{products.controller.ts}\newline (\texttt{getProducts})\newline \texttt{products.service.ts} & \texttt{hooks/useProductCatalog.ts}\newline \texttt{services/product.service.ts}\newline \texttt{app/menu/page.tsx} \\
 \midrule
-\textbf{Detail} & Xem chi tiết đồ uống, Chọn size, đường, đá, topping & \texttt{products.controller.ts}\newline (\texttt{findOne}, \texttt{findToppings})\newline \texttt{products.service.ts} & \texttt{useProductDetail.ts}\newline \texttt{app/products/[id]/page.tsx} \\
+\textbf{Detail} & Xem chi tiết đồ uống, Chọn size, đường, đá, topping & \texttt{product-detail.controller.ts}\newline (\texttt{getProductById})\newline \texttt{product-detail.service.ts} & \texttt{hooks/useProductDetail.ts}\newline \texttt{services/product.service.ts}\newline \texttt{app/products/[id]/page.tsx} \\
 \midrule
-\textbf{Cart} & Quản lý giỏ hàng cục bộ, Thêm/sửa/xóa, Tạm tính & \textit{(FE-Only State Management)} & \texttt{useCart.ts}\newline \texttt{app/cart/page.tsx} \\
+\textbf{Cart} & Quản lý giỏ hàng cục bộ, Thêm/sửa/xóa, Tạm tính & \textit{(FE-Only State Management)} & \texttt{store/useCartStore.ts}\newline \texttt{app/cart/page.tsx} \\
 \midrule
-\textbf{Order} & Tạo đơn hàng, Kiểm tra tồn kho, Tính giá, Áp voucher & \texttt{orders.controller.ts}\newline (\texttt{createOrder})\newline \texttt{orders.service.ts}\newline \texttt{pricing.service.ts}\newline \texttt{promotions.service.ts} & \texttt{useCheckout.ts}\newline \texttt{app/checkout/page.tsx} \\
+\textbf{Order} & Tạo đơn hàng, Kiểm tra tồn kho, Tính giá, Áp voucher, Hủy đơn & \texttt{orders.module.ts} (\texttt{OrdersController.create})\newline \texttt{orders.service.ts} (\texttt{create})\newline \texttt{pricing.service.ts}\newline \texttt{promotions.service.ts}\newline \texttt{cancel-order.controller.ts} & \texttt{services/order.service.ts}\newline \texttt{store/useCartStore.ts}\newline \texttt{app/checkout/page.tsx} \\
 \midrule
-\textbf{Payment} & Thanh toán an toàn, Xử lý Idempotency, Gọi Gateway & \texttt{payments.controller.ts}\newline (\texttt{processPayment})\newline \texttt{payments.service.ts} & \texttt{usePayment.ts}\newline \texttt{app/payment/[id]/page.tsx} \\
+\textbf{Payment} & Thanh toán an toàn, Xử lý Idempotency, Gọi Gateway & \texttt{payments.controller.ts}\newline (\texttt{createPayment})\newline \texttt{payments.service.ts}\newline \texttt{mock-gateway.service.ts} & \texttt{services/payment.service.ts}\newline \texttt{app/checkout/payment/page.tsx}\newline \texttt{MockGatewayModal.tsx} \\
 \midrule
-\textbf{History} & Tra cứu danh sách đơn hàng và trạng thái & \texttt{orders.controller.ts}\newline (\texttt{findUserOrders})\newline \texttt{orders.service.ts} & \texttt{useOrderHistory.ts}\newline \texttt{app/orders/page.tsx} \\
+\textbf{History} & Tra cứu danh sách đơn hàng và trạng thái & \texttt{history.controller.ts}\newline (\texttt{findAll}, \texttt{findOne})\newline \texttt{history.service.ts} & \texttt{services/order.service.ts}\newline \texttt{app/orders/page.tsx}\newline \texttt{app/orders/[id]/page.tsx} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -55,42 +55,66 @@ return result;
 \subsection{Interactive Transaction và Khóa Lạc quan trong OrdersService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/orders/orders.service.ts
-return await this.prisma.$transaction(async (tx) => {
-  for (const item of dto.items) {
-    const product = await tx.product.findUnique({ where: { id: item.productId } });
-    if (!product || product.stock < item.quantity) {
-      throw new BadRequestException(`San pham ${product?.name} khong du ton kho`);
-    }
-
-    const updated = await tx.product.updateMany({
-      where: { id: item.productId, version: product.version },
-      data: {
-        stock: { decrement: item.quantity },
-        version: { increment: 1 },
-      },
-    });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Xung dot ton kho, vui long thu lai');
-    }
+// Product: optimistic locking theo version va ton kho trong tx
+for (const [productId, quantity] of productQuantities) {
+  const product = productById.get(productId);
+  if (!product) {
+    throw new BadRequestException(`Product ${productId} is unavailable.`);
   }
-  // Tiep tuc tao Order va OrderItems trong cung transaction...
-});
+
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      isAvailable: true,
+      version: product.version,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: { decrement: quantity },
+      version: { increment: 1 },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new BadRequestException(
+      `Insufficient stock or concurrent update for product ${productId}.`,
+    );
+  }
+}
 \end{lstlisting}
 
-\subsection{Kiểm tra Bất biến Idempotency trong PaymentsService}
+\subsection{Kiểm tra Bất biến Idempotency và Xử lý Tranh chấp trong PaymentsService}
 \begin{lstlisting}[language=Java]
 // backend/src/modules/payments/payments.service.ts
-const existing = await this.prisma.payment.findUnique({
-  where: { idempotencyKey: key },
-});
+// 1. Tinh requestHash tren { orderId, method }
+const requestHash = createHash('sha256')
+  .update(JSON.stringify({ orderId: body.orderId, method: body.method }))
+  .digest('hex');
 
-if (existing) {
-  if (existing.status === PaymentStatus.SUCCESS) {
-    return existing; // Tra ve ngay ket qua da xu ly
+// 2. Kiem tra key da ton tai: phat lai ket qua da luu (replay)
+const existingPayment = await this.prisma.payment.findUnique({
+  where: { idempotencyKey: normalizedKey },
+  include: { order: true },
+});
+if (existingPayment) {
+  return this.replayExistingPayment(existingPayment, userId, requestHash);
+}
+
+// 3. Bat tranh chap dong thoi (Race Condition P2002) de replay an toan
+try {
+  return await this.prisma.$transaction(async (tx) => {
+    // Tao payment voi unique idempotencyKey va requestHash...
+  });
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const paymentAfterRace = await this.prisma.payment.findUnique({
+      where: { idempotencyKey: normalizedKey },
+      include: { order: true },
+    });
+    if (paymentAfterRace) {
+      return this.replayExistingPayment(paymentAfterRace, userId, requestHash);
+    }
   }
-  if (existing.status === PaymentStatus.PENDING) {
-    throw new ConflictException('Giao dich dang duoc xu ly, vui long cho');
-  }
+  throw error;
 }
 \end{lstlisting}

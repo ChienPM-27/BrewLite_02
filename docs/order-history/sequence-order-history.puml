@@ -1,148 +1,111 @@
 @startuml sequence-order-history
-title Sequence Diagram - Lịch Sử Đơn Hàng & Chi Tiết Đơn (Order History)
+title Sơ Đồ Tuần Tự - Tra Cứu Lịch Sử Đơn Hàng & Chi Tiết (Order History)
 autonumber
+skinparam maxMessageSize 110
+skinparam ParticipantPadding 4
+skinparam BoxPadding 6
+skinparam defaultFontSize 11
+skinparam NoteFontSize 10
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam roundcorner 6
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
 
-actor "Khách hàng (User)" as User
+actor "Khách hàng" as User
 box "Frontend (Next.js)" #F9F9F9
-    participant "Page: OrdersHistoryPage\n(app/orders/page.tsx)" as ListPage
-    participant "Page: OrderDetailPage\n(app/orders/[id]/page.tsx)" as DetailPage
-    participant "Client: order.service.ts\n(services/order.service.ts)" as ClientService
+    participant "HistoryUI" as UI
+    participant "order.service" as ClientService
 end box
 
 box "Backend (NestJS)" #F0F7FF
-    participant "Guard: JwtAuthGuard\n(modules/auth/guards/jwt-auth.guard.ts)" as Guard
-    participant "Controller: HistoryController\n(modules/orders/history/history.controller.ts)" as Controller
-    participant "Service: HistoryService\n(modules/orders/history/history.service.ts)" as Service
-    participant "Controller: CancelOrderController\n(modules/orders/cancel/...)" as CancelController
-    participant "Service: CancelOrderService\n(modules/orders/cancel/...)" as CancelService
-    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+    participant "JwtAuthGuard" as Guard
+    participant "OrdersController" as Controller
+    participant "OrdersService" as Service
+    participant "Prisma DB" as DB
 end box
 
 == Luồng 1: Xem danh sách lịch sử đơn hàng (/orders) ==
-User -> ListPage: Truy cập trang Lịch sử đơn hàng
-activate ListPage
-ListPage -> ClientService: getOrderHistory({ page: 1, limit: 20, status?: ... })
+User -> UI: Truy cập trang Lịch sử đơn hàng
+activate UI
+UI -> ClientService: getOrderHistory({ page: 1, limit: 20 })
 activate ClientService
 
-ClientService -> Guard: GET /api/v1/orders/me?page=1&limit=20\nHeaders: Authorization: Bearer <JWT>
+ClientService -> Guard: GET /api/v1/orders/me (Bearer JWT)
 activate Guard
 
 alt Token không hợp lệ
     Guard --> ClientService: 401 Unauthorized
-    ClientService --> ListPage: Ném ApiError(401)
-    ListPage --> User: Chuyển hướng sang /auth/login
-else Token hợp lệ (req.user = { sub: userId })
-    Guard -> Controller: Chuyển tiếp Request kèm req.user
+    ClientService --> UI: Ném lỗi 401
+    UI --> User: Chuyển hướng sang /auth/login
+else Token hợp lệ
+    Guard -> Controller: Chuyển tiếp Request (userId = req.user.sub)
     deactivate Guard
     activate Controller
 
-    Controller -> Service: findAll(userId, query)
+    Controller -> Service: getOrderHistory(userId, query)
     activate Service
 
-    Service -> DB: Promise.all([\n  prisma.order.count({ where: { userId, status? } }),\n  prisma.order.findMany({ where, orderBy: [createdAt desc, id desc], skip, take, select })\n])
+    Service -> DB: prisma.order.findMany({\n  where: { userId },\n  orderBy: { createdAt: 'desc' }, skip, take\n})
     activate DB
-    DB --> Service: [totalCount, ordersList]
+    DB --> Service: [ordersList, totalCount]
     deactivate DB
 
-    Service -> Service: Map dữ liệu: tính itemCount = sum(quantity) từng đơn\nTính toán thông tin phân trang pagination
-    Service --> Controller: OrderHistoryResult
+    Service -> Service: Map dữ liệu: tính itemCount = sum(quantity),\nđịnh dạng ngày giờ, tính phân trang
+    Service --> Controller: PaginatedOrderResponseDto
     deactivate Service
-
-    Controller --> ClientService: 200 OK: {\n  success: true,\n  statusCode: 200,\n  data: { items: OrderSummaryItem[], pagination: {...} }\n}
+    Controller --> ClientService: 200 OK: { data: orders, pagination: {...} }
     deactivate Controller
-
-    ClientService --> ListPage: OrderHistoryResponse
+    ClientService --> UI: Danh sách đơn hàng
     deactivate ClientService
-
-    alt Danh sách đơn trống (items.length === 0)
-        ListPage --> User: Hiển thị giao diện "Bạn chưa có đơn hàng nào" kèm link đặt hàng
-    else Có đơn hàng
-        ListPage --> User: Render danh sách đơn (Mã đơn, Ngày tạo, Số món, Tổng tiền, Trạng thái)
-    end
+    UI --> User: Hiển thị thẻ đơn hàng (mã đơn, ngày giờ, số món, trạng thái)
 end
-deactivate ListPage
 
-== Luồng 2: Xem chi tiết một đơn hàng (/orders/:id) ==
-User -> DetailPage: Bấm vào 1 đơn hàng để xem chi tiết
-activate DetailPage
-DetailPage -> ClientService: getOrderById(orderId)
+== Luồng 2: Xem chi tiết hóa đơn đơn hàng ==
+User -> UI: Nhấp "Xem chi tiết" một đơn hàng
+UI -> ClientService: getOrderDetail(orderId)
 activate ClientService
-
-ClientService -> Guard: GET /api/v1/orders/:id\nHeaders: Authorization: Bearer <JWT>
+ClientService -> Guard: GET /api/v1/orders/:id (Bearer JWT)
 activate Guard
-Guard -> Controller: GET /api/v1/orders/:id (req.user.sub)
+Guard -> Controller: Chuyển tiếp Request
 deactivate Guard
 activate Controller
-
-Controller -> Service: findOne(userId, orderId)
+Controller -> Service: findOne(orderId, userId)
 activate Service
-
-Service -> DB: prisma.order.findFirst({\n  where: { id: orderId, userId },\n  select: { id, orderNumber, status, items, toppings, payments, ... }\n})
+Service -> DB: prisma.order.findFirst({\n  where: { id: orderId, userId },\n  include: { items: { include: { toppings: true } }, payments: true }\n})
 activate DB
-DB --> Service: orderRecord (hoặc null)
+DB --> Service: Chi tiết Order Entity
 deactivate DB
+Service --> Controller: OrderDetailResponseDto
+deactivate Service
+Controller --> ClientService: 200 OK: Dữ liệu chi tiết hóa đơn
+deactivate Controller
+ClientService --> UI: Dữ liệu chi tiết
+deactivate ClientService
+UI --> User: Mở Modal hiển thị hóa đơn (danh sách món, size, topping, thanh toán)
 
-alt Không tìm thấy đơn hoặc không đúng user sở hữu (!order)
-    Service --> Controller: throw NotFoundException('Không tìm thấy đơn hàng')
-    Controller --> ClientService: 404 Not Found
-    ClientService --> DetailPage: Ném ApiError(404)
-    DetailPage --> User: Hiển thị thông báo "Không tìm thấy đơn hàng"
-else Tìm thấy đơn hàng của chính user
-    Service -> Service: Làm phẳng cấu trúc items và toppings trả về DTO
-    Service --> Controller: OrderDetail
-    deactivate Service
-
-    Controller --> ClientService: 200 OK: {\n  success: true,\n  statusCode: 200,\n  data: OrderDetail\n}
-    deactivate Controller
-
-    ClientService --> DetailPage: OrderDetail
-    deactivate ClientService
-
-    DetailPage --> User: Hiển thị chi tiết: Danh sách ly đã đặt, Topping, Giảm giá, Tiền thanh toán, Lịch sử giao dịch
-end
-
-== Luồng 3: Hủy đơn hàng từ trang chi tiết (Khi đơn PENDING/PAYMENT_FAILED) ==
-opt Khách hàng nhấn nút "Hủy đơn hàng"
-    User -> DetailPage: Nhấn "Hủy đơn"
-    DetailPage -> ClientService: cancelOrder(orderId)
+== Luồng 3: Hủy đơn hàng PENDING ==
+opt Khách hàng muốn hủy đơn PENDING
+    User -> UI: Nhấn "Hủy đơn" trên thẻ đơn hàng
+    UI -> ClientService: cancelOrder(orderId)
     activate ClientService
-
-    ClientService -> CancelController: POST /api/v1/orders/:id/cancel\nHeaders: Authorization: Bearer <JWT>
-    activate CancelController
-
-    CancelController -> CancelService: cancel(orderId, userId)
-    activate CancelService
-
-    CancelService -> DB: prisma.$transaction(async (tx) => { ... })
+    ClientService -> Guard: POST /api/v1/orders/:id/cancel
+    activate Guard
+    Guard -> Controller: Chuyển tiếp Request
+    deactivate Guard
+    activate Controller
+    Controller -> Service: cancel(orderId, userId)
+    activate Service
+    Service -> DB: Bắt đầu $transaction: Đổi trạng thái sang CANCELLED,\nhoàn trả tồn kho (Optimistic Lock)
     activate DB
-    DB -> DB: Kiểm tra order.status in ['PENDING', 'PAYMENT_FAILED']
-    alt Trạng thái đơn không cho phép hủy (ví dụ: đã PAID hoặc COMPLETED)
-        DB --> CancelService: Trạng thái không hợp lệ
-        CancelService --> CancelController: throw ConflictException('Invalid order status transition...')
-        CancelController --> ClientService: 409 Conflict
-        ClientService --> DetailPage: Báo lỗi "Không thể hủy đơn hàng ở trạng thái hiện tại"
-    else Được phép hủy
-        DB -> DB: Hoàn trả số lượng tồn kho (Restock Product & Topping)\nCập nhật order.status = 'CANCELLED'\nGhi log OrderStatusLog (fromStatus -> CANCELLED)
-        DB --> CancelService: Order cancelled
-        deactivate DB
-
-        CancelService --> CancelController: { id, orderNumber, status: 'CANCELLED' }
-        deactivate CancelService
-
-        CancelController --> ClientService: 200 OK: { success: true, data: { status: 'CANCELLED' } }
-        deactivate CancelController
-
-        ClientService --> DetailPage: Cập nhật trạng thái
-        deactivate ClientService
-
-        DetailPage --> User: Hiển thị Badge "ĐÃ HỦY" và cập nhật giao diện
-    end
+    DB --> Service: Transaction thành công
+    deactivate DB
+    Service --> Controller: OrderResponseDto
+    deactivate Service
+    Controller --> ClientService: 200 OK
+    deactivate Controller
+    ClientService --> UI: Thông báo hủy thành công
+    deactivate ClientService
+    UI --> User: Cập nhật badge sang CANCELLED, hiển thị Toast thông báo
 end
-deactivate DetailPage
+deactivate UI
 
 @enduml

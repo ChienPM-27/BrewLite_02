@@ -1,19 +1,31 @@
-@startuml
-left to right direction
-skinparam Maincolor #0052cc
-skinparam Backgroundcolor transparent
+@startuml usecase-cart
+title Sơ Đồ Use Case - Phân Hệ Giỏ Hàng (Cart Module)
+
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontSize 11
+skinparam nodesep 14
+skinparam ranksep 16
+
+skinparam actor {
+    BackgroundColor white
+    BorderColor black
+}
+skinparam usecase {
+    BackgroundColor white
+    BorderColor black
+}
 
 actor "Khách hàng" as Client
 
-rectangle "Phân hệ Giỏ hàng (Cart State & Checkout)" {
-  usecase "Xem Giỏ hàng" as UC_View
-  usecase "Cập nhật Số lượng / Xóa món" as UC_Edit
-  usecase "Tự động tính Tổng tiền & Badge" as UC_Calc
-  
-  usecase "Tiến hành Đặt hàng (Checkout)" as UC_Checkout
-  usecase "Xác thực Đăng nhập (JWT Auth)" as UC_Auth
-  usecase "Kiểm tra Tồn kho & Đơn giá" as UC_Validate
-  usecase "Cảnh báo Lỗi (Hết hàng / Lệch giá)" as UC_Error
+rectangle "Phân Hệ Giỏ Hàng (BrewLite Cart)" {
+    usecase "Xem giỏ hàng" as UC_View
+    usecase "Cập nhật số lượng / Xóa món" as UC_Edit
+    usecase "Tự động tính tổng tiền & badge" as UC_Calc
+    usecase "Tiến hành đặt hàng (Checkout)" as UC_Checkout
+    usecase "Xác thực đăng nhập (JWT)" as UC_Auth
+    usecase "Kiểm tra tồn kho & đơn giá" as UC_Validate
 }
 
 Client --> UC_View
@@ -22,11 +34,11 @@ Client --> UC_Checkout
 
 UC_Edit ..> UC_Calc : <<include>>
 UC_View ..> UC_Calc : <<include>>
-
-UC_Checkout ..> UC_Validate : <<include>>
 UC_Checkout ..> UC_Auth : <<include>>
+UC_Checkout ..> UC_Validate : <<include>>
 
-UC_Error ..> UC_Checkout : <<extend>>
-note bottom of UC_Error : Kích hoạt khi DB báo hết tồn kho,\nngưng bán hoặc dữ liệu request không hợp lệ
-
+UC_View -[hidden]down-> UC_Edit
+UC_Edit -[hidden]down-> UC_Checkout
+UC_Calc -[hidden]down-> UC_Auth
+UC_Auth -[hidden]down-> UC_Validate
 @enduml

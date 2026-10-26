@@ -1,160 +1,87 @@
 @startuml sequence-payment
-title Sequence Diagram - Thanh Toán Không Tiền Mặt & Cơ Chế Idempotency (Payment)
+title Sơ Đồ Tuần Tự - Thanh Toán & Cơ Chế Idempotency (Payment Processing)
 autonumber
+skinparam maxMessageSize 110
+skinparam ParticipantPadding 4
+skinparam BoxPadding 6
+skinparam defaultFontSize 11
+skinparam NoteFontSize 10
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam roundcorner 6
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
 
-actor "Khách hàng (User)" as User
-box "Frontend (Next.js)" #F9F9F9
-    participant "Page: PaymentPage\n(app/checkout/payment/page.tsx)" as Page
-    participant "Zustand: useCartStore\n(store/useCartStore.ts)" as CartStore
-    participant "Client: payment.service.ts\n(services/payment.service.ts)" as ClientService
+actor "Khách hàng" as User
+box "Frontend (Next.js & Zustand)" #F9F9F9
+    participant "PaymentPage" as Page
+    participant "useCartStore" as CartStore
+    participant "payment.service" as ClientService
 end box
 
 box "Backend (NestJS)" #F0F7FF
-    participant "Guard: JwtAuthGuard\n(modules/auth/guards/jwt-auth.guard.ts)" as Guard
-    participant "Controller: PaymentsController\n(modules/payments/payments.controller.ts)" as Controller
-    participant "Service: PaymentsService\n(modules/payments/payments.service.ts)" as Service
-    participant "Order: OrderService\n(modules/orders/order.service.ts)" as OrderService
-    participant "Loyalty: LoyaltyService\n(modules/loyalty/loyalty.service.ts)" as LoyaltyService
-    participant "Gateway: MockGatewayService\n(modules/payments/mock-gateway.service.ts)" as MockGateway
-    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+    participant "JwtAuthGuard" as Guard
+    participant "PaymentsController" as Controller
+    participant "PaymentsService" as Service
+    participant "MockGateway" as Gateway
+    participant "Prisma DB" as DB
 end box
 
-User -> Page: Chọn phương thức (Ví / Thẻ) & nhấn "Xác nhận thanh toán"
+User -> Page: Chọn phương thức (Ví/Thẻ) & nhấn "Thanh toán"
 activate Page
-Page -> Page: handlePay()\nSinh idempotencyKey (nếu chưa có trong ref)
+Page -> Page: Sinh idempotencyKey (UUIDv4)
 Page -> ClientService: createPayment({ orderId, method }, idempotencyKey)
 activate ClientService
 
-ClientService -> Guard: POST /api/v1/payments\nHeaders: Authorization, Idempotency-Key\nBody: { orderId, method }
+ClientService -> Guard: POST /api/v1/payments (Headers: Idempotency-Key, Bearer Token)
 activate Guard
 
 alt Token không hợp lệ
     Guard --> ClientService: 401 Unauthorized
-    ClientService --> Page: Ném ApiError(401)
+    ClientService --> Page: Ném lỗi 401
     Page --> User: Yêu cầu đăng nhập lại
-else Token hợp lệ (req.user = { sub: userId })
-    Guard -> Controller: Chuyển tiếp Request
+else Token hợp lệ
+    Guard -> Controller: Chuyển tiếp Request (userId = req.user.sub)
     deactivate Guard
     activate Controller
 
-    Controller -> Service: createPayment(userId, idempotencyKey, body, mockOutcome)
+    Controller -> Service: createPayment(userId, idempotencyKey, dto)
     activate Service
 
-    Service -> Service: requestHash = sha256({ orderId, method })
     Service -> DB: prisma.payment.findUnique({ where: { idempotencyKey } })
     activate DB
-    DB --> Service: existingPayment (nếu có)
+    DB --> Service: Kết quả tìm kiếm
     deactivate DB
 
-    alt Idempotency: Khóa này đã tồn tại trong CSDL (Gửi lại request)
-        alt Sai chủ sở hữu đơn hàng (payment.order.userId !== userId)
-            Service --> Controller: throw NotFoundException('Không tìm thấy đơn hàng')
-            Controller --> ClientService: 404 Not Found
-        else Trùng Key nhưng khác tham số Body (payment.requestHash !== requestHash)
-            Service --> Controller: throw ConflictException('Idempotency-Key đã được sử dụng với nội dung khác')
-            Controller --> ClientService: 409 Conflict
-        else Trùng Key và trùng khớp Body (Idempotent Replay)
-            Service --> Controller: toPaymentResponse(existingPayment)
-            Controller --> ClientService: 200 OK: Trả lại kết quả thanh toán trước đó
-            ClientService --> Page: PaymentResponse
-            Page --> User: Điều hướng về màn hình xác nhận đơn /orders/:id?paid=1
-        end
-
-    else Khóa mới hoàn toàn (Chưa từng thanh toán)
-        Service -> DB: prisma.$transaction(async (tx) => { ... })
+    alt Đã tồn tại giao dịch thành công với Idempotency-Key này (Request lặp)
+        Service --> Controller: Trả về kết quả giao dịch cũ đã lưu (Cached Response)
+        Controller --> ClientService: 200 OK: PaymentResponseDto
+        ClientService --> Page: Dữ liệu thanh toán thành công
+        Page -> CartStore: clearCart(), clearPendingOrderId()
+        Page --> User: Hiển thị hóa đơn thanh toán thành công
+    else Giao dịch mới (Idempotency hợp lệ)
+        Service -> DB: Kiểm tra Order: status === PENDING & userId hợp lệ
         activate DB
+        DB --> Service: Thông tin đơn hàng & số tiền
+        deactivate DB
 
-        DB -> DB: tx.order.findUnique({ where: { id: orderId } })
-        alt Không tìm thấy đơn hoặc không đúng user sở hữu
-            DB --> Service: order === null || order.userId !== userId
-            Service --> Controller: throw NotFoundException('Không tìm thấy đơn hàng')
-            Controller --> ClientService: 404 Not Found
-        else Trạng thái đơn không phải PENDING hoặc PAYMENT_FAILED (ví dụ: đã PAID hoặc CANCELLED)
-            Service --> Controller: throw ConflictException('Trạng thái đơn hàng không cho phép thanh toán')
-            Controller --> ClientService: 409 Conflict
-        else Đơn hàng hợp lệ để thanh toán
-            opt Đơn hàng đang ở trạng thái PAYMENT_FAILED (Khách thử lại)
-                Service -> OrderService: transition(tx, order.id, OrderStatus.PENDING, reason: 'Khách hàng thử lại')
-                activate OrderService
-                OrderService -> DB: tx.order.update(status: PENDING) & log
-                OrderService --> Service: Transition success
-                deactivate OrderService
-            end
+        Service -> Gateway: processPayment(orderId, amount, method)
+        activate Gateway
+        Gateway --> Service: { success: true, transactionId, code: "00" }
+        deactivate Gateway
 
-            Service -> MockGateway: processPayment(mockOutcome)
-            activate MockGateway
-            MockGateway --> Service: outcome ('SUCCESS' | 'FAILED')
-            deactivate MockGateway
+        Service -> DB: Bắt đầu $transaction: Cập nhật Payment SUCCESS, đổi Order sang PAID, cộng điểm Loyalty
+        activate DB
+        DB --> Service: Commit Transaction thành công
+        deactivate DB
 
-            Service -> DB: tx.payment.create({\n  data: { orderId, idempotencyKey, requestHash, amount, method, status: PENDING }\n})
+        Service --> Controller: PaymentResponseDto
+        deactivate Service
+        Controller --> ClientService: 201 Created: { success: true, data: payment }
+        deactivate Controller
+        ClientService --> Page: Kết quả thanh toán
+        deactivate ClientService
 
-            alt Cổng thanh toán báo THÀNH CÔNG (outcome === 'SUCCESS')
-                Service -> OrderService: transition(tx, order.id, OrderStatus.PAID, reason: 'Thanh toán thành công')
-                activate OrderService
-                OrderService -> DB: tx.order.update(status: PAID, paidAt: now) & log
-                OrderService --> Service: Transition to PAID
-                deactivate OrderService
-
-                Service -> LoyaltyService: award(tx, { id, userId, finalAmount })
-                activate LoyaltyService
-                LoyaltyService -> DB: tx.user.update(loyaltyPoints: increment)
-                LoyaltyService --> Service: Points awarded
-                deactivate LoyaltyService
-
-                Service -> DB: tx.payment.update({\n  where: { id: payment.id },\n  data: { status: SUCCESS, transactionRef: 'MOCK-...' }\n})
-                DB --> Service: updatedPayment
-                deactivate DB
-
-                Service --> Controller: toPaymentResponse(updatedPayment)
-                deactivate Service
-
-                Controller --> ClientService: 201 Created: {\n  success: true,\n  statusCode: 201,\n  data: PaymentResponse\n}
-                deactivate Controller
-
-                ClientService --> Page: PaymentResponse (SUCCESS)
-                deactivate ClientService
-
-                Page -> CartStore: clearCart()
-                activate CartStore
-                CartStore -> CartStore: Xóa sạch items khỏi giỏ hàng
-                CartStore --> Page: Cart cleared
-                deactivate CartStore
-
-                Page --> User: router.replace(`/orders/${order.id}?paid=1`)\n(Hiển thị màn hình Chúc mừng đặt hàng thành công)
-
-            else Cổng thanh toán báo THẤT BẠI (outcome === 'FAILED')
-                activate Service
-                activate DB
-                Service -> OrderService: transition(tx, order.id, OrderStatus.PAYMENT_FAILED, reason: 'Thanh toán thất bại')
-                activate OrderService
-                OrderService -> DB: tx.order.update(status: PAYMENT_FAILED) & log
-                OrderService --> Service: Transition to PAYMENT_FAILED
-                deactivate OrderService
-
-                Service -> DB: tx.payment.update({\n  where: { id: payment.id },\n  data: { status: FAILED, failureReason: 'Mock payment failed' }\n})
-                DB --> Service: updatedPayment
-                deactivate DB
-
-                Service --> Controller: toPaymentResponse(updatedPayment)
-                deactivate Service
-                activate Controller
-
-                Controller --> ClientService: 201 Created / 200 OK: {\n  data: { status: 'FAILED', failureReason: '...' }\n}
-                deactivate Controller
-                activate ClientService
-
-                ClientService --> Page: PaymentResponse (FAILED)
-                deactivate ClientService
-
-                Page -> Page: idempotencyKeyRef.current = null\n(Chuẩn bị key mới cho lần thử sau)
-                Page --> User: Hiển thị banner lỗi giao dịch, GIỮ NGUYÊN GIỎ HÀNG để khách thử lại
-            end
-        end
+        Page -> CartStore: clearCart(), clearPendingOrderId()
+        Page --> User: Chuyển sang màn hình xác nhận thanh toán & chi tiết hóa đơn
     end
 end
 deactivate Page

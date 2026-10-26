@@ -11,7 +11,7 @@ Hệ thống đặt cà phê trực tuyến \textbf{BrewLite} được nghiên c
 Mục tiêu cốt lõi của đề tài bao gồm:
 \begin{itemize}
     \item \textbf{Trải nghiệm người dùng mượt mà:} Khách hàng có thể tương tác trực quan với thực đơn, phân loại theo danh mục, tùy biến linh hoạt các thông số đồ uống trước khi thêm vào giỏ hàng.
-    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và đổi điểm thành viên thân thiết (loyalty points).
+    \item \textbf{Tính toán chi phí minh bạch:} Tích hợp bộ máy tính giá tự động bao gồm phụ thu theo size/topping, áp dụng mã giảm giá (voucher) và tích lũy điểm thưởng thành viên thân thiết (Loyalty Points) sau khi hoàn tất thanh toán.
     \item \textbf{Độ tin cậy và an toàn giao dịch:} Đảm bảo tính toán vẹn dữ liệu trong môi trường đa người dùng thông qua cơ chế kiểm soát đồng thời (Optimistic Locking) cho tồn kho sản phẩm và cơ chế xử lý thanh toán bất biến/trùng lặp (Idempotent Payment).
 \end{itemize}
 
@@ -23,7 +23,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
     \item \textbf{Phân hệ Danh mục sản phẩm (Product Catalog):} Hiển thị danh sách sản phẩm phân nhóm theo danh mục (Cà phê, Trà...), lọc món còn hàng và tìm kiếm.
     \item \textbf{Phân hệ Chi tiết sản phẩm (Product Detail):} Xem thông tin mô tả chi tiết, hình ảnh, đơn giá và cho phép lựa chọn size, mức đường, mức đá cùng danh sách topping đi kèm.
     \item \textbf{Phân hệ Giỏ hàng (Cart):} Quản lý các món đã chọn ở phía trình duyệt (Client-side), cập nhật số lượng, chỉnh sửa tùy chọn và tạm tính giá trị đơn hàng.
-    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, quy đổi điểm tích lũy và chuyển đổi trạng thái đơn hàng.
+    \item \textbf{Phân hệ Đặt hàng (Order):} Tạo đơn hàng chính thức từ giỏ hàng, kiểm tra tính khả dụng của tồn kho, áp dụng mã ưu đãi \texttt{WELCOME10}, tự động tính điểm tích lũy dự kiến và chuyển đổi trạng thái đơn hàng.
     \item \textbf{Phân hệ Thanh toán (Payment):} Khởi tạo giao dịch thanh toán trực tuyến qua cổng giả lập (Mock Payment Gateway), xử lý bảo mật chống trùng lặp với \texttt{Idempotency-Key}.
     \item \textbf{Phân hệ Lịch sử đơn hàng (Order History):} Tra cứu danh sách các đơn hàng đã thực hiện, xem chi tiết từng đơn hàng và trạng thái thanh toán/xử lý.
 \end{enumerate}
@@ -31,6 +31,7 @@ Trong khuôn khổ đồ án môn học Công nghệ Phần mềm, hệ thống 
 \paragraph{Giới hạn phạm vi (Out-of-Scope trong MVP):}
 Để đảm bảo tiến độ và chất lượng cho các nghiệp vụ trọng tâm của khách hàng:
 \begin{itemize}
+    \item \textbf{Đổi điểm thưởng trừ tiền (Redeem Loyalty Points):} Hệ thống đã hiện thực trọn vẹn cơ chế tự động tích lũy điểm thưởng (\textit{Earn Points}) cho khách hàng sau khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)) và thiết kế sẵn sàng cấu trúc dữ liệu cho việc chi tiêu/hoàn điểm (\texttt{LoyaltyTransactionType.SPENT}, \texttt{REFUNDED}). Tuy nhiên, tính năng cho phép nhập điểm để trừ trực tiếp vào giá trị đơn hàng mới (\textit{Redeem Points}) được phân loại vào phạm vi mở rộng sau MVP (Post-MVP Backlog) để đảm bảo an toàn tuyệt đối cho luồng thanh toán và nghiệp vụ hoàn điểm khi hủy đơn.
     \item \textbf{Giao diện Pha chế (Barista Web UI):} Mặc dù hệ thống đã hiện thực toàn diện Máy trạng thái đơn hàng (Order State Machine) với đầy đủ 9 chuyển tiếp nghiệp vụ (bao gồm các trạng thái \texttt{PREPARING}, \texttt{READY}, \texttt{COMPLETED}), giao diện web chuyên dụng dành riêng cho nhân viên pha chế tại quầy chưa nằm trong phạm vi giao diện của bản phát hành MVP này.
     \item \textbf{Quản trị viên nâng cao (Advanced Admin Portal):} Hệ thống tập trung vào trải nghiệm đặt hàng của khách hàng (B2C); các chức năng quản trị kho nâng cao và báo cáo doanh thu sẽ được triển khai ở pha tiếp theo.
 \end{itemize}
@@ -64,30 +65,39 @@ Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiệ
 \end{table}
 
 \section{Quy trình phát triển phần mềm}
-Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum}. Quy trình được tổ chức thành các chu kỳ lặp (Sprint) kéo dài 2 tuần:
+Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum tinh gọn (Lean Agile)}. Quy trình được tổ chức thành các chu kỳ phát triển linh hoạt theo từng giai đoạn thực tế của dự án:
 \begin{itemize}
-    \item \textbf{Sprint Planning:} Nhóm họp định kỳ đầu mỗi sprint để phân tích Product Backlog, làm rõ User Story, ước lượng điểm công việc (Story Points) và cam kết phạm vi cho Sprint Backlog.
-    \item \textbf{Daily Scrum:} Các thành viên đồng bộ tiến độ hàng ngày, báo cáo các công việc đã hoàn thành, công việc dự kiến và các trở ngại kỹ thuật (blockers).
-    \item \textbf{Sprint Review:} Trình diễn các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (Definition of Done) trước toàn nhóm.
-    \item \textbf{Sprint Retrospective:} Đánh giá những điểm làm tốt, các tồn tại về mặt quy trình và kỹ thuật, từ đó đề ra các hành động cải tiến cụ thể cho sprint tiếp theo.
+    \item \textbf{Sprint Planning:} Nhóm họp đầu mỗi giai đoạn để phân tích Product Backlog, làm rõ User Story, phân rã yêu cầu thành danh mục công việc cụ thể (Task Backlog) theo lát cắt dọc (\textit{Vertical Slice}), thống nhất các quyết định kỹ thuật cốt lõi (D1--D9) và cam kết phạm vi bàn giao thay vì ước lượng bằng Story Points trừu tượng.
+    \item \textbf{Daily Scrum / Sync:} Các thành viên đồng bộ tiến độ thường xuyên, cập nhật trạng thái các task (TODO, IN PROGRESS, DONE) trên bảng quản lý công việc, rà soát mã nguồn (Code Review qua Pull Request) và tháo gỡ kịp thời các trở ngại kỹ thuật (blockers).
+    \item \textbf{Sprint Review:} Nghiệm thu và kiểm thử các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (\textit{Definition of Done}: vượt qua bộ kiểm thử tự động, tích hợp hoàn chỉnh và triển khai thực tế trên môi trường live).
+    \item \textbf{Sprint Retrospective:} Đánh giá hiệu quả phối hợp, rút kinh nghiệm về thiết kế API, tính toàn vẹn dữ liệu đồng thời và đề ra các giải pháp cải tiến quy trình kỹ thuật cho giai đoạn tiếp theo.
 \end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\begin{minipage}{0.9\textwidth}
-    \begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
-        \begin{itemize}[leftmargin=1.5cm]
-            \item \textbf{Phân công vai trò:} \todo{Ghi rõ Product Owner (PO): ..., Scrum Master (SM): ...}
-            \item \textbf{Thời gian chu kỳ Sprint:}
-            \begin{itemize}
-                \item Sprint 1 (Giai đoạn 1): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-                \item Sprint 2 (Giai đoạn 2): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-            \end{itemize}
-            \item \textbf{Số liệu Burndown \& Velocity:} \todo{Điền tổng số Story Points cam kết vs hoàn thành trong Sprint 1 và Sprint 2}
-            \item \textbf{Kết quả Retrospective:} \todo{Ghi nhận tóm tắt bài học kinh nghiệm của nhóm sau 2 Sprint}
-        \end{itemize}
-    \end{tcolorbox}
-\end{minipage}
-\caption{Kế hoạch vận hành Scrum thực tế của Nhóm}
-\label{fig:scrum-record}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Mô hình tổ chức:} Mỗi thành viên sở hữu trọn một feature theo chiều dọc (Vertical Slice: phân tích ca sử dụng, đặc tả hợp đồng API, kiểm thử và hỗ trợ tích hợp giao diện), vận hành theo mô hình Development Team đa chức năng (Cross-functional Team).
+  
+  \item \textbf{Vai trò Scrum:} Nhóm áp dụng Scrum tinh gọn (Lean Agile). Bạn \textbf{Phạm Minh Chiến} (Trưởng nhóm) kiêm nhiệm vai trò \textbf{Scrum Master} (điều phối tiến độ, quản lý Git branch, review Pull Request) và \textbf{Product Owner đại diện} (thống nhất hợp đồng API và bộ 9 Quyết định kỹ thuật D1--D9). Toàn bộ 7 thành viên đóng vai trò \textbf{Development Team} chủ động tự quản.
+  
+  \item \textbf{Chu kỳ phát triển:}
+  \begin{itemize}
+    \item \textbf{Giai đoạn 1 (Hiện thực Backend, 12 task GD1-01 -- GD1-12):} Từ 16/10/2026 đến 23/10/2026 (hoàn thành kiến trúc NestJS, Prisma ORM, kiểm soát tranh chấp tồn kho bằng Optimistic Locking, thanh toán Idempotency và kiểm thử Race-Condition tự động).
+    \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
+  \end{itemize}
+  
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request, bộ kiểm thử tự động (\textit{Concurrency Test}, \textit{Idempotency Test}) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
+  
+  \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
+  \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
+    \item \textit{Tiếp cận API-First giảm thiểu xung đột:} Thống nhất đặc tả Hợp đồng API (API Contract) và phong cách đóng gói phản hồi chuẩn (\texttt{ApiResponse<T>}) từ đầu giúp các thành viên độc lập phát triển frontend/backend mà không bị vướng mắc giao tiếp.
+    \item \textit{Nghiệp vụ tài chính \& tồn kho đòi hỏi khóa đa tầng:} Không thể phụ thuộc vào kiểm tra dữ liệu ở phía Client; bắt buộc phải kết hợp Transaction cơ sở dữ liệu với khóa lạc quan (\textit{Optimistic Locking}) và \textit{Idempotency-Key} ở Backend để ngăn chặn triệt để hiện tượng đặt âm hàng hoặc trừ tiền hai lần.
+    \item \textit{Đồng bộ trạng thái Client-Server thông minh:} Quản lý giỏ hàng phía Client qua LocalStorage giúp trải nghiệm liền mạch, nhưng cần cơ chế tính chữ ký giỏ hàng (\texttt{pendingCartSignature}) để hủy kịp thời đơn hàng cũ nếu khách đổi món trước khi thanh toán.
+    \item \textit{Tự động hóa kiểm thử và container hóa:} Thiết lập Docker Compose chuẩn hóa môi trường PostgreSQL và chạy kiểm thử tự động ngay trên Git giúp nhóm phát hiện và sửa triệt để các lỗi logic phức tạp trước khi bàn giao.
+  \end{enumerate}
+\end{itemize}
+\end{tcolorbox}
+\caption{Tổng kết tiến độ, vai trò phân công và bài học cải tiến quy trình của nhóm}
+\label{fig:team-progress-metrics}
 \end{figure}

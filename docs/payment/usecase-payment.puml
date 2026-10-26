@@ -1,38 +1,52 @@
-@startuml
-title USE CASE DIAGRAM - BREWLITE PAYMENT
+@startuml usecase-payment
+title Sơ Đồ Use Case - Phân Hệ Thanh Toán (Payment System)
 
-left to right direction
-skinparam shadowing false
-skinparam packageStyle rectangle
 skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontSize 11
+skinparam nodesep 12
+skinparam ranksep 14
 
-actor "Khách hàng" as Customer
-actor "Cổng thanh toán\ngiả lập" as Gateway
-
-rectangle "BrewLite - Payment System" {
-    usecase "Chọn phương thức\nthanh toán" as UC1
-    usecase "Thực hiện\nthanh toán" as UC2
-    usecase "Thanh toán bằng\nví điện tử" as UC3
-    usecase "Thanh toán bằng\nthẻ ngân hàng" as UC4
-    usecase "Xem trạng thái\nthanh toán" as UC5
-    usecase "Xem lịch sử\ngiao dịch" as UC6
-    usecase "Kiểm tra\nIdempotency-Key" as UC7
-    usecase "Xử lý kết quả\ngiao dịch" as UC8
+skinparam actor {
+    BackgroundColor white
+    BorderColor black
+}
+skinparam usecase {
+    BackgroundColor white
+    BorderColor black
 }
 
-Customer -- UC1
-Customer -- UC2
-Customer -- UC5
-Customer -- UC6
+actor "Khách hàng" as Customer
+
+rectangle "Phân Hệ Thanh Toán" {
+    usecase "Chọn phương thức (Ví / Thẻ)" as UC1
+    usecase "Thực hiện thanh toán" as UC2
+    usecase "Thanh toán Ví Momo / VNPay" as UC3
+    usecase "Thanh toán Thẻ Quốc tế / ATM" as UC4
+    usecase "Kiểm tra Idempotency-Key" as UC7
+    usecase "Xử lý kết quả giao dịch" as UC8
+    usecase "Xem trạng thái hóa đơn" as UC5
+}
+
+actor "Cổng thanh toán\n(Mock Gateway)" as Gateway
+
+Customer --> UC1
+Customer --> UC2
+Customer --> UC5
 
 UC2 ..> UC1 : <<include>>
 UC2 ..> UC7 : <<include>>
 UC2 ..> UC8 : <<include>>
 
-UC3 -|> UC2
-UC4 -|> UC2
+UC3 ..> UC2 : <<extend>>
+UC4 ..> UC2 : <<extend>>
 
-Gateway -- UC3
-Gateway -- UC4
-Gateway -- UC8
+Gateway --> UC8
+
+UC1 -[hidden]down-> UC2
+UC2 -[hidden]down-> UC5
+UC3 -[hidden]down-> UC4
+UC7 -[hidden]down-> UC8
+UC4 -[hidden]down-> UC7
 @enduml

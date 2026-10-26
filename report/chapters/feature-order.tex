@@ -1,7 +1,7 @@
 \section{Phân hệ Đặt hàng (Order)}
 
 \subsection{Đặc tả Use Case}
-Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), quy đổi điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
+Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLite, chịu trách nhiệm chuyển hóa các sản phẩm trong giỏ hàng thành đơn hàng chính thức. Phân hệ tích hợp các dịch vụ tính giá (\texttt{PricingService}), kiểm tra và áp dụng khuyến mãi (\texttt{PromotionsService}), tích lũy điểm thành viên (\texttt{LoyaltyService}) và kiểm soát kho bằng khóa lạc quan (\texttt{Optimistic Locking}). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-order}.
 
 \begin{figure}[htbp]
     \centering
@@ -27,14 +27,14 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \midrule
 \textbf{Luồng chính} & 
 1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\newline
-2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\newline
+2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) nếu có.\newline
 3. Nhấn nút "Xác nhận đặt hàng".\newline
 4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\newline
 5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\newline
 \quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\newline
 \quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\newline
 \quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\newline
-\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\newline
+\quad d. Tính toán số điểm thưởng dự kiến tích lũy (\texttt{pointsEarned}).\newline
 \quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\newline
 \quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\newline
 \quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\newline
@@ -43,7 +43,7 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \midrule
 \textbf{Luồng ngoại lệ} & 
 - Hết hàng hoặc tồn kho không đủ: Báo lỗi \texttt{400 Bad Request} ("Sản phẩm ... không đủ tồn kho"), rollback transaction.\newline
-- Xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{409 Conflict}, rollback transaction.\newline
+- Thiếu tồn kho hoặc xung đột phiên bản (Optimistic Lock Conflict): Báo lỗi \texttt{400 Bad Request} (\texttt{\"Insufficient stock or concurrent update...\"}), tự động rollback transaction.\newline
 - Mã voucher không hợp lệ hoặc hết hạn: Báo lỗi \texttt{400 Bad Request} ("Mã giảm giá không hợp lệ").\newline
 - Chưa đăng nhập: Báo lỗi \texttt{401 Unauthorized}, điều hướng về trang đăng nhập. \\
 \bottomrule
@@ -81,10 +81,12 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Mô tả Request Payload} & \textbf{Phản hồi chính} \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
-\texttt{\{items: [\{productId, size, quantity, toppings\}], voucherCode?, pointsToRedeem?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
-\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400}, \texttt{401}, \texttt{409}. \\
+\texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
+\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
+\texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
+\texttt{200 OK}: Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\texttt{PAYMENT\_FAILED}), hoàn trả tồn kho và cập nhật lịch sử trạng thái. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -122,8 +124,8 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \midrule
 \texttt{TC-ORD-API-01} & Hợp lệ & Đủ tồn kho, có token & \texttt{POST /orders} & HTTP 201, tạo đơn trạng thái PENDING, trừ kho & Chưa chạy \\
 \texttt{TC-ORD-API-03} & Lỗi & Tồn kho không đủ & \texttt{POST /orders} & HTTP 400, rollback transaction, không trừ kho & Chưa chạy \\
-\texttt{TC-ORD-API-04} & Lỗi & Sai version (Optimistic) & \texttt{POST /orders} & HTTP 409 Conflict, ném lỗi xung đột & Chưa chạy \\
-\texttt{TC-ORD-API-06} & Hợp lệ & Áp voucher WELCOME10 & \texttt{POST /orders} & Giảm 10\% (tối đa 50k), finalAmount chính xác & Chưa chạy \\
+\texttt{TC-ORD-API-04} & Lỗi & Xung đột version (Optimistic) & \texttt{POST /orders} & HTTP 400 Bad Request (\"Insufficient stock or concurrent update...\"), rollback & Đạt \\
+\texttt{TC-ORD-API-06} & Hợp lệ & Áp voucher WELCOME10 & \texttt{POST /orders} & Giảm 10\% (tối đa 20k), finalAmount chính xác & Đạt \\
 \texttt{TC-ORD-UI-01} & Giao diện & Đã đăng nhập & Trang \texttt{/checkout} & Hiển thị tóm tắt đơn, ô nhập voucher và nút đặt & Chưa chạy \\
 \bottomrule
 \end{tabularx}
@@ -132,12 +134,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \subsection{Giao diện Người dùng}
 \begin{figure}[htbp]
     \centering
-    \fbox{\begin{minipage}{0.85\textwidth}
-        \centering
-        \vspace{2cm}
-        \todo{Chèn ảnh chụp màn hình Giao diện Đặt hàng (\texttt{/checkout})}\\
-        \vspace{2cm}
-    \end{minipage}}
-    \caption{Giao diện Xác nhận Đặt hàng và Áp dụng Khuyến mãi}
+    \includegraphics[width=0.92\textwidth]{figures/ui-checkout.png}
+    \caption{Giao diện Xác nhận Đặt hàng và Áp dụng Khuyến mại}
     \label{fig:ui-order}
 \end{figure}

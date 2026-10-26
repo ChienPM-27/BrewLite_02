@@ -41,7 +41,7 @@ Tên bảng trong database: `payments`.
 - `idempotencyKey` phải duy nhất toàn hệ thống (`@unique`).
 - `amount` bắt buộc được trích xuất từ `Order.finalAmount` ở Backend, không tin cậy dữ liệu client.
 - Không đánh dấu Order là `PAID` khi Payment thất bại.
-- Không tạo giao dịch trùng khi nhận lại cùng `idempotencyKey` và cùng request hash/payload (trả về kết quả HTTP 200 đã lưu).
+- Không tạo giao dịch trùng khi nhận lại cùng `idempotencyKey` và cùng request hash/payload (trả về kết quả HTTP 201 Created đã lưu).
 - Việc thử lại sau thất bại bắt buộc sử dụng `idempotencyKey` mới.
 
 ## 5. Lưu ý

@@ -23,22 +23,20 @@ Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lư�
 \bottomrule
 \endlastfoot
 
-\textbf{FR-01} & UC-AUTH-01 & \texttt{POST /auth/register} & \texttt{users} & \texttt{TC-AUTH-API-01..04} & \texttt{/register} \\
-& UC-AUTH-02 & \texttt{POST /auth/login} & \texttt{users} & \texttt{TC-AUTH-API-05..08} & \texttt{/login} \\
+\textbf{FR-01} & UC-AUTH-01 & \texttt{POST /auth/register} & \texttt{users} & \texttt{TC-AUTH-API-01..04} & \texttt{/auth/register} \\
+& UC-AUTH-02 & \texttt{POST /auth/login} & \texttt{users} & \texttt{TC-AUTH-API-05..08} & \texttt{/auth/login} \\
 \midrule
-\textbf{FR-02} & UC-CAT-01 & \texttt{GET /categories} & \texttt{categories} & \texttt{TC-CAT-API-01} & \texttt{/products} \\
-& & \texttt{GET /products} & \texttt{products} & \texttt{TC-CAT-API-02} & \texttt{/products} \\
-& UC-DET-01 & \texttt{GET /products/:id} & \texttt{products, sizes} & \texttt{TC-DET-API-01..03} & \texttt{/products/:id} \\
-& & \texttt{GET /toppings} & \texttt{toppings} & \texttt{TC-DET-API-04} & \texttt{/products/:id} \\
+\textbf{FR-02} & UC-CAT-01 & \texttt{GET /products} & \texttt{products, categories} & \texttt{TC-CAT-API-01..02} & \texttt{/menu} \\
+& UC-DET-01 & \texttt{GET /products/:id} & \texttt{products, sizes, toppings} & \texttt{TC-DET-API-01..04} & \texttt{/products/:id} \\
 \midrule
 \textbf{FR-03} & UC-CART-01 & \textit{(Client-side)} & \textit{(LocalStorage)} & \texttt{TC-CART-UI-01..05} & \texttt{/cart} \\
 \midrule
 \textbf{FR-04} & UC-ORD-01 & \texttt{POST /orders} & \texttt{orders, items, toppings, history} & \texttt{TC-ORD-API-01..07} & \texttt{/checkout} \\
-& & \texttt{GET /orders/:id} & \texttt{orders, items} & \texttt{TC-ORD-API-08} & \texttt{/checkout} \\
+& & \texttt{GET /orders/:id} & \texttt{orders, items, payments} & \texttt{TC-ORD-API-08} & \texttt{/checkout} \\
+& & \texttt{POST /orders/:id/cancel} & \texttt{orders, history, products} & \texttt{TC-ORD-API-09} & \texttt{/orders/:id} \\
 \midrule
-\textbf{FR-05} & UC-PAY-01 & \texttt{POST /payments} & \texttt{payments, orders, loyalty, history} & \texttt{TC-PAY-API-01..06} & \texttt{/payment/:id} \\
-& & \texttt{GET /payments/:id} & \texttt{payments} & \texttt{TC-PAY-API-07} & \texttt{/payment/:id} \\
+\textbf{FR-05} & UC-PAY-01 & \texttt{POST /payments} & \texttt{payments, orders, loyalty, history} & \texttt{TC-PAY-API-01..06} & \texttt{/checkout/payment} \\
 \midrule
-\textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
+\textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders/me} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
 & & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-API-02} & \texttt{/orders/:id} \\
 \end{longtable}
