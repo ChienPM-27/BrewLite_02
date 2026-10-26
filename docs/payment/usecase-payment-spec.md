@@ -41,7 +41,7 @@
 
 ### A2 – Idempotency-Key đã tồn tại
 
-- Nếu key và nội dung yêu cầu giống nhau, Backend trả lại kết quả đã lưu (HTTP 200). Request đồng thời dùng cùng key: request thua (lỗi unique) truy vấn và trả lại kết quả đã lưu (HTTP 200), không trả lỗi 500.
+- Nếu key và nội dung yêu cầu giống nhau, Backend trả lại kết quả đã lưu (HTTP 201 Created). Request đồng thời dùng cùng key: request thua (lỗi unique) truy vấn và trả lại kết quả đã lưu (HTTP 201 Created), không trả lỗi 500.
 - Nếu key giống nhưng nội dung yêu cầu khác (`requestHash` lệch), Backend từ chối với mã lỗi `409 Conflict`.
 - Không tạo giao dịch thanh toán trùng.
 
@@ -72,7 +72,7 @@
 
 | Mã quy tắc | Tên quy tắc | Nội dung chi tiết |
 | :--- | :--- | :--- |
-| **BR-PAY-01** | Idempotency (Cơ chế chống trùng lặp) | Header `Idempotency-Key` là bắt buộc khi gọi `POST /api/v1/payments`.<br>- **Cùng key + cùng payload:** Backend trả lại kết quả đã lưu trong bảng `Payment` (HTTP 200) mà không tạo giao dịch mới hay gọi lại Mock Gateway.<br>- **Request đồng thời:** Request bị lỗi unique constraint truy vấn và trả kết quả đã lưu (HTTP 200), không trả 500.<br>- **Cùng key + khác payload (`requestHash`):** Backend từ chối với mã lỗi `409 Conflict`. |
+| **BR-PAY-01** | Idempotency (Cơ chế chống trùng lặp) | Header `Idempotency-Key` là bắt buộc khi gọi `POST /api/v1/payments`.<br>- **Cùng key + cùng payload:** Backend trả lại kết quả đã lưu trong bảng `Payment` (HTTP 201 Created) mà không tạo giao dịch mới hay gọi lại Mock Gateway.<br>- **Request đồng thời:** Request bị lỗi unique constraint truy vấn và trả kết quả đã lưu (HTTP 201 Created), không trả 500.<br>- **Cùng key + khác payload (`requestHash`):** Backend từ chối với mã lỗi `409 Conflict`. |
 | **BR-PAY-02** | Số tiền thanh toán từ CSDL (Amount Verification) | Số tiền thanh toán (`amount`) bắt buộc phải lấy từ trường `Order.finalAmount` trong database. Backend tuyệt đối không tin cậy và không sử dụng bất kỳ số tiền nào do Client tự gửi lên. |
 | **BR-PAY-03** | Điều kiện trạng thái đơn hàng (Order State Precondition) | `POST /api/v1/payments` chỉ chấp nhận các đơn hàng đang ở trạng thái `PENDING` hoặc `PAYMENT_FAILED`. Nếu đơn hàng ở các trạng thái khác (`PAID`, `CANCELLED`, `PREPARING`...), Backend từ chối giao dịch với mã lỗi `409 Conflict`. |
 | **BR-PAY-04** | Xử lý thanh toán thành công (Payment Success) | Khi Mock Gateway xác nhận thành công:<br>1. Cập nhật `Payment.status = SUCCESS`, lưu `transactionRef`.<br>2. Gọi `OrderService.transition(orderId, PAID)`, gán `Order.paidAt = now()`.<br>3. Ghi nhận lịch sử trạng thái vào `OrderStatusHistory` và tích lũy điểm thưởng loyalty (`Order.pointsEarned`) trong cùng transaction.<br>4. Client thực hiện xóa giỏ hàng (`clearCart()` và xóa `pendingOrderId`). |
