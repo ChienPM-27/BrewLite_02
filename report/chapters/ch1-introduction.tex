@@ -64,30 +64,39 @@ Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiệ
 \end{table}
 
 \section{Quy trình phát triển phần mềm}
-Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum}. Quy trình được tổ chức thành các chu kỳ lặp (Sprint) kéo dài 2 tuần:
+Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum tinh gọn (Lean Agile)}. Quy trình được tổ chức thành các chu kỳ phát triển linh hoạt theo từng giai đoạn thực tế của dự án:
 \begin{itemize}
-    \item \textbf{Sprint Planning:} Nhóm họp định kỳ đầu mỗi sprint để phân tích Product Backlog, làm rõ User Story, ước lượng điểm công việc (Story Points) và cam kết phạm vi cho Sprint Backlog.
-    \item \textbf{Daily Scrum:} Các thành viên đồng bộ tiến độ hàng ngày, báo cáo các công việc đã hoàn thành, công việc dự kiến và các trở ngại kỹ thuật (blockers).
-    \item \textbf{Sprint Review:} Trình diễn các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (Definition of Done) trước toàn nhóm.
-    \item \textbf{Sprint Retrospective:} Đánh giá những điểm làm tốt, các tồn tại về mặt quy trình và kỹ thuật, từ đó đề ra các hành động cải tiến cụ thể cho sprint tiếp theo.
+    \item \textbf{Sprint Planning:} Nhóm họp đầu mỗi giai đoạn để phân tích Product Backlog, làm rõ User Story, phân rã yêu cầu thành danh mục công việc cụ thể (Task Backlog) theo lát cắt dọc (\textit{Vertical Slice}), thống nhất các quyết định kỹ thuật cốt lõi (D1--D9) và cam kết phạm vi bàn giao thay vì ước lượng bằng Story Points trừu tượng.
+    \item \textbf{Daily Scrum / Sync:} Các thành viên đồng bộ tiến độ thường xuyên, cập nhật trạng thái các task (TODO, IN PROGRESS, DONE) trên bảng quản lý công việc, rà soát mã nguồn (Code Review qua Pull Request) và tháo gỡ kịp thời các trở ngại kỹ thuật (blockers).
+    \item \textbf{Sprint Review:} Nghiệm thu và kiểm thử các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (\textit{Definition of Done}: vượt qua bộ kiểm thử tự động, tích hợp hoàn chỉnh và triển khai thực tế trên môi trường live).
+    \item \textbf{Sprint Retrospective:} Đánh giá hiệu quả phối hợp, rút kinh nghiệm về thiết kế API, tính toàn vẹn dữ liệu đồng thời và đề ra các giải pháp cải tiến quy trình kỹ thuật cho giai đoạn tiếp theo.
 \end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\begin{minipage}{0.9\textwidth}
-    \begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
-        \begin{itemize}[leftmargin=1.5cm]
-            \item \textbf{Phân công vai trò:} \todo{Ghi rõ Product Owner (PO): ..., Scrum Master (SM): ...}
-            \item \textbf{Thời gian chu kỳ Sprint:}
-            \begin{itemize}
-                \item Sprint 1 (Giai đoạn 1): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-                \item Sprint 2 (Giai đoạn 2): \todo{Từ ngày dd/mm/2026 đến ngày dd/mm/2026}
-            \end{itemize}
-            \item \textbf{Số liệu Burndown \& Velocity:} \todo{Điền tổng số Story Points cam kết vs hoàn thành trong Sprint 1 và Sprint 2}
-            \item \textbf{Kết quả Retrospective:} \todo{Ghi nhận tóm tắt bài học kinh nghiệm của nhóm sau 2 Sprint}
-        \end{itemize}
-    \end{tcolorbox}
-\end{minipage}
-\caption{Kế hoạch vận hành Scrum thực tế của Nhóm}
-\label{fig:scrum-record}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50,title=Ghi nhận tiến độ và số liệu thực tế của Nhóm]
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Mô hình tổ chức:} Mỗi thành viên sở hữu trọn một feature theo chiều dọc (Vertical Slice: phân tích ca sử dụng, đặc tả hợp đồng API, kiểm thử và hỗ trợ tích hợp giao diện), vận hành theo mô hình Development Team đa chức năng (Cross-functional Team).
+  
+  \item \textbf{Vai trò Scrum:} Nhóm áp dụng Scrum tinh gọn (Lean Agile). Bạn \textbf{Phạm Minh Chiến} (Trưởng nhóm) kiêm nhiệm vai trò \textbf{Scrum Master} (điều phối tiến độ, quản lý Git branch, review Pull Request) và \textbf{Product Owner đại diện} (thống nhất hợp đồng API và bộ 9 Quyết định kỹ thuật D1--D9). Toàn bộ 7 thành viên đóng vai trò \textbf{Development Team} chủ động tự quản.
+  
+  \item \textbf{Chu kỳ phát triển:}
+  \begin{itemize}
+    \item \textbf{Giai đoạn 1 (Hiện thực Backend, 12 task GD1-01 -- GD1-12):} Từ 16/10/2026 đến 23/10/2026 (hoàn thành kiến trúc NestJS, Prisma ORM, kiểm soát tranh chấp tồn kho bằng Optimistic Locking, thanh toán Idempotency và kiểm thử Race-Condition tự động).
+    \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
+  \end{itemize}
+  
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request, bộ kiểm thử tự động (\textit{Concurrency Test}, \textit{Idempotency Test}) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
+  
+  \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
+  \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
+    \item \textit{Tiếp cận API-First giảm thiểu xung đột:} Thống nhất đặc tả Hợp đồng API (API Contract) và phong cách đóng gói phản hồi chuẩn (\texttt{ApiResponse<T>}) từ đầu giúp các thành viên độc lập phát triển frontend/backend mà không bị vướng mắc giao tiếp.
+    \item \textit{Nghiệp vụ tài chính \& tồn kho đòi hỏi khóa đa tầng:} Không thể phụ thuộc vào kiểm tra dữ liệu ở phía Client; bắt buộc phải kết hợp Transaction cơ sở dữ liệu với khóa lạc quan (\textit{Optimistic Locking}) và \textit{Idempotency-Key} ở Backend để ngăn chặn triệt để hiện tượng đặt âm hàng hoặc trừ tiền hai lần.
+    \item \textit{Đồng bộ trạng thái Client-Server thông minh:} Quản lý giỏ hàng phía Client qua LocalStorage giúp trải nghiệm liền mạch, nhưng cần cơ chế tính chữ ký giỏ hàng (\texttt{pendingCartSignature}) để hủy kịp thời đơn hàng cũ nếu khách đổi món trước khi thanh toán.
+    \item \textit{Tự động hóa kiểm thử và container hóa:} Thiết lập Docker Compose chuẩn hóa môi trường PostgreSQL và chạy kiểm thử tự động ngay trên Git giúp nhóm phát hiện và sửa triệt để các lỗi logic phức tạp trước khi bàn giao.
+  \end{enumerate}
+\end{itemize}
+\end{tcolorbox}
+\caption{Tổng kết tiến độ, vai trò phân công và bài học cải tiến quy trình của nhóm}
+\label{fig:team-progress-metrics}
 \end{figure}

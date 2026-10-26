@@ -216,12 +216,12 @@ Hệ thống BrewLite được xây dựng trên nền tảng kiến trúc hiệ
 \end{table}
 
 \section{Quy trình phát triển phần mềm}
-Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum}. Quy trình được tổ chức thành các chu kỳ lặp (Sprint) kéo dài 2 tuần:
+Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agile/Scrum tinh gọn (Lean Agile)}. Quy trình được tổ chức thành các chu kỳ phát triển linh hoạt theo từng giai đoạn thực tế của dự án:
 \begin{itemize}
-    \item \textbf{Sprint Planning:} Nhóm họp định kỳ đầu mỗi sprint để phân tích Product Backlog, làm rõ User Story, ước lượng điểm công việc (Story Points) và cam kết phạm vi cho Sprint Backlog.
-    \item \textbf{Daily Scrum:} Các thành viên đồng bộ tiến độ hàng ngày, báo cáo các công việc đã hoàn thành, công việc dự kiến và các trở ngại kỹ thuật (blockers).
-    \item \textbf{Sprint Review:} Trình diễn các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (Definition of Done) trước toàn nhóm.
-    \item \textbf{Sprint Retrospective:} Đánh giá những điểm làm tốt, các tồn tại về mặt quy trình và kỹ thuật, từ đó đề ra các hành động cải tiến cụ thể cho sprint tiếp theo.
+    \item \textbf{Sprint Planning:} Nhóm họp đầu mỗi giai đoạn để phân tích Product Backlog, làm rõ User Story, phân rã yêu cầu thành danh mục công việc cụ thể (Task Backlog) theo lát cắt dọc (\textit{Vertical Slice}), thống nhất các quyết định kỹ thuật cốt lõi (D1--D9) và cam kết phạm vi bàn giao thay vì ước lượng bằng Story Points trừu tượng.
+    \item \textbf{Daily Scrum / Sync:} Các thành viên đồng bộ tiến độ thường xuyên, cập nhật trạng thái các task (TODO, IN PROGRESS, DONE) trên bảng quản lý công việc, rà soát mã nguồn (Code Review qua Pull Request) và tháo gỡ kịp thời các trở ngại kỹ thuật (blockers).
+    \item \textbf{Sprint Review:} Nghiệm thu và kiểm thử các tính năng phần mềm đã hoàn tất đạt tiêu chuẩn chấp nhận (\textit{Definition of Done}: vượt qua bộ kiểm thử tự động, tích hợp hoàn chỉnh và triển khai thực tế trên môi trường live).
+    \item \textbf{Sprint Retrospective:} Đánh giá hiệu quả phối hợp, rút kinh nghiệm về thiết kế API, tính toàn vẹn dữ liệu đồng thời và đề ra các giải pháp cải tiến quy trình kỹ thuật cho giai đoạn tiếp theo.
 \end{itemize}
 
 \begin{figure}[H]
@@ -238,7 +238,7 @@ Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agi
     \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
   \end{itemize}
   
-  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request, bộ kiểm thử tự động (\textit{Concurrency Test}, \textit{Idempotency Test}) và bản triển khai trực tiếp trên Vercel / Render.
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request, bộ kiểm thử tự động (\textit{Concurrency Test}, \textit{Idempotency Test}) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
   
   \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
   \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
@@ -375,7 +375,9 @@ Hệ thống bao gồm các thành phần cốt lõi:
     \textbf{Mock Payment Gateway} giả lập cổng thanh toán trực tuyến của bên thứ ba, cung cấp endpoint xử lý thẻ/ví điện tử và phản hồi kết quả giao dịch về backend.
 \end{enumerate}
 
-\section{Kiến trúc triển khai với Docker (Deployment Architecture)}
+\section{Kiến trúc triển khai hệ thống (Deployment Architecture)}
+
+\subsection{Triển khai cục bộ đa container với Docker Compose}
 Toàn bộ môi trường ứng dụng BrewLite được đóng gói và cấu hình tự động thông qua \textbf{Docker} và \textbf{Docker Compose}, giúp loại bỏ sự sai lệch giữa môi trường phát triển (Development) và môi trường kiểm thử/triển khai.
 
 Sơ đồ kiến trúc triển khai container được minh họa tại Hình~\ref{fig:deployment-docker}.
@@ -393,13 +395,13 @@ Hệ thống bao gồm 3 container độc lập kết nối thông qua mạng n�
     \begin{itemize}
         \item Base image: \texttt{node:20-alpine}.
         \item Port ánh xạ: \texttt{3000:3000}.
-        \item Biến môi trường: \texttt{NEXT\_PUBLIC\_API\_BASE\_URL=http://localhost:3001/api/v1}.
+        \item Biến môi trường: \texttt{NEXT\_PUBLIC\_API\_BASE\_URL=http://localhost:4000/api/v1}.
     \end{itemize}
     \item \textbf{Backend Container (\texttt{brewlite-backend}):}
     \begin{itemize}
         \item Base image: \texttt{node:20-alpine}.
-        \item Port ánh xạ: \texttt{3001:3001}.
-        \item Biến môi trường: \texttt{DATABASE\_URL=postgresql://user:pass@postgres:5432/brewlite}, \texttt{JWT\_SECRET=...}, \texttt{JWT\_EXPIRES\_IN=24h}, \texttt{PORT=3001}.
+        \item Port ánh xạ: \texttt{4000:4000}.
+        \item Biến môi trường: \texttt{DATABASE\_URL=postgresql://user:pass@postgres:5432/brewlite}, \texttt{JWT\_SECRET=...}, \texttt{JWT\_EXPIRES\_IN=7d}, \texttt{PORT=4000}.
         \item Phụ thuộc (\texttt{depends\_on}): Chờ container \texttt{postgres} sẵn sàng nhận kết nối trước khi khởi chạy và tự động thực thi lệnh \texttt{prisma migrate deploy}.
     \end{itemize}
     \item \textbf{Database Container (\texttt{brewlite-postgres}):}
@@ -409,6 +411,46 @@ Hệ thống bao gồm 3 container độc lập kết nối thông qua mạng n�
         \item Lưu trữ bền vững (\texttt{Persistent Storage}): Mount volume Docker \texttt{postgres\_data} vào thư mục \texttt{/var/lib/postgresql/data}, đảm bảo dữ liệu không bị thất thoát khi container khởi động lại hoặc dừng hoạt động.
     \end{itemize}
 \end{itemize}
+
+\subsection{Triển khai trực tuyến trên nền tảng Đám mây (Cloud Production Deployment)}
+Bên cạnh môi trường đóng gói cục bộ bằng Docker Compose phục vụ phát triển và kiểm thử nội bộ, hệ thống BrewLite được triển khai thực tế trên hạ tầng đám mây phân tán theo mô hình tích hợp và phân phối liên tục (CI/CD) từ nhánh \texttt{main} trên GitHub:
+
+\begin{itemize}
+    \item \textbf{Frontend Web App (Vercel):} Ứng dụng Next.js 15 được triển khai tự động lên nền tảng máy chủ Serverless của Vercel tại địa chỉ chính thức \url{https://brew-lite.vercel.app/}, tận dụng mạng phân phối nội dung toàn cầu (Edge Network CDN) để tối ưu hóa tốc độ tải trang và hỗ trợ Server-Side Rendering (SSR).
+    \item \textbf{Backend REST API (Render):} Dịch vụ NestJS được đóng gói dưới dạng Web Service trên Render, cung cấp endpoint công khai an toàn qua giao thức HTTPS, tự động kích hoạt tiến trình triển khai lại (Auto-deploy) mỗi khi có Pull Request được hợp nhất vào nhánh chính.
+    \item \textbf{Cơ sở dữ liệu Đám mây (Supabase):} Cung cấp cụm máy chủ PostgreSQL 16 được quản trị hoàn toàn (Managed Cloud Database). Để tối ưu hóa hiệu năng và tránh cạn kiệt tài nguyên kết nối khi ứng dụng backend chạy trên môi trường đám mây, hệ thống cấu hình song song hai chuỗi kết nối thông qua Prisma ORM:
+    \begin{itemize}
+        \item \texttt{DATABASE\_URL}: Kết nối thông qua bộ điều phối kết nối \textbf{PgBouncer (Port 6543)} ở chế độ Transaction Pooling phục vụ các truy vấn nghiệp vụ hàng ngày.
+        \item \texttt{DIRECT\_URL}: Kết nối trực tiếp đến PostgreSQL \textbf{(Port 5432)} dành riêng cho tiến trình đồng bộ cấu trúc cơ sở dữ liệu (\texttt{prisma migrate deploy}).
+    \end{itemize}
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Bảng tổng hợp hạ tầng và biến môi trường triển khai Cloud Production}
+\label{tab:cloud-deployment-env}
+\begin{tabularx}{\textwidth}{lp{3.5cm}X}
+\toprule
+\textbf{Thành phần} & \textbf{Nền tảng / Địa chỉ} & \textbf{Cấu hình biến môi trường chính} \\
+\midrule
+\textbf{Frontend} & Vercel (Edge CDN) \newline \url{https://brew-lite.vercel.app} & 
+\texttt{NEXT\_PUBLIC\_API\_URL = https://brewlite-api.onrender.com/api/v1} \newline
+\texttt{NEXT\_PUBLIC\_DEMO\_MODE = false} \\
+\midrule
+\textbf{Backend} & Render \newline (Web Service Container) & 
+\texttt{PORT = 4000} \newline
+\texttt{NODE\_ENV = production} \newline
+\texttt{CORS\_ORIGIN = https://brew-lite.vercel.app} \newline
+\texttt{DATABASE\_URL = postgresql://postgres:***@...pooler.supabase.com:6543/...} \newline
+\texttt{DIRECT\_URL = postgresql://postgres:***@...supabase.com:5432/...} \newline
+\texttt{JWT\_SECRET = [Khoá bảo mật chuẩn sản xuất]} \newline
+\texttt{JWT\_EXPIRES\_IN = 7d} \\
+\midrule
+\textbf{Database} & Supabase \newline (Managed PostgreSQL 16) & Cụm máy chủ PostgreSQL 16 tại khu vực Đông Nam Á (Singapore), hỗ trợ kết nối bảo mật SSL (\texttt{sslmode=require}) và tự động sao lưu dữ liệu. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \clearpage
 \section{Sơ đồ lớp Backend (Backend Class Diagram)}
