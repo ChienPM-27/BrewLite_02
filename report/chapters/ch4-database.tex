@@ -33,7 +33,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
 
     \item \textbf{Nhóm Khuyến mãi (Promotions):}
     \begin{itemize}
-        \item \textbf{\texttt{promotions}:} Quản lý mã giảm giá voucher. Gồm: \texttt{id} (PK), \texttt{code} (Unique, ví dụ: \texttt{WELCOME10}, \texttt{GIAM15K}), \texttt{description}, \texttt{discount\_percent} (tỷ lệ giảm theo \%), \texttt{discount\_amount} (tiền giảm cố định), \texttt{max\_discount} (mức giảm trần tối đa, ví dụ 50.000 VNĐ), \texttt{min\_order\_amount} (giá trị đơn tối thiểu, ví dụ 100.000 VNĐ), \texttt{start\_date}, \texttt{end\_date}, \texttt{is\_active} (Boolean).
+        \item \textbf{\texttt{promotions}:} Quản lý mã giảm giá voucher. Gồm: \texttt{id} (PK), \texttt{code} (Unique, ví dụ: \texttt{WELCOME10}, \texttt{GIAM15K}), \texttt{description}, \texttt{discount\_percent} (tỷ lệ giảm theo \%), \texttt{discount\_amount} (tiền giảm cố định), \texttt{max\_discount} (mức giảm trần tối đa, ví dụ 20.000 VNĐ trong mã \texttt{WELCOME10}), \texttt{min\_order\_amount} (giá trị đơn tối thiểu, ví dụ 40.000 VNĐ trong mã \texttt{WELCOME10} hoặc 60.000 VNĐ trong mã \texttt{GIAM15K}), \texttt{start\_date}, \texttt{end\_date}, \texttt{is\_active} (Boolean).
     \end{itemize}
 
     \item \textbf{Nhóm Đơn hàng và Chi tiết:}

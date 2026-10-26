@@ -78,17 +78,26 @@ WHERE id = :productId
 Hệ thống tích hợp bộ đôi động cơ khuyến mãi và khách hàng thân thiết hoạt động nhịp nhàng nhằm gia tăng giá trị đơn hàng:
 
 \subsection{Cơ chế Mã giảm giá (Promotions Engine)}
-Hệ thống hỗ trợ cấu hình mã giảm giá đa dạng được quản lý trong bảng \texttt{promotions}. Tiêu biểu là mã ưu đãi \texttt{WELCOME10}:
-\begin{itemize}
-    \item \textbf{Mã code:} \texttt{WELCOME10}.
-    \item \textbf{Tỷ lệ chiết khấu:} Giảm 10\% trên tổng giá trị tạm tính của đơn hàng (\texttt{total\_amount}).
-    \item \textbf{Điều kiện áp dụng:} Giá trị đơn hàng tối thiểu (\texttt{min\_order\_amount}) phải đạt từ 100.000 VNĐ trở lên.
-    \item \textbf{Mức giảm tối đa:} Giới hạn mức chiết khấu tối đa (\texttt{max\_discount}) là 50.000 VNĐ.
-    \item Công thức tính:
-    \[
-    \text{discountAmount} = \min\left( \text{totalAmount} \times 10\%, 50.000 \right)
-    \]
-\end{itemize}
+Hệ thống hỗ trợ cấu hình mã giảm giá linh hoạt được quản lý trong bảng \texttt{promotions}, khởi tạo sẵn qua \texttt{prisma/seed.ts} phục vụ kiểm thử và trải nghiệm:
+\begin{enumerate}
+    \item \textbf{Mã \texttt{WELCOME10} (Chiết khấu phần trăm có mức trần):}
+    \begin{itemize}
+        \item \textbf{Mã code:} \texttt{WELCOME10}.
+        \item \textbf{Tỷ lệ chiết khấu:} Giảm 10\% trên tổng giá trị tạm tính (\texttt{totalAmount}).
+        \item \textbf{Điều kiện áp dụng:} Đơn hàng tối thiểu (\texttt{minOrderAmount}) đạt từ 40.000 VNĐ trở lên.
+        \item \textbf{Mức giảm tối đa:} Giới hạn mức giảm trần (\texttt{maxDiscount}) là 20.000 VNĐ.
+        \item Công thức tính trong \texttt{PromotionsService}:
+        \[
+        \text{discountAmount} = \min\left( \left\lfloor \frac{\text{totalAmount} \times 10}{100} \right\rfloor, 20.000 \right)
+        \]
+    \end{itemize}
+    \item \textbf{Mã \texttt{GIAM15K} (Chiết khấu số tiền cố định):}
+    \begin{itemize}
+        \item \textbf{Mã code:} \texttt{GIAM15K}.
+        \item \textbf{Mức chiết khấu:} Giảm trực tiếp 15.000 VNĐ (\texttt{discountAmount = 15.000}).
+        \item \textbf{Điều kiện áp dụng:} Đơn hàng tối thiểu đạt từ 60.000 VNĐ trở lên.
+    \end{itemize}
+\end{enumerate}
 
 \subsection{Cơ chế Điểm thưởng Thành viên (Loyalty Points)}
 \begin{itemize}

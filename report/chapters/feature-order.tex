@@ -27,14 +27,14 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \midrule
 \textbf{Luồng chính} & 
 1. Khách hàng từ giỏ hàng nhấn "Tiến hành đặt hàng" đến trang Checkout (\texttt{/checkout}).\newline
-2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) và số điểm loyalty muốn đổi (nếu có).\newline
+2. Khách hàng nhập mã giảm giá (ví dụ \texttt{WELCOME10}) nếu có.\newline
 3. Nhấn nút "Xác nhận đặt hàng".\newline
 4. Giao diện gửi request \texttt{POST /api/v1/orders} kèm Bearer Token.\newline
 5. Backend khởi động Interactive Transaction (\texttt{prisma.\$transaction}):\newline
 \quad a. Kiểm tra từng sản phẩm, đối chiếu \texttt{version} và số lượng tồn kho \texttt{stock}.\newline
 \quad b. Tính giá cơ bản, phụ thu size và giá topping qua \texttt{PricingService}.\newline
 \quad c. Thẩm định mã giảm giá và tính số tiền giảm trừ qua \texttt{PromotionsService}.\newline
-\quad d. Khấu trừ điểm loyalty qua \texttt{LoyaltyService} (tối đa 50\% giá trị đơn hàng).\newline
+\quad d. Tính toán số điểm thưởng dự kiến tích lũy (\texttt{pointsEarned}).\newline
 \quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\newline
 \quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\newline
 \quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\newline
@@ -123,7 +123,7 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \texttt{TC-ORD-API-01} & Hợp lệ & Đủ tồn kho, có token & \texttt{POST /orders} & HTTP 201, tạo đơn trạng thái PENDING, trừ kho & Chưa chạy \\
 \texttt{TC-ORD-API-03} & Lỗi & Tồn kho không đủ & \texttt{POST /orders} & HTTP 400, rollback transaction, không trừ kho & Chưa chạy \\
 \texttt{TC-ORD-API-04} & Lỗi & Sai version (Optimistic) & \texttt{POST /orders} & HTTP 409 Conflict, ném lỗi xung đột & Chưa chạy \\
-\texttt{TC-ORD-API-06} & Hợp lệ & Áp voucher WELCOME10 & \texttt{POST /orders} & Giảm 10\% (tối đa 50k), finalAmount chính xác & Chưa chạy \\
+\texttt{TC-ORD-API-06} & Hợp lệ & Áp voucher WELCOME10 & \texttt{POST /orders} & Giảm 10\% (tối đa 20k), finalAmount chính xác & Đạt \\
 \texttt{TC-ORD-UI-01} & Giao diện & Đã đăng nhập & Trang \texttt{/checkout} & Hiển thị tóm tắt đơn, ô nhập voucher và nút đặt & Chưa chạy \\
 \bottomrule
 \end{tabularx}
