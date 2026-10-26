@@ -242,7 +242,7 @@ Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agi
     \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
   \end{itemize}
   
-  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua 47 Pull Request\footnote{Số lượng 47 Pull Request cần được đối chiếu trực tiếp trên giao diện quản lý GitHub Repository khi nghiệm thu.}, bộ kiểm thử tự động toàn diện (84 unit tests, 5 E2E tests, 44 ca kiểm thử API tự động, kịch bản Concurrency và Idempotency) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua \todo{xác minh số Pull Request} Pull Request\footnote{Số lượng Pull Request cần được đối chiếu trực tiếp trên giao diện quản lý GitHub Repository khi nghiệm thu.}, bộ kiểm thử tự động toàn diện (84 unit tests, 5 E2E tests, 44 ca kiểm thử API tự động, kịch bản Concurrency và Idempotency) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
   
   \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
   \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
@@ -360,7 +360,7 @@ Hệ thống bao gồm các thành phần cốt lõi:
     \item \textbf{Tầng Trình bày (Frontend Presentation Layer - Next.js 15):}
     \begin{itemize}
         \item Xây dựng bằng Next.js App Router, sử dụng TypeScript và TailwindCSS.
-        \item Phân chia thành các module giao diện tương ứng với các trang: Xác thực (\texttt{/auth/login}, \texttt{/auth/register}), Thực đơn (\texttt{/menu}), Chi tiết món (\texttt{/products/[id]}), Giỏ hàng (\texttt{/cart}), Đặt hàng (\texttt{/checkout}), Thanh toán (\texttt{/checkout/payment}) và Lịch sử (\texttt{/orders}).
+        \item Phân chia thành các module giao diện tương ứng với các trang: Xác thực (\texttt{/auth/login}, \texttt{/auth/register}), Thực đơn (\texttt{/menu}), Chi tiết món (\texttt{/products/}\allowbreak\texttt{[id]}), Giỏ hàng (\texttt{/cart}), Đặt hàng (\texttt{/checkout}), Thanh toán (\texttt{/checkout/payment}) và Lịch sử (\texttt{/orders}).
         \item Quản lý trạng thái cục bộ của giỏ hàng thông qua Custom Hook / Zustand và đồng bộ token xác thực lưu trong bộ nhớ an toàn.
     \end{itemize}
     \item \textbf{Tầng Xử lý Nghiệp vụ (Backend Application Layer - NestJS 11):}
@@ -368,10 +368,10 @@ Hệ thống bao gồm các thành phần cốt lõi:
     \begin{itemize}
         \item \textbf{AuthModule:} Đảm nhận đăng ký, băm mật khẩu bằng \texttt{bcrypt}, đăng nhập và cấp phát JSON Web Token; bảo vệ hệ thống thông qua \texttt{JwtAuthGuard}.
         \item \textbf{ProductsModule:} Quản lý danh mục (\texttt{categories}), sản phẩm (\texttt{products}), các tùy chọn size/đường/đá/topping và kiểm tra tính khả dụng của kho hàng.
-        \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{OrderStateMachine}) và kiểm soát giao dịch tạo đơn.
+        \item \textbf{OrdersModule:} Trung tâm điều phối quy trình đặt hàng, tích hợp chặt chẽ với máy trạng thái đơn hàng (\texttt{Order}\allowbreak\texttt{StateMachine}) và kiểm soát giao dịch tạo đơn.
         \item \textbf{PricingModule, PromotionsModule \& LoyaltyModule:} Các động cơ tính toán độc lập: \texttt{PricingModule} tính toán phụ thu kích cỡ/topping; \texttt{PromotionsModule} kiểm tra tính hợp lệ và chiết khấu của mã giảm giá (\texttt{WELCOME10}); \texttt{LoyaltyModule} đảm nhận cơ chế tự động tích lũy điểm thưởng thành viên theo tỷ lệ thực trả sau khi thanh toán thành công.
         \item \textbf{PaymentsModule:} Xử lý thanh toán trực tuyến, quản lý bảng idempotency (\texttt{PaymentIdempotency}) và kết nối giao tiếp với cổng thanh toán.
-        \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptionsFilter}) và bộ chuẩn hóa phản hồi (\texttt{TransformInterceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
+        \item \textbf{Common / Core Services:} Bộ lọc ngoại lệ toàn cục (\texttt{AllExceptions}\allowbreak\texttt{Filter}) và bộ chuẩn hóa phản hồi (\texttt{Transform}\allowbreak\texttt{Interceptor}) đảm bảo mọi giao tiếp API luôn tuân thủ cấu trúc đồng nhất \texttt{\{success, data, message, timestamp\}}.
     \end{itemize}
     \item \textbf{Tầng Cơ sở dữ liệu (Data Access Layer):}
     Sử dụng \textbf{Prisma ORM 6} cung cấp Type-safe Client kết nối trực tiếp đến hệ quản trị cơ sở dữ liệu quan hệ \textbf{PostgreSQL 16}.
@@ -478,7 +478,7 @@ Các lớp dịch vụ chính bao gồm:
 \section{Luồng tương tác nghiệp vụ tổng thể (Overall Business Flow)}
 Luồng tương tác nghiệp vụ từ đầu đến cuối (End-to-End) của một khách hàng trên hệ thống diễn ra tuần tự qua các giai đoạn:
 \begin{enumerate}
-    \item \textbf{Giai đoạn 1 - Khám phá và Chọn món:} Khách hàng duyệt danh mục thực đơn tại trang (\texttt{/menu}), chọn đồ uống để xem chi tiết (\texttt{/products/[id]}), tùy chọn kích cỡ (Size S/M/L), mức đường, mức đá và các món topping đi kèm. Món ăn sau khi cấu hình được đưa vào giỏ hàng cục bộ (\texttt{Cart}) quản lý bằng Zustand.
+    \item \textbf{Giai đoạn 1 - Khám phá và Chọn món:} Khách hàng duyệt danh mục thực đơn tại trang (\texttt{/menu}), chọn đồ uống để xem chi tiết (\texttt{/products/}\allowbreak\texttt{[id]}), tùy chọn kích cỡ (Size S/M/L), mức đường, mức đá và các món topping đi kèm. Món ăn sau khi cấu hình được đưa vào giỏ hàng cục bộ (\texttt{Cart}) quản lý bằng Zustand.
     \item \textbf{Giai đoạn 2 - Xác thực tài khoản:} Khi người dùng chọn tiến hành đặt hàng (\texttt{/checkout}), nếu chưa đăng nhập, hệ thống sẽ tự động điều hướng sang trang Đăng nhập (\texttt{/auth/login}) hoặc Đăng ký (\texttt{/auth/register}) để xác thực danh tính qua JWT.
     \item \textbf{Giai đoạn 3 - Đặt hàng và Tính giá:} Khách hàng xác nhận danh sách món trong giỏ hàng và áp dụng mã ưu đãi \texttt{WELCOME10} (nếu có). Backend thực thi kiểm tra tồn kho đồng thời qua cơ chế Optimistic Locking (khóa lạc quan theo phiên bản \texttt{version}), tính toán đơn giá snapshot và tạo bản ghi đơn hàng ở trạng thái \texttt{PENDING}.
     \item \textbf{Giai đoạn 4 - Thanh toán Trực tuyến:} Hệ thống chuyển hướng khách hàng sang màn hình thanh toán (\texttt{/checkout/payment}). Khách hàng chọn phương thức (Thẻ ngân hàng hoặc Ví điện tử). Lệnh thanh toán được gửi kèm \texttt{Idempotency-Key}. Mock Gateway xác nhận giao dịch thành công.
@@ -531,7 +531,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
         \item \textbf{\texttt{orders}:} Bảng trung tâm lưu trữ thông tin đơn hàng. Gồm: \texttt{id} (PK), \texttt{order\_number} (Int, Unique, autoincrement - mã hiển thị cho khách dạng \#1042), \texttt{user\_id} (FK \(\to\) \texttt{users.id}), \texttt{promotion\_id} (FK \(\to\) \texttt{promotions.id}, có thể null), \texttt{status} (Enum \texttt{OrderStatus}), \texttt{total\_amount} (tạm tính trước giảm), \texttt{discount\_amount} (số tiền được giảm), \texttt{final\_amount} (số tiền thực trả), \texttt{points\_earned} (số điểm thưởng tích được từ đơn), \texttt{paid\_at} (thời điểm thanh toán), \texttt{version} (Int, default 0 - Optimistic Locking khi chuyển trạng thái), \texttt{created\_at}, \texttt{updated\_at}.
         \item \textbf{\texttt{order\_items}:} Chi tiết từng món trong đơn. Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{product\_id} (FK \(\to\) \texttt{products.id}), \texttt{size} (Enum \texttt{ProductSize}), \texttt{quantity} (Int), \texttt{unit\_price} (Decimal(12,0) - đơn giá snapshot đã cộng phụ thu size), \texttt{line\_total} (Decimal(12,0) = (unitPrice + toppings) \(\times\) quantity).
         \item \textbf{\texttt{order\_item\_toppings}:} Lưu trữ topping kèm theo từng món. Gồm: \texttt{id} (PK), \texttt{order\_item\_id} (FK \(\to\) \texttt{order\_items.id}, Cascade), \texttt{topping\_id} (FK \(\to\) \texttt{toppings.id}), \texttt{price} (Decimal(12,0) - snapshot giá topping tại thời điểm đặt).
-        \item \textbf{\texttt{order\_status\_history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
+        \item \textbf{\texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
     \end{itemize}
 
     \item \textbf{Nhóm Thanh toán và Điểm thành viên:}
@@ -543,7 +543,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
 
 \section{Ràng buộc toàn vẹn và Chiến lược đánh chỉ mục}
 \begin{itemize}
-    \item \textbf{Ràng buộc Khóa ngoại (Referential Integrity):} Sử dụng cơ chế \texttt{onDelete: Cascade} cho các quan hệ cha-con gắn kết chặt chẽ: khi xóa đơn hàng (\texttt{Order}), hệ thống tự động dọn dẹp các dòng tương ứng trong \texttt{order\_items}, \texttt{order\_item\_toppings}, \texttt{order\_status\_history} và \texttt{payments}. Ngược lại, quan hệ giữa \texttt{Product} và \texttt{OrderItem} áp dụng cơ chế bảo vệ (\texttt{Restrict}) để ngăn ngừa việc xóa mất dấu sản phẩm đã có trong hóa đơn.
+    \item \textbf{Ràng buộc Khóa ngoại (Referential Integrity):} Sử dụng cơ chế \texttt{onDelete: Cascade} cho các quan hệ cha-con gắn kết chặt chẽ: khi xóa đơn hàng (\texttt{Order}), hệ thống tự động dọn dẹp các dòng tương ứng trong \texttt{order\_items}, \texttt{order\_item\_toppings}, \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history} và \texttt{payments}. Ngược lại, quan hệ giữa \texttt{Product} và \texttt{OrderItem} áp dụng cơ chế bảo vệ (\texttt{Restrict}) để ngăn ngừa việc xóa mất dấu sản phẩm đã có trong hóa đơn.
     \item \textbf{Ràng buộc Duy nhất (Unique Constraints):} Thiết lập chỉ mục duy nhất trên \texttt{users(email)}, \texttt{categories(slug)}, \texttt{categories(name)}, \texttt{promotions(code)}, \texttt{orders(order\_number)}, \texttt{payments(idempotency\_key)} và bộ đôi \texttt{product\_size\_prices(product\_id, size)}.
     \item \textbf{Chỉ mục Tối ưu truy vấn (Query Optimization Indexes):} Đánh chỉ mục B-tree trên các trường khóa ngoại và các trường thường xuyên xuất hiện trong mệnh đề lọc/sắp xếp:
     \begin{itemize}
@@ -686,9 +686,9 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-AUTH-API-01} & Hợp lệ & Email chưa tồn tại & \texttt{POST /auth/register} & HTTP 201, tạo user mới, băm mật khẩu Bcrypt 10 rounds & Đạt \\
-\texttt{TC-AUTH-API-03} & Lỗi & Email đã tồn tại & \texttt{POST /auth/register} & HTTP 409 Conflict, thông báo "Email đã được sử dụng" & Đạt \\
-\texttt{TC-AUTH-API-05} & Hợp lệ & Đã có tài khoản & \texttt{POST /auth/login} & HTTP 200, cấp Bearer JWT \texttt{accessToken} hợp lệ & Đạt \\
+\texttt{TC-AUTH-01} & Hợp lệ & Email chưa tồn tại & \texttt{POST /auth/register} & HTTP 201, tạo user mới, băm mật khẩu Bcrypt 10 rounds & Đạt \\
+\texttt{TC-AUTH-03} & Lỗi & Email đã tồn tại & \texttt{POST /auth/register} & HTTP 409 Conflict, thông báo "Email này đã được sử dụng" & Đạt \\
+\texttt{TC-AUTH-04} & Hợp lệ & Đã có tài khoản & \texttt{POST /auth/login} & HTTP 200, cấp Bearer JWT \texttt{accessToken} hợp lệ & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -814,8 +814,8 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-CAT-API-01} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về đủ 10 món kèm phân loại danh mục "Cà phê", "Trà" & Đạt \\
-\texttt{TC-CAT-API-02} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về mảng sản phẩm chứa \texttt{basePrice}, không lộ \texttt{stock} & Đạt \\
+\texttt{TC-CAT-01} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về đủ 10 món kèm phân loại danh mục "Cà phê", "Trà \& Trái cây" & Đạt \\
+\texttt{TC-CAT-02} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về mảng sản phẩm chứa \texttt{basePrice}, không lộ \texttt{stock} & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -863,7 +863,7 @@ Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ
 \midrule
 \textbf{Luồng chính} & 
 1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\newline
-2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\newline
+2. Trình duyệt điều hướng sang \texttt{/products/}\allowbreak\texttt{[id]}.\newline
 3. Frontend gửi request \texttt{GET /api/v1/products/:id}.\newline
 4. Hệ thống phản hồi chi tiết món ăn, bảng giá kích cỡ (\texttt{sizePrices}) và danh sách topping khả dụng (\texttt{toppings}) trong cùng một phản hồi. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\newline
 5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\newline
@@ -929,8 +929,8 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-DET-API-01} & Hợp lệ & ID sản phẩm tồn tại & \texttt{GET /products/:id} & HTTP 200, nạp đủ chi tiết món, \texttt{sizePrices} (S, M, L) và toppings & Đạt \\
-\texttt{TC-DET-API-03} & Lỗi & ID không tồn tại & \texttt{GET /products/:id} & HTTP 404 Not Found, thông báo "Không tìm thấy sản phẩm" & Đạt \\
+\texttt{TC-DET-01} & Hợp lệ & ID sản phẩm tồn tại & \texttt{GET /products/:id} & HTTP 200, nạp đủ chi tiết món, \texttt{sizePrices} (S, M, L) và toppings & Đạt \\
+\texttt{TC-DET-03} & Lỗi & ID không tồn tại & \texttt{GET /products/:id} & HTTP 404 Not Found, thông báo "Không tìm thấy sản phẩm" & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1040,9 +1040,9 @@ Sơ đồ Tuần tự minh họa luồng xử lý hoàn toàn khép kín ở ph�
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-CART-UI-01} & Giao diện & Giỏ chưa có món & Màn hình \texttt{/cart} & Hiển thị thông báo giỏ hàng trống và nút chuyển sang thực đơn & Chưa chạy\footnote{Đã xác minh kiểm thử thủ công trực tiếp trên trình duyệt.} \\
-\texttt{TC-CART-UI-02} & Nghiệp vụ & Đã thêm 1 món & Màn hình \texttt{/cart} & Hiển thị chuẩn xác tên món, size, đường, đá và danh sách topping & Chưa chạy\footnotemark[1] \\
-\texttt{TC-CART-UI-03} & Nghiệp vụ & Đang có món & Nút tăng/giảm & Cập nhật số lượng tức thời và tự động tính lại tổng tiền giỏ hàng & Chưa chạy\footnotemark[1] \\
+\texttt{TC-CART-UI-01} & Giao diện & Giỏ chưa có món & Màn hình \texttt{/cart} & Hiển thị thông báo giỏ hàng trống và nút chuyển sang thực đơn & Chưa chạy (sẽ kiểm thử thủ công) \\
+\texttt{TC-CART-UI-02} & Nghiệp vụ & Đã thêm 1 món & Màn hình \texttt{/cart} & Hiển thị chuẩn xác tên món, size, đường, đá và danh sách topping & Chưa chạy (sẽ kiểm thử thủ công) \\
+\texttt{TC-CART-UI-03} & Nghiệp vụ & Đang có món & Nút tăng/giảm & Cập nhật số lượng tức thời và tự động tính lại tổng tiền giỏ hàng & Chưa chạy (sẽ kiểm thử thủ công) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1100,7 +1100,7 @@ Phân hệ Đặt hàng là hạt nhân nghiệp vụ của hệ thống BrewLit
 \quad d. Tính toán số điểm thưởng dự kiến tích lũy (\texttt{pointsEarned}).\newline
 \quad e. Trừ tồn kho và tăng \texttt{version = version + 1} của sản phẩm.\newline
 \quad f. Tạo bản ghi \texttt{orders}, các \texttt{order\_items} và \texttt{order\_item\_toppings}.\newline
-\quad g. Thêm bản ghi vào \texttt{order\_status\_history} (chuyển trạng thái sang \texttt{PENDING}).\newline
+\quad g. Thêm bản ghi vào \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history} (chuyển trạng thái sang \texttt{PENDING}).\newline
 6. Transaction commit thành công, trả về thông tin đơn hàng và mã số tự tăng \texttt{orderNumber} (ví dụ \#1042).\newline
 7. Giao diện xóa giỏ hàng và điều hướng sang trang thanh toán (\texttt{/payment/[orderId]}). \\
 \midrule
@@ -1148,11 +1148,11 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \midrule
 \texttt{POST} & \texttt{/api/v1/orders} & 
 \texttt{\{items: [\{productId, size, quantity, toppings\}], promotionCode?\}} (Header: \texttt{Authorization: Bearer <JWT>}) & 
-\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}. \\
+\texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{Transform}\allowbreak\texttt{Interceptor}. Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
 \texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
-\texttt{200 OK}: Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\texttt{PAYMENT\_FAILED}), hoàn trả tồn kho và cập nhật lịch sử trạng thái. \\
+\texttt{200 OK}: Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\allowbreak\texttt{PAYMENT\_\allowbreak FAILED}), hoàn trả tồn kho và cập nhật lịch sử trạng thái. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1188,9 +1188,9 @@ VALUES (cuid(), :orderId, NULL, 'PENDING', 'system', NOW());
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-ORD-API-01} & Hợp lệ & Đủ tồn kho, có Bearer JWT & \texttt{POST /orders} & HTTP 201 Created, tạo đơn ở trạng thái PENDING, trừ tồn kho chính xác & Đạt \\
-\texttt{TC-ORD-API-03} & Lỗi & Tồn kho không đủ & \texttt{POST /orders} & HTTP 400 Bad Request, rollback transaction, tồn kho không bị âm & Đạt \\
-\texttt{TC-ORD-API-06} & Hợp lệ & Áp mã \texttt{WELCOME10} & \texttt{POST /orders} & Giảm 10\% (tối đa 20.000đ), tính toán \texttt{finalAmount} chính xác & Đạt \\
+\texttt{TC-CO-01} & Hợp lệ & Đủ tồn kho, có Bearer JWT & \texttt{POST /orders} & HTTP 201 Created, tạo đơn ở trạng thái PENDING, trừ tồn kho chính xác & Đạt \\
+\texttt{TC-CO-13} & Lỗi & Tồn kho không đủ & \texttt{POST /orders} & HTTP 400 Bad Request, rollback transaction, tồn kho không bị âm & Đạt \\
+\texttt{TC-CO-18} & Hợp lệ & Áp mã \texttt{WELCOME10} & \texttt{POST /orders} & Giảm 10\% (tối đa 20.000đ), tính toán \texttt{finalAmount} chính xác & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1251,11 +1251,11 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \quad b. Cập nhật đơn hàng: \texttt{status = PAID}, \texttt{paidAt = NOW()}.\newline
 \quad c. Cộng điểm tích lũy mới vào \texttt{users.loyalty\_points}.\newline
 \quad d. Ghi nhận giao dịch cộng điểm vào \texttt{loyalty\_transactions} (type: \texttt{EARNED}).\newline
-\quad e. Ghi nhật ký vào \texttt{order\_status\_history} (PENDING \(\to\) PAID).\newline
+\quad e. Ghi nhật ký vào \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history} (PENDING \(\to\) PAID).\newline
 8. Giao diện thông báo thanh toán thành công và điều hướng sang trang Lịch sử đơn hàng. \\
 \midrule
 \textbf{Luồng ngoại lệ} & 
-- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
+- Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_\allowbreak FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
 - Đơn hàng đã được thanh toán trước đó hoặc ở trạng thái không cho phép: Báo lỗi \texttt{409 Conflict} ("Trạng thái đơn hàng không cho phép thanh toán").\newline
 - Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{409 Conflict} (\"Idempotency-Key đã được sử dụng với nội dung khác\"). \\
 \bottomrule
@@ -1332,9 +1332,9 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 201 Created, status SUCCESS, đơn chuyển sang PAID, tích lũy loyalty & Đạt \\
-\texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 201 Created, trả về kết quả cũ (replay an toàn), không phát sinh trùng lặp & Đạt \\
-\texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 409 Conflict, message "Trạng thái đơn hàng không cho phép thanh toán" & Đạt \\
+\texttt{TC-PAY-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 201 Created, status SUCCESS, đơn chuyển sang PAID, tích lũy loyalty & Đạt \\
+\texttt{TC-PAY-10} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & Trả về kết quả cũ đã lưu (replay an toàn), không phát sinh trùng lặp & Cần xác nhận\footnote{Lệch docs--code: docs/payment ghi nhận HTTP 200, Backend NestJS trả HTTP 201 Created theo mặc định.} \\
+\texttt{TC-PAY-09} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 409 Conflict, message "Trạng thái đơn hàng không cho phép thanh toán" & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1455,9 +1455,9 @@ ORDER BY created_at DESC;
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-HIS-API-01} & Hợp lệ & User đã có đơn hàng & \texttt{GET /orders/me} & HTTP 200, trả về danh sách đơn của chính người dùng sắp xếp mới nhất & Đạt \\
-\texttt{TC-HIS-API-02} & Bảo mật & Xem đơn của user khác & \texttt{GET /orders/:id} & HTTP 404 Not Found, cô lập dữ liệu an toàn, không làm lộ đơn người khác & Đạt \\
-\texttt{TC-HIS-API-03} & Nghiệp vụ & Đơn ở trạng thái PENDING & \texttt{POST /orders/:id/cancel} & HTTP 200 OK, đơn chuyển sang CANCELLED, hoàn trả tồn kho nguyên tử & Đạt \\
+\texttt{TC-HIS-01} & Hợp lệ & User đã có đơn hàng & \texttt{GET /orders/me} & HTTP 200, trả về danh sách đơn của chính người dùng sắp xếp mới nhất & Đạt \\
+\texttt{TC-HIS-06} & Bảo mật & Xem đơn của user khác & \texttt{GET /orders/:id} & HTTP 404 Not Found, cô lập dữ liệu an toàn, không làm lộ đơn người khác & Đạt \\
+\texttt{TC-CX-01} & Nghiệp vụ & Đơn ở trạng thái PENDING & \texttt{POST /orders/:id/cancel} & HTTP 200 OK, đơn chuyển sang CANCELLED, hoàn trả tồn kho nguyên tử & Đạt \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1497,14 +1497,14 @@ Sơ đồ máy trạng thái đơn hàng được trình bày chi tiết tại H
 Hệ thống quy định chính xác \textbf{9 chuyển tiếp trạng thái hợp lệ} giữa 7 trạng thái nghiệp vụ:
 \begin{enumerate}
     \item \texttt{PENDING \(\to\) PAID}: Chuyển đổi khi khách hàng thực hiện thanh toán trực tuyến thành công qua cổng thanh toán.
-    \item \texttt{PENDING \(\to\) PAYMENT\_FAILED}: Chuyển đổi khi giao dịch thanh toán bị từ chối, thẻ hết hạn hoặc phát sinh lỗi mạng.
+    \item \texttt{PENDING \(\to\) PAYMENT\_\allowbreak FAILED}: Chuyển đổi khi giao dịch thanh toán bị từ chối, thẻ hết hạn hoặc phát sinh lỗi mạng.
     \item \texttt{PENDING \(\to\) CANCELLED}: Khách hàng chủ động hủy đơn khi chưa thanh toán hoặc đơn hàng hết thời gian chờ (timeout).
     \item \texttt{PAID \(\to\) PREPARING}: Quầy pha chế (Barista) tiếp nhận đơn hàng đã thanh toán và bắt đầu quy trình làm đồ uống.
     \item \texttt{PAID \(\to\) CANCELLED}: Đơn hàng đã thanh toán bị hủy do sự cố bất khả kháng (ví dụ hết nguyên liệu đột xuất), kích hoạt luồng hoàn tiền.
     \item \texttt{PREPARING \(\to\) READY}: Nhân viên pha chế hoàn tất đồ uống, đơn hàng sẵn sàng chờ khách hàng đến nhận tại quầy.
     \item \texttt{READY \(\to\) COMPLETED}: Khách hàng nhận đồ uống thành công. Đây là một trong hai trạng thái kết thúc (\textit{Terminal State}).
-    \item \texttt{PAYMENT\_FAILED \(\to\) PENDING}: Khách hàng nhấn thử lại (\textit{Retry Payment}), chọn phương thức thanh toán mới để tiến hành trả tiền lại cho đơn hàng.
-    \item \texttt{PAYMENT\_FAILED \(\to\) CANCELLED}: Đơn hàng bị hủy vĩnh viễn sau khi thanh toán thất bại và khách hàng không có nhu cầu thử lại.
+    \item \texttt{PAYMENT\_\allowbreak FAILED \(\to\) PENDING}: Khách hàng nhấn thử lại (\textit{Retry Payment}), chọn phương thức thanh toán mới để tiến hành trả tiền lại cho đơn hàng.
+    \item \texttt{PAYMENT\_\allowbreak FAILED \(\to\) CANCELLED}: Đơn hàng bị hủy vĩnh viễn sau khi thanh toán thất bại và khách hàng không có nhu cầu thử lại.
 \end{enumerate}
 
 Hai trạng thái \texttt{COMPLETED} và \texttt{CANCELLED} là trạng thái kết thúc vĩnh viễn (\textit{Terminal States}), danh sách chuyển tiếp tiếp theo là mảng rỗng (\texttt{[]}). Bất kỳ nỗ lực chuyển đổi sai quy tắc nào đều bị chặn ngay lập tức bởi hàm kiểm tra \texttt{assertTransition()} và ném ngoại lệ \texttt{409 ConflictException}:
@@ -1729,129 +1729,137 @@ try {
 \chapter{KIỂM THỬ HỆ THỐNG}
 \label{ch:testing}
 
-Kiểm thử phần mềm là hoạt động sống còn nhằm xác minh tính đúng đắn của logic nghiệp vụ, tính toàn vẹn dữ liệu trong môi trường đa nhiệm và sự tuân thủ nghiêm ngặt theo các hợp đồng API đã cam kết. Trong dự án BrewLite, nhóm đã thiết lập một chiến lược kiểm thử đa tầng bao gồm kiểm thử đơn vị (Unit Test), kiểm thử tích hợp (Integration Test), kiểm thử đầu-cuối (End-to-End Test), kiểm thử tương tranh (Concurrency / Race Conditions Test) và bộ kiểm thử API tự động hóa trên nền tảng container hóa thực tế.
+Kiểm thử phần mềm là hoạt động sống còn nhằm xác minh tính đúng đắn của logic nghiệp vụ, tính toàn vẹn dữ liệu trong môi trường đa nhiệm và sự tuân thủ nghiêm ngặt theo các hợp đồng API đã cam kết. Trong dự án BrewLite, nhóm đã thiết lập một chiến lược kiểm thử đa tầng bao gồm kiểm thử đơn vị (Unit Test), kiểm thử tích hợp (Integration Test), kiểm thử đầu-cuối (End-to-End Test), kiểm thử tương tranh (Concurrency / Race Conditions Test) và kiểm thử API trên nền tảng container hóa thực tế.
 
 \section{Chiến lược và Môi trường Kiểm thử}
 
 \subsection{Chiến lược kiểm thử đa tầng (Multi-tier Testing Strategy)}
 Hệ thống BrewLite áp dụng mô hình kim tự tháp kiểm thử (\textit{Test Pyramid}) với sự phân định rõ ràng giữa các mức độ kiểm chứng:
 \begin{itemize}
-    \item \textbf{Kiểm thử Đơn vị (Unit Testing - Service Layer):} Kiểm thử độc lập logic nghiệp vụ cô lập tại tầng Service sử dụng Jest và cơ chế Mocking (\texttt{jest-mock-extended}) đối với Prisma Client. Toàn bộ 6 test suites bao quát 84 ca kiểm thử đơn vị tại các phân hệ Auth, Products, Orders, Payments, Order History và Order State Machine.
+    \item \textbf{Kiểm thử Đơn vị (Unit Testing - Service Layer):} Kiểm thử độc lập logic nghiệp vụ cô lập tại tầng Service sử dụng Jest và cơ chế Mocking đối với Prisma Client. Tổng cộng 6 test suites bao quát 84 ca kiểm thử đơn vị tập trung vào các nghiệp vụ trọng yếu của hệ thống: kiểm thử Máy trạng thái đơn hàng (\texttt{order-state.spec.ts}), tính toán giá và khuyến mãi (\texttt{order.service.spec.ts}), quy trình tạo đơn và trừ kho (\texttt{orders.service.spec.ts}), xử lý thanh toán và idempotency (\texttt{payments.service.spec.ts}), tra cứu lịch sử đơn (\texttt{history.service.spec.ts}) và kiểm tra điểm cuối sức khỏe hệ thống (\texttt{health.spec.ts}).
     \item \textbf{Kiểm thử Tích hợp và E2E (End-to-End Integration Testing):} Sử dụng Jest kết hợp thư viện Supertest (\texttt{backend/test/orders-concurrency.e2e-spec.ts}) để gửi các HTTP requests trực tiếp đến cổng API của ứng dụng NestJS đang kết nối với cơ sở dữ liệu PostgreSQL thực tế. Mức kiểm thử này xác nhận toàn bộ quy trình từ Controller, ValidationPipe, Service, Transaction cho đến ràng buộc ACID của PostgreSQL.
     \item \textbf{Kiểm thử Tương tranh và Tranh chấp dữ liệu (Concurrency / Stress Testing):} Kịch bản kiểm thử tương tranh thực tế (\texttt{backend/test/concurrency.ts}) sử dụng \texttt{Promise.all} để bắn đồng thời hàng loạt request (10 requests đặt hàng tranh chấp sản phẩm có tồn kho bằng 1; 5 requests thanh toán đồng thời mang cùng một \texttt{Idempotency-Key}). Mục tiêu là kiểm chứng tính vững chắc của cơ chế Khóa lạc quan (\textit{Optimistic Locking}) và cơ chế chống trùng lặp thanh toán (\textit{Idempotency}) dưới áp lực đa luồng.
-    \item \textbf{Kiểm thử Tự động hóa API toàn diện (Automated API Suite):} Kịch bản kiểm thử độc lập viết bằng Python (\texttt{report/scripts/run\_api\_tests.py}) thực thi 44 ca kiểm thử API nối tiếp và song song trên môi trường container thực tế (\url{http://127.0.0.1:4000/api/v1}), đối chiếu chính xác mã trạng thái HTTP, định dạng phản hồi chuẩn \texttt{ApiResponse<T>} và cấu trúc dữ liệu trả về.
-    \item \textbf{Kiểm thử Giao diện Người dùng (Manual UI Verification):} Do mã nguồn dự án chưa tích hợp runner tự động hóa cho trình duyệt (như Playwright hoặc Cypress), nhóm thực hiện kiểm thử thủ công có hệ thống toàn bộ 7 phân hệ trên trình duyệt Google Chrome kết nối máy chủ Next.js 15, đối soát trải nghiệm người dùng và ghi lại hình ảnh minh chứng.
+    \item \textbf{Kiểm thử API Endpoint:} Thực thi và đối soát toàn diện các yêu cầu API của hệ thống trên môi trường cục bộ (\url{http://127.0.0.1:4000}\allowbreak\url{/api/v1}), đối chiếu mã trạng thái HTTP, định dạng phản hồi chuẩn \texttt{ApiResponse<T>} và cấu trúc dữ liệu trả về theo đặc tả thiết kế tại thư mục \texttt{docs/}.
+    \item \textbf{Kiểm thử Giao diện Người dùng (Manual UI Testing):} Do mã nguồn dự án chưa tích hợp runner tự động hóa cho trình duyệt (như Playwright hoặc Cypress), các ca kiểm thử giao diện người dùng được phân loại vào hình thức kiểm thử thủ công (\textit{Manual Exploratory Testing}) theo kịch bản thiết kế để nhóm tự kiểm thử trực tiếp trên trình duyệt.
 \end{itemize}
 
 \subsection{Cấu hình Môi trường Kiểm thử Thực tế}
-Toàn bộ quá trình kiểm thử được thực thi trên môi trường chuẩn hóa của dự án:
+Hệ thống kiểm thử được vận hành trên hạ tầng chuẩn hóa của dự án:
 \begin{itemize}
-    \item \textbf{Hệ điều hành máy chủ kiểm thử:} Windows 11 Pro 64-bit, WSL2 Linux Kernel 6.6.
-    \item \textbf{Hạ tầng Container:} Docker Desktop 29.8, Docker Engine v29.8.0.
-    \item \textbf{Cơ sở dữ liệu:} PostgreSQL 16 Alpine (\texttt{brewlite\_postgres}) chạy trên port 5432 thông qua Docker Compose.
-    \item \textbf{Môi trường thực thi Backend:} Node.js v26.8.0, npm v11.19.0, NestJS 11.0.1, Prisma ORM 6.4.1 (\texttt{brewlite\_backend} chạy trên port 4000).
-    \item \textbf{Môi trường thực thi Frontend:} Next.js 15.2.1, React 19, Zustand 5, Tailwind CSS 4 (\texttt{brewlite\_frontend} chạy trên port 3000).
-    \item \textbf{Công cụ kiểm thử tự động:} Jest 29.7.0, ts-node 10.9.2, Supertest 7.0.0, Python 3.13.2.
+    \item \textbf{Cơ sở dữ liệu:} PostgreSQL được khởi chạy độc lập thông qua Docker Compose (\texttt{docker-}\allowbreak\texttt{compose.yml}), mở cổng kết nối tiêu chuẩn 5432.
+    \item \textbf{Dịch vụ Backend:} Ứng dụng NestJS giao tiếp cơ sở dữ liệu qua Prisma ORM, phục vụ các API endpoints tại cổng 4000 (tiền tố \url{/api/v1}).
+    \item \textbf{Ứng dụng Frontend:} Ứng dụng Next.js phục vụ giao diện người dùng tại cổng 3000.
+    \item \textbf{Bộ công cụ kiểm thử:} Sử dụng Jest và Supertest cho các bài kiểm thử đơn vị, kiểm thử tích hợp và kiểm thử tương tranh tự động.
 \end{itemize}
 
 \subsection{Dữ liệu Khởi tạo Kiểm thử (Seed Data)}
 Dữ liệu thử nghiệm được nạp tự động vào PostgreSQL thông qua kịch bản \texttt{backend/prisma/seed.ts}, bao gồm:
 \begin{itemize}
-    \item \textbf{Danh mục (Categories):} 2 danh mục chính gồm "Cà phê" (\texttt{ca-phe}) và "Trà" (\texttt{tra}).
-    \item \textbf{Sản phẩm (Products):} 10 sản phẩm mẫu (6 món cà phê, 4 món trà) có giá gốc từ 29.000 VNĐ đến 55.000 VNĐ, tồn kho mặc định ban đầu là 100 sản phẩm mỗi loại.
-    \item \textbf{Cấu hình kích cỡ (Size Prices):} 30 bản ghi phụ thu kích cỡ cho 10 sản phẩm với quy chuẩn: Size S (0 VNĐ), Size M (+6.000 VNĐ), Size L (+10.000 VNĐ).
-    \item \textbf{Topping khả dụng (Toppings):} 3 loại gồm Trân châu đen (5.000 VNĐ, stock 100), Kem Cheese (10.000 VNĐ, stock 100), Thạch đào (7.000 VNĐ, stock 100).
-    \item \textbf{Mã khuyến mãi (Promotions):} 
+    \item \textbf{Danh mục (Categories):} 2 danh mục chính gồm "Cà phê" (slug \texttt{ca-phe}, displayOrder: 1) và "Trà \& Trái cây" (slug \texttt{tra-trai-cay}, displayOrder: 2).
+    \item \textbf{Sản phẩm (Products):} 10 sản phẩm đồ uống với khoảng giá gốc từ 30.000 VNĐ đến 45.000 VNĐ:
     \begin{itemize}
-        \item \texttt{WELCOME10}: Giảm 10\% trên tổng giá trị món, mức giảm tối đa (\texttt{maxDiscount}) là 20.000 VNĐ, yêu cầu đơn hàng tối thiểu (\texttt{minOrderAmount}) là 40.000 VNĐ.
-        \item \texttt{GIAM15K}: Giảm trực tiếp 15.000 VNĐ, yêu cầu đơn hàng tối thiểu 60.000 VNĐ.
+        \item \textit{Nhóm Cà phê (6 món):} Cà phê sữa đá (35.000 VNĐ, tồn kho 100), Americano (40.000 VNĐ, tồn kho 80), Cappuccino (45.000 VNĐ, tồn kho 60), Latte (45.000 VNĐ, tồn kho 50), Espresso (30.000 VNĐ, tồn kho 40), Bạc xỉu (35.000 VNĐ, tồn kho 5 -- cấu hình tồn kho thấp phục vụ kiểm thử tương tranh).
+        \item \textit{Nhóm Trà \& Trái cây (4 món):} Trà đào cam sả (39.000 VNĐ, tồn kho 75), Trà chanh (30.000 VNĐ, tồn kho 70), Trà vải (39.000 VNĐ, tồn kho 45), Trà dâu (40.000 VNĐ, tồn kho 35).
     \end{itemize}
+    \item \textbf{Quy chuẩn Phụ thu Kích cỡ (Size Prices):} 3 kích cỡ áp dụng cho toàn bộ sản phẩm theo bảng cấu hình \texttt{product\_size\_prices}:
+    \begin{itemize}
+        \item Size S: phụ thu 0 VNĐ.
+        \item Size M: phụ thu +5.000 VNĐ.
+        \item Size L: phụ thu +10.000 VNĐ.
+    \end{itemize}
+    \item \textbf{Topping đi kèm:} 3 loại topping theo bảng \texttt{toppings}:
+    \begin{itemize}
+        \item Trân châu trắng: đơn giá 5.000 VNĐ, tồn kho ban đầu 200 đơn vị.
+        \item Kem Cheese: đơn giá 10.000 VNĐ, tồn kho ban đầu 150 đơn vị.
+        \item Đào miếng: đơn giá 8.000 VNĐ, tồn kho ban đầu 100 đơn vị.
+    \end{itemize}
+    \item \textbf{Mã Khuyến mãi (Vouchers):} 2 mã ưu đãi tiêu chuẩn nạp sẵn trong bảng \texttt{promotions}:
+    \begin{itemize}
+        \item \texttt{WELCOME10}: Giảm 10\% tối đa 20.000 VNĐ cho đơn hàng có giá trị tối thiểu từ 40.000 VNĐ.
+        \item \texttt{GIAM15K}: Giảm trực tiếp 15.000 VNĐ cho đơn hàng có giá trị tối thiểu từ 60.000 VNĐ.
+    \end{itemize}
+    \item \textbf{Tài khoản Người dùng Mẫu (Seed User):} 1 tài khoản khách hàng mặc định với email \texttt{demo@brewlite.test}, mật khẩu được băm Bcrypt \texttt{Demo@12345} (10 rounds) và số điểm tích lũy ban đầu là 120 điểm loyalty.
 \end{itemize}
 
 \subsection{Các lệnh thực thi kiểm thử và Tóm tắt kết quả}
-Nhóm đã thực thi lần lượt 4 bộ lệnh kiểm thử với kết quả thực tế được lưu vết tại thư mục \texttt{report/figures/test-evidence/}:
+Hệ thống kiểm thử tự động của BrewLite được kích hoạt thông qua các tập lệnh chuẩn trong môi trường phát triển:
 \begin{enumerate}
-    \item \textbf{Lệnh kiểm thử đơn vị:} \texttt{npm test --prefix backend -- --verbose}
+    \item \textbf{Bộ kiểm thử Đơn vị (Unit Tests):}
     \begin{itemize}
-        \item Kết quả: 6/6 Test Suites Đạt; 84/84 Tests Đạt (100\%); Thời gian chạy: 10.23s.
-        \item Tập tin nhật ký bằng chứng: \texttt{unit-test-output.txt}.
+        \item Lệnh thực thi: \texttt{npm test} (chạy Jest tại thư mục \texttt{backend/}).
+        \item Kết quả: 6/6 Test Suites Đạt; 84/84 Tests Đạt (100\%).
+        \item Bao phủ: Kiểm thử độc lập Máy trạng thái đơn hàng (Order State Machine), logic tính giá (Pricing Engine), kiểm tra tính hợp lệ của mã giảm giá và các dịch vụ Order, Payment, History, Healthcheck.
     \end{itemize}
-    \item \textbf{Lệnh kiểm thử E2E tương tranh:} \texttt{npm run test:e2e --prefix backend}
+    \item \textbf{Bộ kiểm thử Tích hợp Đầu-cuối (E2E Integration Tests):}
     \begin{itemize}
-        \item Kết quả: 1/1 Test Suite Đạt; 5/5 E2E Tests Đạt (100\%); Thời gian chạy: 24.45s.
-        \item Bao gồm việc kiểm chứng đầy đủ 3 kịch bản bắt buộc Task 10: \texttt{TS-FR-07-02}, \texttt{TS-FR-08-01}, \texttt{TS-FR-09-01}.
-        \item Tập tin nhật ký bằng chứng: \texttt{e2e-test-output.txt}.
+        \item Lệnh thực thi: \texttt{npm run test:e2e} (chạy Jest E2E tại thư mục \texttt{backend/}).
+        \item Kết quả: 1/1 Test Suite Đạt; 5/5 E2E Tests Đạt (100\%).
+        \item Bao phủ: Kiểm thử tương tranh đặt hàng đồng thời trên sản phẩm và topping, kiểm thử Idempotency thanh toán đồng thời và chặn chuyển trạng thái sai trực tiếp qua HTTP API.
     \end{itemize}
-    \item \textbf{Lệnh kiểm thử tương tranh trực tiếp trên cổng 4000:} \texttt{npm run test:concurrency --prefix backend}
+    \item \textbf{Bộ kiểm thử Tương tranh Độc lập (Concurrency Stress Script):}
     \begin{itemize}
-        \item Kết quả: 2/2 Kịch bản Đạt tuyệt đối (Khóa lạc quan chặn 9/10 request tranh chấp khi stock = 1; Idempotency xử lý an toàn 5 request thanh toán đồng thời cùng key chỉ tạo đúng 1 record trong DB).
-        \item Tập tin nhật ký bằng chứng: \texttt{concurrency-output.txt}.
-    \end{itemize}
-    \item \textbf{Lệnh kiểm thử tự động toàn diện API:} \texttt{python report/scripts/run\_api\_tests.py}
-    \begin{itemize}
-        \item Kết quả: 44/44 API Test Cases Đạt (100\%); Không có ca kiểm thử nào thất bại.
-        \item Tập tin nhật ký bằng chứng: \texttt{api-test-output.txt}.
+        \item Lệnh thực thi: \texttt{npm run test:concurrency} (\texttt{ts-node test/concurrency.ts}).
+        \item Kết quả: 2/2 Kịch bản kiểm thử Đạt (100\%).
+        \item Bao phủ: Bắn 10 request đặt hàng song song khi tồn kho bằng 1 (chỉ 1 đơn thành công, tồn kho về 0) và bắn 5 request thanh toán đồng thời cùng \texttt{Idempotency-Key} (đúng 1 payment trong DB, trả về cùng kết quả).
     \end{itemize}
 \end{enumerate}
 
 \section{Bảng Tổng hợp Kết quả Kiểm thử theo Phân hệ}
 
-Bảng~\ref{tab:test-summary-by-module} tổng hợp kết quả kiểm thử thực tế được đo lường chính xác từ các bộ kiểm thử đã chạy của hệ thống BrewLite.
+Bảng~\ref{tab:test-summary-by-module} tổng hợp số lượng và trạng thái chi tiết của toàn bộ các ca kiểm thử trong hệ thống BrewLite, phân định rõ ràng giữa các ca kiểm thử tự động tầng Backend đã xác minh và các ca kiểm thử giao diện người dùng.
 
 \begin{table}[H]
 \centering
 \small
-\caption{Bảng tổng hợp kết quả kiểm thử thực tế theo từng phân hệ chức năng}
+\caption{Tổng hợp số lượng và trạng thái Test Cases theo từng phân hệ}
 \label{tab:test-summary-by-module}
-\begin{tabularx}{\textwidth}{lccccX}
+\begin{tabularx}{\textwidth}{p{2.6cm}ccccX}
 \toprule
-\textbf{Phân hệ chức năng} & \textbf{Tổng số ca} & \textbf{Đạt (Pass)} & \textbf{Lỗi (Fail)} & \textbf{Chưa chạy} & \textbf{Ghi chú thực thi} \\
+\textbf{Phân hệ} & \textbf{Tổng} & \textbf{Đạt} & \textbf{Chờ XN} & \textbf{Chưa chạy} & \textbf{Ghi chú kiểm thử} \\
 \midrule
-Xác thực (Auth) & 14 & 8 & 0 & 6 & 8 ca API/Unit đạt 100\%; 6 ca UI tự động chưa chạy \\
-Danh mục (Catalog) & 12 & 5 & 0 & 7 & 5 ca API/Unit đạt 100\%; 7 ca UI tự động chưa chạy \\
-Chi tiết món (Detail) & 8 & 3 & 0 & 5 & 3 ca API/Unit đạt 100\%; 5 ca UI tự động chưa chạy \\
-Giỏ hàng (Cart) & 12 & 0 & 0 & 12 & Thuần Client Zustand + LocalStorage, đã test thủ công \\
-Đặt hàng (Order) & 19 & 15 & 0 & 4 & 15 ca API/Unit đạt 100\%; 4 ca UI tự động chưa chạy \\
-Thanh toán (Payment) & 15 & 12 & 0 & 3 & 12 ca API/Unit đạt 100\%; 3 ca UI tự động chưa chạy \\
-Lịch sử đơn (History) & 11 & 7 & 0 & 4 & 7 ca API/Unit đạt 100\%; 4 ca UI tự động chưa chạy \\
+Xác thực (Auth) & 14 & 8 & 0 & 6 & 8 ca API/Backend đạt 100\%; 6 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
+Danh mục (Catalog) & 12 & 5 & 0 & 7 & 5 ca API đạt 100\%; 7 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
+Chi tiết món (Detail) & 8 & 3 & 0 & 5 & 3 ca API đạt 100\%; 5 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
+Giỏ hàng (Cart) & 8 & 0 & 0 & 8 & Thuần Client Zustand + LocalStorage, 8 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
+Đặt hàng (Order) & 52 & 48 & 0 & 4 & 48 ca API/Unit/State Machine đạt 100\%; 4 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
+Thanh toán (Payment) & 22 & 17 & 2 & 3 & 17 ca API/Unit đạt; 2 ca cần xác nhận (lệch mã HTTP replay); 3 ca UI chưa chạy \\
+Lịch sử đơn (History) & 15 & 7 & 0 & 8 & 7 ca API đạt 100\%; 8 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
 Tương tranh \& Task 10 & 3 & 3 & 0 & 0 & 3 ca Concurrency / E2E đạt 100\% \\
 \midrule
-\textbf{TỔNG CỘNG} & \textbf{94} & \textbf{53} & \textbf{0} & \textbf{41} & \textbf{100\% ca Backend/API/Concurrency ĐẠT} \\
+\textbf{TỔNG CỘNG} & \textbf{134} & \textbf{91} & \textbf{2} & \textbf{41} & \textbf{100\% ca Backend/Unit/E2E/Concurrency được kiểm chứng} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\noindent\textit{Đánh giá tổng quan:} Toàn bộ 53 ca kiểm thử thuộc tầng Backend, API Endpoint và kịch bản Tương tranh đều đạt kết quả \textbf{Đạt (Pass) tỷ lệ 100\%}. 41 ca kiểm thử giao diện tự động mang trạng thái \textbf{Chưa chạy} do repo chưa tích hợp công cụ tự động hóa UI (như Playwright/Cypress); tuy nhiên toàn bộ các luồng giao diện này đã được kiểm thử thủ công và nghiệm thu thực tế trên trình duyệt. Ngoài ra, bộ kiểm thử đơn vị nội bộ gồm \textbf{84/84 unit tests} của NestJS đều vượt qua tuyệt đối.
+\noindent\textit{Đánh giá tổng quan:} Toàn bộ 93 ca kiểm thử thuộc tầng Backend, API Endpoint và kịch bản Tương tranh đều được kiểm chứng thông qua các bộ kiểm thử tự động (\texttt{npm test}, \texttt{npm run test:e2e}, \texttt{npm run test:concurrency}), trong đó 91 ca đạt kết quả \textbf{Đạt (Pass)}, 2 ca mang trạng thái \textbf{Cần xác nhận} do có sự sai lệch mã trạng thái HTTP giữa tài liệu thiết kế và mã nguồn thực tế (tài liệu ghi nhận HTTP 200, mã nguồn NestJS trả HTTP 201 Created theo mặc định cho POST \texttt{/payments}). 41 ca kiểm thử giao diện mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} do repo chưa tích hợp công cụ tự động hóa UI (như Playwright/Cypress); các kịch bản này sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
 
 \section{Ba Kịch bản Kiểm thử Bắt buộc của Task 10}
 
-Dưới đây là phân tích chi tiết về mặt kỹ thuật, kết quả đo lường và bằng chứng nhật ký thực thi thực tế của 3 kịch bản kiểm thử bắt buộc theo yêu cầu kỹ thuật của dự án (Task 10).
+Dưới đây là phân tích chi tiết về mặt kỹ thuật, cơ chế thực thi và kết quả của 3 kịch bản kiểm thử bắt buộc theo yêu cầu kỹ thuật của dự án (Task 10).
 
 \subsection{Kịch bản TS-FR-07-02: Chặn chuyển trạng thái sai của đơn hàng}
-\textbf{Mục tiêu:} Chứng minh Máy trạng thái đơn hàng (\texttt{OrderStateMachine}) ngăn chặn triệt để mọi hành vi chuyển trạng thái không hợp lệ, đặc biệt là việc hủy các đơn hàng đã thanh toán thành công (\texttt{PAID}) hoặc đã hoàn tất giao hàng (\texttt{COMPLETED}).
+\textbf{Mục tiêu:} Chứng minh Máy trạng thái đơn hàng (\texttt{Order}\allowbreak\texttt{StateMachine}) ngăn chặn triệt để mọi hành vi chuyển trạng thái không hợp lệ, đặc biệt là việc hủy các đơn hàng đã thanh toán thành công (\texttt{PAID}) hoặc đã hoàn tất giao hàng (\texttt{COMPLETED}).
 
-\textbf{Cơ chế kỹ thuật:} Hàm \texttt{assertTransition(fromStatus, toStatus)} trong \texttt{OrderStateMachine} lưu trữ ma trận hợp lệ gồm đúng 9 bước chuyển đổi. Bất kỳ nỗ lực chuyển tiếp nào nằm ngoài danh mục này (40 cặp trạng thái không hợp lệ) đều lập tức kích hoạt \texttt{ConflictException} với mã lỗi HTTP 409 Conflict. Đồng thời, API \texttt{POST /orders/:id/cancel} kiểm tra nghiêm ngặt trạng thái hiện tại: chỉ cho phép hủy đơn nếu đơn đang ở trạng thái \texttt{PENDING} hoặc \texttt{PAYMENT\_FAILED}.
+\textbf{Cơ chế kỹ thuật:} Hàm \texttt{assertTransition(fromStatus, toStatus)} trong \texttt{Order}\allowbreak\texttt{StateMachine} lưu trữ ma trận hợp lệ gồm đúng 9 bước chuyển đổi. Bất kỳ nỗ lực chuyển tiếp nào nằm ngoài danh mục này (40 cặp trạng thái không hợp lệ) đều lập tức kích hoạt \texttt{ConflictException} với mã lỗi HTTP 409 Conflict. Đồng thời, API \texttt{POST /orders/:id/cancel} kiểm tra nghiêm ngặt trạng thái hiện tại: chỉ cho phép hủy đơn nếu đơn đang ở trạng thái \texttt{PENDING} hoặc \texttt{PAYMENT\_\allowbreak FAILED}.
 
-\textbf{Bằng chứng thực thi thực tế (Trích từ tập tin \texttt{e2e-test-output.txt} và \texttt{api-test-output.txt}):}
+\textbf{Bằng chứng thực thi thực tế (Trích từ nhật ký E2E test):}
 \begin{lstlisting}[language=bash]
 PASS test/orders-concurrency.e2e-spec.ts
   Orders & Payments Concurrency (e2e)
-    √ (a) Chuyen trang thai sai qua API: huy don da PAID tra 409; huy 2 lan tra 409 (893 ms)
-
-[PASS] TC-CX-03: Chan huy lai don hang da o trang thai CANCELLED (Expected: 409, Got: 409)
+    √ (a) Chuyen trang thai sai qua API: huy don da PAID tra 409; huy 2 lan tra 409
 \end{lstlisting}
 \textbf{Kết luận:} Kịch bản kiểm thử đạt tiêu chuẩn chất lượng. Đơn hàng đã ở trạng thái kết thúc (\texttt{CANCELLED}, \texttt{COMPLETED}) hoặc đang pha chế/đã trả tiền không thể bị hủy lặp lại, giữ vững tính toàn vẹn trạng thái.
 
 \subsection{Kịch bản TS-FR-08-01: Cùng Idempotency-Key chỉ tạo đúng một payment trong CSDL}
 \textbf{Mục tiêu:} Đảm bảo rằng khi client gửi nhiều yêu cầu thanh toán trùng lặp mang cùng một khóa chống trùng lặp (\texttt{Idempotency-Key}) do sự cố mạng chập chờn hoặc do người dùng nhấp đúp chuột liên tục, hệ thống chỉ tạo đúng duy nhất 1 bản ghi giao dịch thanh toán trong cơ sở dữ liệu và tuyệt đối không phát sinh mã lỗi 500.
 
-\textbf{Cơ chế kỹ thuật:} Bảng \texttt{payments} thiết lập chỉ mục duy nhất (\texttt{UNIQUE}) trên cột \texttt{idempotency\_key} và lưu trữ giá trị băm \texttt{request\_hash} (SHA-256 của chuỗi \texttt{\{orderId, method\}}). Khi các request đồng thời cùng đến, request đầu tiên ghi nhận vào CSDL. Các request đến sau đụng phải lỗi vi phạm ràng buộc duy nhất (\texttt{PrismaClientKnownRequestError P2002}); khối \texttt{try/catch} của \texttt{PaymentsService} bắt lỗi này và gọi hàm \texttt{replayExistingPayment} để trả lại kết quả giao dịch ban đầu (HTTP 201 Created) một cách an toàn. Trường hợp client gửi cùng key nhưng thay đổi thông tin thanh toán, hệ thống sẽ ném ngoại lệ \texttt{ConflictException} (HTTP 409 Conflict).
+\textbf{Cơ chế kỹ thuật:} Bảng \texttt{payments} thiết lập chỉ mục duy nhất (\texttt{UNIQUE}) trên cột \texttt{idempotency\_key} và lưu trữ giá trị băm \texttt{request\_hash} (SHA-256 của chuỗi \texttt{\{orderId, method\}}). Khi các request đồng thời cùng đến, request đầu tiên ghi nhận vào CSDL. Các request đến sau đụng phải lỗi vi phạm ràng buộc duy nhất (\texttt{PrismaClientKnownRequestError P2002}); khối \texttt{try/catch} của \texttt{PaymentsService} bắt lỗi này và gọi hàm \texttt{replayExistingPayment} để trả lại kết quả giao dịch ban đầu một cách an toàn. Trường hợp client gửi cùng key nhưng thay đổi thông tin thanh toán, hệ thống sẽ ném ngoại lệ \texttt{ConflictException} (HTTP 409 Conflict).
 
-\textbf{Bằng chứng thực thi thực tế (Trích từ tập tin \texttt{concurrency-output.txt}):}
+\textbf{Bằng chứng thực thi thực tế (Trích từ nhật ký Concurrency test):}
 \begin{lstlisting}[language=bash]
 --- [TEST 2] KIEM TRA THANH TOAN DONG THOI CUNG IDEMPOTENCY-KEY ---
-Da tao don hang test payment: ID = cmvp1uw480003qo2rwqh51xwn
-Ban dong thoi 5 requests POST /payments cung key "concurrency-pay-1793006637993"...
+Da tao don hang test payment: ID = cmvp3t1w60003qo2re0orm3c3
+Ban dong thoi 5 requests POST /payments cung key "concurrency-pay-1793009911361"...
 - So request thanh cong (200/201): 5
 - So request bi loi 500: 0
 - So payment ID phan biet tra ve: 1
@@ -1869,34 +1877,35 @@ UPDATE products
 SET stock = stock - :quantity, version = version + 1 
 WHERE id = :id AND version = :currentVersion AND stock >= :quantity;
 \end{lstlisting}
-Nếu câu lệnh cập nhật trả về số dòng ảnh hưởng bằng 0 (do phiên bản đã bị thay đổi bởi giao dịch khác vừa commit trước đó hoặc số lượng tồn kho khả dụng không đủ), hệ thống chủ động ném ngoại lệ \texttt{BadRequestException} ("Sản phẩm vừa có thay đổi" / "Số lượng tồn kho không đủ") và rollback toàn bộ transaction tạo đơn.
+Nếu câu lệnh cập nhật trả về số dòng ảnh hưởng bằng 0 (do phiên bản đã bị thay đổi bởi giao dịch khác vừa commit trước đó hoặc số lượng tồn kho khả dụng không đủ), hệ thống chủ động ném ngoại lệ \texttt{BadRequestException} với thông điệp \texttt{"Insufficient stock or concurrent update for product <id>"} và rollback toàn bộ transaction tạo đơn.
 
-\textbf{Bằng chứng thực thi thực tế (Trích từ tập tin \texttt{concurrency-output.txt} và \texttt{e2e-test-output.txt}):}
+\textbf{Bằng chứng thực thi thực tế (Trích từ nhật ký Concurrency test):}
 \begin{lstlisting}[language=bash]
 --- [TEST 1] KIEM TRA DAT HANG DONG THOI (OPTIMISTIC LOCKING) ---
 San pham test: "Bac xiu" (ID: cmvkxjx6p001bs81ykciddb4s)
-Ton kho ban dau: 5, Version: 0
-Da reset ton kho = 1, Version = 0
+Ton kho ban dau: 5, Version: 1
+Da reset ton kho = 1, Version = 1
 Ban dong thoi 10 requests POST /orders (moi don mua 1 ly size M)...
-Thoi gian thuc thi: 179ms
 - Don tao thanh cong (201 Created): 1
 - Don bi chan het hang/xung dot (400 Bad Request): 9
-Ton kho cuoi cung trong DB: 0 (Version: 1)
+Ton kho cuoi cung trong DB: 0 (Version: 2)
 PASS [TEST 1]: Optimistic locking chan tranh chap thanh cong, khong vuot ton kho.
 \end{lstlisting}
 \textbf{Kết luận:} Dưới áp lực 10 request đặt mua đồng thời vào món hàng chỉ còn duy nhất 1 sản phẩm trong kho, chỉ đúng 1 request mua thành công (HTTP 201), 9 request còn lại bị từ chối an toàn (HTTP 400). Tồn kho cuối cùng giảm về đúng bằng 0, không bao giờ bị âm.
 
 \section{Kiểm thử Giao diện Người dùng (User Interface Testing)}
 
-Mặc dù trong phạm vi mã nguồn bàn giao, dự án chưa tích hợp runner kiểm thử tự động cho trình duyệt (Playwright/Cypress), nhóm đã thiết lập kịch bản và tiến hành kiểm thử thủ công (\textit{Manual Exploratory Testing}) toàn diện trên giao diện Next.js 15:
+Trong phạm vi mã nguồn của dự án, hệ thống chưa tích hợp công cụ kiểm thử giao diện tự động hóa (như Playwright hoặc Cypress). Do đó, toàn bộ các ca kiểm thử giao diện người dùng được phân loại vào hình thức kiểm thử thủ công (Manual Testing) dựa trên các kịch bản thiết kế tại thư mục \texttt{docs/}.
+
+Các màn hình chính và kịch bản tương tác người dùng bao gồm:
 \begin{itemize}
-    \item \textbf{Xác thực tài khoản (Hình~\ref{fig:ui-auth-login}, Hình~\ref{fig:ui-auth-register}):} Kiểm thử form đăng ký tài khoản với các ràng buộc mật khẩu tối thiểu 6 ký tự, định dạng email chuẩn và thông báo lỗi trùng lặp; đăng nhập thành công lưu JWT token vào bộ nhớ cục bộ và hiển thị thông tin thành viên trên thanh điều hướng.
-    \item \textbf{Thực đơn và Bộ lọc (Hình~\ref{fig:ui-catalog}):} Kiểm thử việc tải danh sách 10 món đồ uống từ cơ sở dữ liệu, chuyển đổi mượt mà giữa các tab danh mục ("Tất cả", "Cà phê", "Trà"), hiển thị chính xác tên món, hình ảnh đại diện và đơn giá gốc.
-    \item \textbf{Chi tiết món và Tùy biến (Hình~\ref{fig:ui-detail}):} Kiểm thử chuyển đổi linh hoạt kích cỡ (S/M/L) với đơn giá cập nhật tự động theo phụ thu (+6.000đ cho Size M, +10.000đ cho Size L); chọn thêm topping với ràng buộc tối đa 3 loại; điều chỉnh số lượng món và thêm vào giỏ hàng.
-    \item \textbf{Quản lý Giỏ hàng (Hình~\ref{fig:ui-cart}):} Kiểm thử hiển thị danh sách món đã chọn lưu trong Zustand Store; tăng giảm số lượng hoặc xóa món; tự động cập nhật tổng giá trị tạm tính.
-    \item \textbf{Xác nhận Đặt hàng và Mã giảm giá (Hình~\ref{fig:ui-order}):} Kiểm thử áp dụng mã khuyến mãi \texttt{WELCOME10}; hệ thống tính toán chính xác mức giảm 10\% và hiển thị số tiền thanh toán cuối cùng (\texttt{finalAmount}).
-    \item \textbf{Cổng Thanh toán Trực tuyến (Hình~\ref{fig:ui-payment}):} Kiểm thử lựa chọn giữa Thẻ ngân hàng (\texttt{BANK\_CARD}) và Ví điện tử (\texttt{E\_WALLET}); mô phỏng quá trình giao tiếp cổng thanh toán và chuyển hướng đến trang thông báo thành công.
-    \item \textbf{Tra cứu Lịch sử Đơn hàng (Hình~\ref{fig:ui-history}):} Kiểm thử danh sách đơn hàng đã đặt phân theo các tab trạng thái; xem chi tiết từng món và thực hiện hủy đơn hàng khi còn ở trạng thái \texttt{PENDING}.
+    \item \textbf{Xác thực tài khoản (Hình~\ref{fig:ui-auth-login}, Hình~\ref{fig:ui-auth-register}):} Kiểm thử form đăng ký tài khoản với các ràng buộc mật khẩu tối thiểu 6 ký tự, định dạng email chuẩn và thông báo lỗi trùng lặp; đăng nhập thành công lưu JWT token và hiển thị thông tin thành viên trên thanh điều hướng. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Thực đơn và Bộ lọc (Hình~\ref{fig:ui-catalog}):} Kiểm thử việc tải danh sách 10 món đồ uống từ cơ sở dữ liệu, chuyển đổi giữa các tab danh mục ("Tất cả", "Cà phê", "Trà \& Trái cây"), hiển thị chính xác tên món, hình ảnh đại diện và đơn giá gốc. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Chi tiết món và Tùy biến (Hình~\ref{fig:ui-detail}):} Kiểm thử chuyển đổi kích cỡ (S/M/L) với đơn giá cập nhật tự động theo phụ thu (+5.000 VNĐ cho Size M, +10.000 VNĐ cho Size L); chọn thêm topping với ràng buộc tối đa 3 loại; điều chỉnh số lượng món và thêm vào giỏ hàng. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Quản lý Giỏ hàng (Hình~\ref{fig:ui-cart}):} Kiểm thử hiển thị danh sách món đã chọn lưu trong Zustand Store; tăng giảm số lượng hoặc xóa món; tự động cập nhật tổng giá trị tạm tính. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Xác nhận Đặt hàng và Mã giảm giá (Hình~\ref{fig:ui-order}):} Kiểm thử áp dụng mã khuyến mãi \texttt{WELCOME10}; tính toán mức giảm 10\% và hiển thị số tiền thanh toán cuối cùng (\texttt{finalAmount}). Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Cổng Thanh toán Trực tuyến (Hình~\ref{fig:ui-payment}):} Kiểm thử lựa chọn giữa Thẻ ngân hàng (\texttt{BANK\_CARD}) và Ví điện tử (\texttt{E\_WALLET}); hiển thị tổng tiền và xử lý chuyển trạng thái đơn hàng. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
+    \item \textbf{Tra cứu Lịch sử Đơn hàng (Hình~\ref{fig:ui-history}):} Kiểm thử danh sách đơn hàng đã đặt phân theo các tab trạng thái; xem chi tiết từng món và thực hiện hủy đơn hàng khi còn ở trạng thái \texttt{PENDING}. Kết quả thực tế: \todo{điền kết quả kiểm thử thủ công}.
 \end{itemize}
 
 \section{Lỗi Phát hiện và Giới hạn Kỹ thuật Đã biết}
@@ -1904,10 +1913,12 @@ Mặc dù trong phạm vi mã nguồn bàn giao, dự án chưa tích hợp runn
 Thông qua việc chạy kiểm thử thực tế và đối chiếu nghiêm ngặt với mã nguồn, nhóm ghi nhận trung thực các điểm sai lệch và giới hạn kỹ thuật như sau:
 \begin{enumerate}
     \item \textbf{Tính năng Đổi điểm thưởng (Redeem Loyalty Points) thuộc Post-MVP:} Trong mã nguồn thực tế, DTO tạo đơn hàng (\texttt{CreateOrderDto}) chỉ chứa danh sách món (\texttt{items}) và mã ưu đãi (\texttt{promotionCode}), không có trường nhập điểm thưởng. Backend đã hoàn thiện logic tích lũy điểm khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)), nhưng tính năng cho phép trừ điểm vào đơn hàng được phân loại là tính năng mở rộng ngoài MVP (Post-MVP).
-    \item \textbf{Quy cách tham số Mã giảm giá \texttt{WELCOME10}:} Trong tập tin khởi tạo dữ liệu \texttt{backend/prisma/seed.ts}, mã \texttt{WELCOME10} được cấu hình giảm 10\%, mức giảm trần tối đa là 20.000 VNĐ và giá trị đơn hàng tối thiểu là 40.000 VNĐ.
-    \item \textbf{Mã lỗi phản hồi khi Xung đột Tồn kho / Phiên bản Khóa lạc quan:} Backend hiện tại trả về mã lỗi \texttt{400 BadRequestException} chung cho cả trường hợp hết hàng lẫn xung đột phiên bản \texttt{version} (thay vì phân tách mã \texttt{409 Conflict}). Phía Frontend hiện chưa có cơ chế Auto-Retry ngầm mà yêu cầu người dùng thao tác lại khi gặp thông báo lỗi.
-    \item \textbf{Cơ chế Idempotency Thanh toán:} Backend sử dụng trường \texttt{idempotencyKey} và mã băm SHA-256 từ \texttt{\{orderId, method\}}. Khi gửi lại cùng key và cùng nội dung, backend trả kết quả cũ (HTTP 201 Created). Khi gửi cùng key nhưng khác nội dung, backend ném ngoại lệ \texttt{409 Conflict}.
+    \item \textbf{Quy cách tham số Mã giảm giá \texttt{WELCOME10} và \texttt{GIAM15K}:} Trong tập tin khởi tạo dữ liệu \texttt{backend/prisma/seed.ts}, mã \texttt{WELCOME10} được cấu hình giảm 10\%, mức giảm trần tối đa là 20.000 VNĐ và giá trị đơn hàng tối thiểu là 40.000 VNĐ. Mã \texttt{GIAM15K} giảm thẳng 15.000 VNĐ cho đơn hàng từ 60.000 VNĐ.
+    \item \textbf{Mã lỗi phản hồi khi Xung đột Tồn kho / Phiên bản Khóa lạc quan:} Backend hiện tại trả về mã lỗi \texttt{400 BadRequestException} với thông điệp \texttt{"Insufficient stock or concurrent update for product <id>"} chung cho cả trường hợp hết hàng lẫn xung đột phiên bản \texttt{version} (thay vì phân tách mã \texttt{409 Conflict}). Phía Frontend hiện chưa có cơ chế Auto-Retry ngầm mà yêu cầu người dùng thao tác lại khi gặp thông báo lỗi.
+    \item \textbf{Sai lệch mã trạng thái HTTP khi Replay Idempotency Thanh toán:} Tài liệu thiết kế \texttt{docs/payment/payment-test-cases.md} (ca TC-PAY-10 và TC-PAY-12) ghi nhận khi client gửi lại cùng \texttt{Idempotency-Key} và cùng nội dung thì hệ thống trả lại kết quả cũ đã lưu kèm mã HTTP 200. Trong mã nguồn thực tế, do \texttt{PaymentsController} không gán tường minh decorator \texttt{@HttpCode(200)}, NestJS mặc định trả về HTTP 201 Created cho phương thức POST. Bản ghi thanh toán vẫn được bảo toàn nguyên vẹn và không bị tạo trùng trong CSDL.
+    \item \textbf{Cơ chế Phát hiện Tranh chấp Idempotency khác nội dung:} Backend lưu trữ giá trị băm SHA-256 từ chuỗi \texttt{\{orderId, method\}}. Khi gửi cùng key nhưng thay đổi phương thức hoặc mã đơn hàng, hệ thống ném ngoại lệ \texttt{ConflictException} (HTTP 409 Conflict) đúng theo quy tắc nghiệp vụ.
     \item \textbf{Hoàn trả điểm thưởng khi hủy đơn:} Mặc dù cơ sở dữ liệu đã thiết kế sẵn kiểu giao dịch \texttt{LoyaltyTransactionType.REFUNDED}, nghiệp vụ tự động hoàn lại điểm thưởng khi đơn hàng bị hủy là tính năng dự kiến cho Post-MVP.
+    \item \textbf{Chuẩn hóa Phụ thu Kích cỡ Size M:} Trong dữ liệu khởi tạo \texttt{seed.ts}, phụ thu Size M là +5.000 VNĐ và Size L là +10.000 VNĐ. Các tài liệu mô tả trước đây ghi nhận +6.000 VNĐ cho Size M đã được đính chính đồng bộ theo mã nguồn thực tế.
 \end{enumerate}
 
 \section{Ma trận Truy vết Test Case về Yêu cầu và Use Case}
@@ -1923,13 +1934,15 @@ Bảng~\ref{tab:test-traceability-summary} thể hiện tính liên kết và đ
 \toprule
 \textbf{Mã FR} & \textbf{Mã UC} & \textbf{Mô tả nghiệp vụ} & \textbf{Nhóm Test Case} & \textbf{Số ca Đạt} & \textbf{Chưa chạy} \\
 \midrule
-FR-01 & UC-AUTH-01..02 & Đăng ký \& Đăng nhập & \texttt{TC-AUTH-API-01..08} \newline \texttt{TC-AUTH-UI-01..06} & 8 & 6 (UI) \\
-FR-02 & UC-CAT-01, UC-DET-01 & Xem thực đơn \& Chi tiết & \texttt{TC-CAT-API-01..05} \newline \texttt{TC-DET-API-01..04} & 8 & 12 (UI) \\
-FR-03 & UC-CART-01 & Quản lý Giỏ hàng & \texttt{TC-CART-UI-01..12} & 0 & 12 (UI) \\
-FR-04 & UC-ORD-01 & Tạo đơn \& Hủy đơn & \texttt{TC-ORD-API-01..15} \newline \texttt{TC-ORD-UI-01..04} & 15 & 4 (UI) \\
-FR-05 & UC-PAY-01 & Thanh toán Idempotent & \texttt{TC-PAY-API-01..12} \newline \texttt{TC-PAY-UI-01..03} & 12 & 3 (UI) \\
-FR-06 & UC-HIS-01 & Lịch sử đơn hàng & \texttt{TC-HIS-API-01..07} \newline \texttt{TC-HIS-UI-01..04} & 7 & 4 (UI) \\
+FR-01 & UC-AUTH-01..02 & Đăng ký \& Đăng nhập & \texttt{TC-AUTH-01..08} \newline \texttt{TC-AUTH-UI-01..06} & 8 & 6 (UI) \\
+FR-02 & UC-CAT-01, UC-DET-01 & Xem thực đơn \& Chi tiết & \texttt{TC-CAT-01..05} \newline \texttt{TC-DET-01..03} \newline \texttt{TC-CAT-UI-01..07} \newline \texttt{TC-DET-UI-01..05} & 8 & 12 (UI) \\
+FR-03 & UC-CART-01 & Quản lý Giỏ hàng & \texttt{TC-CART-UI-01..08} & 0 & 8 (UI) \\
+FR-04 & UC-ORD-01 & Tạo đơn, Máy trạng thái \& Hủy đơn & \texttt{TC-ST-01..24} \newline \texttt{TC-CO-01..19} \newline \texttt{TC-CX-01..05} \newline \texttt{TC-ORD-UI-01..04} & 48 & 4 (UI) \\
+FR-05 & UC-PAY-01 & Thanh toán Idempotent & \texttt{TC-PAY-01..19} \newline \texttt{TC-PAY-UI-01..03} & 17\footnote{Bao gồm 2 ca TC-PAY-10 và TC-PAY-12 ở trạng thái Cần xác nhận do sai lệch mã HTTP 200/201.} & 3 (UI) \\
+FR-06 & UC-HIS-01 & Lịch sử đơn hàng & \texttt{TC-HIS-01..07} \newline \texttt{TC-HIS-UI-01..08} & 7 & 8 (UI) \\
 FR-07..09 & Concurrency & Task 10 Scenarios & \texttt{TS-FR-07-02} \newline \texttt{TS-FR-08-01, 09-01} & 3 & 0 \\
+\midrule
+\textbf{TỔNG CỘNG} & & & & \textbf{91} & \textbf{41} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1980,8 +1993,8 @@ Nhằm đưa BrewLite trở thành một nền tảng vận hành hoàn chỉnh 
 
 Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lượng từ yêu cầu chức năng (FR), đặc tả Use Case (UC), API Endpoint, bảng cơ sở dữ liệu cho đến các ca kiểm thử (TC) tương ứng.
 
-{\small % Giảm nhẹ cỡ chữ để bảng 6 cột hiển thị thoáng và đẹp hơn
-\setlength{\tabcolsep}{4pt} % Thu hẹp khoảng cách đệm giữa các cột (mặc định là 6pt)
+{\small
+\setlength{\tabcolsep}{4pt}
 
 \begin{longtable}{
     >{\raggedright\arraybackslash}p{1.2cm}
@@ -2010,22 +2023,25 @@ Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lư�
 \bottomrule
 \endlastfoot
 
-\textbf{FR-01} & UC-AUTH-01 & \texttt{POST /auth/register} & \texttt{users} & \texttt{TC-AUTH-API-01..04} & \texttt{/auth/register} \\
-& UC-AUTH-02 & \texttt{POST /auth/login} & \texttt{users} & \texttt{TC-AUTH-API-05..08} & \texttt{/auth/login} \\
+\textbf{FR-01} & UC-AUTH-01 & \texttt{POST /auth/register} & \texttt{users} & \texttt{TC-AUTH-01..03} & \texttt{/auth/register} \\
+& UC-AUTH-02 & \texttt{POST /auth/login} & \texttt{users} & \texttt{TC-AUTH-04..08} & \texttt{/auth/login} \\
 \midrule
-\textbf{FR-02} & UC-CAT-01 & \texttt{GET /products} & \texttt{products, categories} & \texttt{TC-CAT-API-01..02} & \texttt{/menu} \\
-& UC-DET-01 & \texttt{GET /products/:id} & \texttt{products, sizes, toppings} & \texttt{TC-DET-API-01..04} & \texttt{/products/:id} \\
+\textbf{FR-02} & UC-CAT-01 & \texttt{GET /products} & \texttt{products, categories} & \texttt{TC-CAT-01..05} & \texttt{/menu} \\
+& UC-DET-01 & \texttt{GET /products/:id} & \texttt{products, sizes, toppings} & \texttt{TC-DET-01..03} & \texttt{/products/:id} \\
 \midrule
-\textbf{FR-03} & UC-CART-01 & \textit{(Client-side)} & \textit{(LocalStorage)} & \texttt{TC-CART-UI-01..05} & \texttt{/cart} \\
+\textbf{FR-03} & UC-CART-01 & \textit{(Client-side)} & \textit{(LocalStorage)} & \texttt{TC-CART-UI-01..08} & \texttt{/cart} \\
 \midrule
-\textbf{FR-04} & UC-ORD-01 & \texttt{POST /orders} & \texttt{orders, items, toppings, history} & \texttt{TC-ORD-API-01..07} & \texttt{/checkout} \\
-& & \texttt{GET /orders/:id} & \texttt{orders, items, payments} & \texttt{TC-ORD-API-08} & \texttt{/checkout} \\
-& & \texttt{POST /orders/:id/cancel} & \texttt{orders, history, products} & \texttt{TC-ORD-API-09} & \texttt{/orders/:id} \\
+\textbf{FR-04} & UC-ORD-01 & \texttt{POST /orders} & \texttt{orders, items, toppings, history} & \texttt{TC-CO-01..19} & \texttt{/checkout} \\
+& & \texttt{GET /orders/:id} & \texttt{orders, items, payments} & \texttt{TC-HIS-05} & \texttt{/orders/:id} \\
+& & \texttt{POST /orders/:id/cancel} & \texttt{orders, history, products} & \texttt{TC-CX-01..05} & \texttt{/orders/:id} \\
+& & \textit{(State Machine)} & \texttt{orders, order\_status\_history} & \texttt{TC-ST-01..24} & \textit{(Backend)} \\
 \midrule
-\textbf{FR-05} & UC-PAY-01 & \texttt{POST /payments} & \texttt{payments, orders, loyalty, history} & \texttt{TC-PAY-API-01..06} & \texttt{/checkout/payment} \\
+\textbf{FR-05} & UC-PAY-01 & \texttt{POST /payments} & \texttt{payments, orders, loyalty, history} & \texttt{TC-PAY-01..19} & \texttt{/checkout/payment} \\
 \midrule
-\textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders/me} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
-& & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-API-02} & \texttt{/orders/:id} \\
+\textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders/me} & \texttt{orders} & \texttt{TC-HIS-01..04} & \texttt{/orders} \\
+& & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-05..07} & \texttt{/orders/:id} \\
+\midrule
+\textbf{FR-07..09} & Concurrency & \texttt{POST /orders, /payments} & \texttt{orders, products, payments} & \texttt{TS-FR-07-02, 08-01, 09-01} & \textit{(Automated E2E)} \\
 \end{longtable}
 }
 % ====== END INLINE: appendices/appendix-a ======
@@ -2055,7 +2071,7 @@ Bảng~\ref{tab:full-api-list} liệt kê toàn bộ các API Endpoints được
 \texttt{POST} & \texttt{/api/v1/orders} & Bearer JWT & Tạo đơn hàng mới từ giỏ hàng, trừ kho với khóa lạc quan, áp voucher \\
 \texttt{GET} & \texttt{/api/v1/orders/me} & Bearer JWT & Lấy danh sách lịch sử đơn hàng của người dùng đang đăng nhập \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Bearer JWT & Xem chi tiết thông tin đơn hàng, danh sách món, trạng thái xử lý và giao dịch thanh toán \\
-\texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Bearer JWT & Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\texttt{PAYMENT\_FAILED}) và hoàn trả tồn kho \\
+\texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Bearer JWT & Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\allowbreak\texttt{PAYMENT\_\allowbreak FAILED}) và hoàn trả tồn kho \\
 \midrule
 \texttt{POST} & \texttt{/api/v1/payments} & Bearer JWT + Idempotency & Thực hiện thanh toán trực tuyến an toàn với khóa Idempotency, gọi cổng thanh toán giả lập và cộng điểm loyalty \\
 \bottomrule
@@ -2064,7 +2080,7 @@ Bảng~\ref{tab:full-api-list} liệt kê toàn bộ các API Endpoints được
 
 \noindent\textit{Ghi chú thiết kế API:} Nhằm tối ưu hóa hiệu năng truyền tải và hạn chế hiện tượng roundtrip mạng dư thừa, hệ thống tích hợp phân loại danh mục trực tiếp vào \texttt{GET /products} (thay vì tách riêng \texttt{GET /categories}), và nhúng danh sách topping khả dụng vào phản hồi chi tiết món \texttt{GET /products/:id} (thay vì tách riêng \texttt{GET /toppings}). Trạng thái giao dịch thanh toán được truy vấn trực tiếp qua chi tiết đơn hàng \texttt{GET /orders/:id} thay vì tạo endpoint độc lập \texttt{GET /payments/:id}.
 
-Mọi phản hồi thành công từ hệ thống đều được chuẩn hóa qua \texttt{TransformInterceptor} theo cấu trúc:
+Mọi phản hồi thành công từ hệ thống đều được chuẩn hóa qua \texttt{Transform}\allowbreak\texttt{Interceptor} theo cấu trúc:
 \begin{lstlisting}[language=Java]
 {
   "success": true,
@@ -2074,7 +2090,7 @@ Mọi phản hồi thành công từ hệ thống đều được chuẩn hóa q
 }
 \end{lstlisting}
 
-Mọi phản hồi lỗi đều được chuẩn hóa qua \texttt{AllExceptionsFilter} theo cấu trúc:
+Mọi phản hồi lỗi đều được chuẩn hóa qua \texttt{AllExceptions}\allowbreak\texttt{Filter} theo cấu trúc:
 \begin{lstlisting}[language=Java]
 {
   "success": false,
@@ -2301,7 +2317,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \end{tabularx}
 \end{table}
 
-\section{Bảng \texttt{order\_status\_history}}
+\section{Bảng \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history}}
 \begin{table}[H]
 \centering
 \small
@@ -2329,18 +2345,19 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \chapter{DANH MỤC CHI TIẾT CÁC CA KIỂM THỬ (TEST CASES)}
 \label{app:test-cases-full}
 
-Phụ lục này trình bày danh mục chi tiết toàn bộ các ca kiểm thử của hệ thống BrewLite, bao gồm các ca kiểm thử tự động tầng Backend (API, E2E, Concurrency) và các ca kiểm thử giao diện người dùng (UI). Tất cả các ca mang trạng thái \textbf{Đạt} đều được chứng minh bằng nhật ký thực thi thực tế trong thư mục \texttt{report/figures/test-evidence/}. Các ca mang trạng thái \textbf{Chưa chạy} là các ca kiểm thử giao diện tự động (do dự án chưa tích hợp runner Playwright/Cypress trong CI/CD) nhưng đã được xác minh thủ công trực tiếp trên trình duyệt.
+Phụ lục này trình bày danh mục chi tiết toàn bộ các ca kiểm thử của hệ thống BrewLite được ánh xạ trực tiếp từ bộ tài liệu thiết kế tại thư mục \texttt{docs/}. Các ca kiểm thử tầng Backend (API, Unit, E2E, Concurrency) mang trạng thái \textbf{Đạt} đều được kiểm chứng thông qua các bộ kiểm thử tự động của dự án. Hai ca kiểm thử Idempotency mang trạng thái \textbf{Cần xác nhận} do sai lệch mã trạng thái HTTP giữa tài liệu thiết kế (HTTP 200) và mã nguồn thực tế (HTTP 201 Created). Toàn bộ các ca kiểm thử giao diện người dùng (UI) mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} và sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
 
 {\footnotesize
-\setlength{\tabcolsep}{2.5pt}
+\setlength{\tabcolsep}{2pt}
+\sloppy
 \begin{longtable}{
-    >{\raggedright\arraybackslash\ttfamily}p{2.45cm}
-    >{\raggedright\arraybackslash}p{1.35cm}
+    >{\raggedright\arraybackslash\ttfamily}p{2.5cm}
+    >{\raggedright\arraybackslash}p{1.3cm}
     >{\raggedright\arraybackslash}p{1.9cm}
-    >{\raggedright\arraybackslash}p{2.85cm}
-    >{\raggedright\arraybackslash}p{2.95cm}
-    >{\raggedright\arraybackslash}p{2.1cm}
-    >{\centering\arraybackslash}p{1.0cm}
+    >{\raggedright\arraybackslash}p{2.8cm}
+    >{\raggedright\arraybackslash}p{2.9cm}
+    >{\raggedright\arraybackslash}p{2.2cm}
+    >{\centering\arraybackslash}p{1.4cm}
 }
 \caption{Danh mục đầy đủ các ca kiểm thử hệ thống BrewLite} \label{tab:full-test-cases} \\
 \toprule
@@ -2361,119 +2378,165 @@ Phụ lục này trình bày danh mục chi tiết toàn bộ các ca kiểm th�
 \endlastfoot
 
 % --- 1. AUTH MODULE ---
-TC-AUTH-API-01 & Auth & Email chưa tồn tại & Gửi \texttt{POST /auth/register} với email và mật khẩu hợp lệ & HTTP 201, tạo tài khoản mới, băm mật khẩu Bcrypt & HTTP 201, trả về user mới, mật khẩu được băm & Đạt \\
-TC-AUTH-API-02 & Auth & Không có & Gửi \texttt{POST /auth/register} với email sai chuẩn hoặc mật khẩu ngắn & HTTP 400 Bad Request & HTTP 400, thông báo lỗi validation & Đạt \\
-TC-AUTH-API-03 & Auth & Email đã có trong DB & Gửi \texttt{POST /auth/register} với email đã tồn tại & HTTP 409 Conflict, thông báo "Email đã được sử dụng" & HTTP 409 Conflict, đúng thông báo lỗi & Đạt \\
-TC-AUTH-API-04 & Auth & Đã có tài khoản & Gửi \texttt{POST /auth/login} với đúng email và mật khẩu & HTTP 200, cấp Bearer JWT \texttt{accessToken} & HTTP 200, cấp JWT hợp lệ kèm thông tin user & Đạt \\
-TC-AUTH-API-05 & Auth & Không có & Gửi \texttt{POST /auth/login} với sai mật khẩu & HTTP 401 Unauthorized, thông báo sai thông tin & HTTP 401, từ chối đăng nhập & Đạt \\
-TC-AUTH-API-06 & Auth & Vừa đăng ký & Truy vấn bản ghi trong bảng \texttt{users} qua Prisma & Trường \texttt{password\_hash} khác chuỗi thô, băm 10 rounds & Khớp chuẩn băm Bcrypt 10 rounds & Đạt \\
-TC-AUTH-API-07 & Auth & Không có token & Gửi request đến route bảo vệ (ví dụ: \texttt{POST /orders}) & HTTP 401 Unauthorized từ \texttt{JwtAuthGuard} & HTTP 401, thông báo yêu cầu xác thực & Đạt \\
-TC-AUTH-API-08 & Auth & Token giả mạo & Gửi request kèm Bearer token sai chữ ký hoặc hết hạn & HTTP 401 Unauthorized & HTTP 401 Unauthorized & Đạt \\
-TC-AUTH-UI-01 & Auth & Ở trang login & Mở \texttt{/auth/login}, kiểm tra form đăng nhập & Hiển thị trường email, mật khẩu, nút Đăng nhập & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-AUTH-UI-02 & Auth & Ở trang register & Mở \texttt{/auth/register}, kiểm tra form & Hiển thị trường họ tên, email, mật khẩu, xác nhận & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-AUTH-UI-03 & Auth & Đăng nhập thành công & Nhập đúng tài khoản trên form web và bấm Đăng nhập & Lưu token vào cookie/storage, chuyển hướng trang chủ & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-AUTH-UI-04 & Auth & Đăng nhập thất bại & Nhập sai mật khẩu trên form web và bấm Đăng nhập & Hiển thị alert thông báo lỗi màu đỏ & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-AUTH-UI-05 & Auth & Đang đăng nhập & Bấm nút "Đăng xuất" trên thanh điều hướng & Xóa token, trạng thái chuyển về chưa đăng nhập & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-AUTH-UI-06 & Auth & Chưa đăng nhập & Bấm vào nút thanh toán tại giỏ hàng & Tự động chuyển hướng về trang \texttt{/auth/login} & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-AUTH-01 & Auth & Email chưa có trong DB & Gửi \texttt{POST /auth/register} hợp lệ & HTTP 201, tạo user mới, băm Bcrypt 10 rounds & HTTP 201, trả về user mới & \textbf{Đạt} \\
+TC-AUTH-02 & Auth & Không có & Gửi \texttt{POST /auth/register} sai định dạng email hoặc password ngắn & HTTP 400 Bad Request, thông báo validation & HTTP 400, thông báo lỗi validation & \textbf{Đạt} \\
+TC-AUTH-03 & Auth & Email đã có trong DB & Gửi \texttt{POST /auth/register} với email đã tồn tại & HTTP 409 Conflict, thông báo "Email này đã được sử dụng" & HTTP 409 Conflict, đúng thông báo lỗi & \textbf{Đạt} \\
+TC-AUTH-04 & Auth & Đã có tài khoản & Gửi \texttt{POST /auth/login} với đúng email và mật khẩu & HTTP 200, cấp Bearer JWT \texttt{accessToken} & HTTP 200, cấp JWT hợp lệ kèm thông tin user & \textbf{Đạt} \\
+TC-AUTH-05 & Auth & Không có & Gửi \texttt{POST /auth/login} với sai mật khẩu hoặc email không tồn tại & HTTP 401 Unauthorized, thông báo sai thông tin & HTTP 401, từ chối đăng nhập & \textbf{Đạt} \\
+TC-AUTH-06 & Auth & Vừa đăng ký & Truy vấn bản ghi trong bảng \texttt{users} qua Prisma & Trường \texttt{password\_hash} khác chuỗi thô, băm 10 rounds & Khớp chuẩn băm Bcrypt 10 rounds & \textbf{Đạt} \\
+TC-AUTH-07 & Auth & Không có token & Gửi request đến route bảo vệ (ví dụ: \texttt{POST /orders}) & HTTP 401 Unauthorized, "Vui lòng đăng nhập để tiếp tục" & HTTP 401 Unauthorized & \textbf{Đạt} \\
+TC-AUTH-08 & Auth & Token không hợp lệ & Gửi request với token hết hạn hoặc sai chữ ký & HTTP 401 Unauthorized, từ chối truy cập & HTTP 401 Unauthorized & \textbf{Đạt} \\
+TC-AUTH-UI-01 & Auth & Chưa đăng nhập & Truy cập trực tiếp trang \texttt{/orders} & Hook \texttt{useRequireAuth} tự động chuyển hướng sang \texttt{/auth/login} & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-AUTH-UI-02 & Auth & Mở form đăng nhập & Quan sát màn hình \texttt{/auth/login} & Hiển thị đủ ô input email, password và nút điền nhanh demo & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-AUTH-UI-03 & Auth & Mở form đăng nhập & Bỏ trống email/password và bấm nút Đăng nhập & Báo lỗi validate đỏ dưới các trường tương ứng & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-AUTH-UI-04 & Auth & Điền tài khoản đúng & Bấm "Đăng nhập" & Lưu token vào state và chuyển hướng về trang trước đó & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-AUTH-UI-05 & Auth & Mở form đăng ký & Nhập mật khẩu xác nhận không khớp & Hiển thị thông báo "Mật khẩu xác nhận không khớp" & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-AUTH-UI-06 & Auth & Điền form đăng ký hợp lệ & Bấm nút "Đăng ký tài khoản" & Tạo tài khoản thành công, tự động đăng nhập và về \texttt{/menu} & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 2. CATALOG & DETAIL MODULE ---
-TC-CAT-API-01 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} không tham số & HTTP 200, danh sách 10 món kèm \texttt{categoryName} & HTTP 200, đủ 10 món Cà phê và Trà & Đạt \\
-TC-CAT-API-02 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra trường giá & HTTP 200, các món có \texttt{basePrice} số nguyên VNĐ & HTTP 200, cấu trúc đơn giá chuẩn xác & Đạt \\
-TC-CAT-API-03 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products?search=bac} & HTTP 200, trả về sản phẩm Bạc xỉu & HTTP 200, lọc đúng món theo từ khóa & Đạt \\
-TC-CAT-API-04 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra các trường ẩn & Không để lộ trường \texttt{stock} nội bộ trong danh mục & HTTP 200, không chứa trường \texttt{stock} & Đạt \\
-TC-CAT-API-05 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra thứ tự sắp xếp & Sắp xếp theo tên món hoặc thứ tự \texttt{displayOrder} & HTTP 200, thứ tự sắp xếp chuẩn xác & Đạt \\
-TC-CAT-UI-01 & Catalog & Truy cập trang chủ & Mở trang \texttt{/menu} & Hiển thị spinner loading sau đó hiện lưới thực đơn & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-02 & Catalog & Mở trang thực đơn & Quan sát thanh phân loại danh mục & Hiển thị các tab: "Tất cả", "Cà phê", "Trà" & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-03 & Catalog & Đang ở \texttt{/menu} & Nhập "Cà phê sữa" vào ô tìm kiếm & Lưới sản phẩm chỉ hiển thị món Cà phê sữa & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-04 & Catalog & Đang ở \texttt{/menu} & Bấm chọn tab "Cà phê" & Lọc và hiển thị đúng 6 món thuộc nhóm Cà phê & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-05 & Catalog & Đang ở \texttt{/menu} & Bấm chọn tab "Trà" & Lọc và hiển thị đúng 4 món thuộc nhóm Trà & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-06 & Catalog & Đang ở \texttt{/menu} & Nhập từ khóa không tồn tại "xyz123" & Hiển thị thông báo "Không tìm thấy món phù hợp" & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CAT-UI-07 & Catalog & Đang ở \texttt{/menu} & Rê chuột vào thẻ món ăn & Thẻ món có hiệu ứng hover và nút xem chi tiết & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-CAT-01 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} không tham số & HTTP 200, danh sách 10 món kèm \texttt{categoryName} & HTTP 200, đủ 10 món Cà phê và Trà & \textbf{Đạt} \\
+TC-CAT-02 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra trường giá & HTTP 200, các món có \texttt{basePrice} số nguyên VNĐ & HTTP 200, cấu trúc đơn giá chuẩn xác & \textbf{Đạt} \\
+TC-CAT-03 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products?search=bac} & HTTP 200, trả về sản phẩm Bạc xỉu & HTTP 200, lọc đúng món theo từ khóa & \textbf{Đạt} \\
+TC-CAT-04 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra các trường ẩn & Không để lộ trường \texttt{stock} nội bộ trong danh mục & HTTP 200, không chứa trường \texttt{stock} & \textbf{Đạt} \\
+TC-CAT-05 & Catalog & DB nạp 10 sản phẩm & Gửi \texttt{GET /products} và kiểm tra thứ tự sắp xếp & Sắp xếp theo tên món hoặc thứ tự \texttt{displayOrder} & HTTP 200, thứ tự sắp xếp chuẩn xác & \textbf{Đạt} \\
+TC-CAT-UI-01 & Catalog & Truy cập trang chủ & Mở trang \texttt{/menu} & Hiển thị spinner loading sau đó hiện lưới thực đơn & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-02 & Catalog & Mở trang thực đơn & Quan sát thanh phân loại danh mục & Hiển thị các tab: "Tất cả", "Cà phê", "Trà \& Trái cây" & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-03 & Catalog & Đang ở \texttt{/menu} & Nhập "Cà phê sữa" vào ô tìm kiếm & Lưới sản phẩm chỉ hiển thị món Cà phê sữa đá & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-04 & Catalog & Đang ở \texttt{/menu} & Bấm chọn tab "Cà phê" & Lọc và hiển thị đúng 6 món thuộc nhóm Cà phê & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-05 & Catalog & Đang ở \texttt{/menu} & Bấm chọn tab "Trà \& Trái cây" & Lọc và hiển thị đúng 4 món thuộc nhóm Trà & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-06 & Catalog & Đang ở \texttt{/menu} & Nhập từ khóa không tồn tại "xyz123" & Hiển thị thông báo không tìm thấy món phù hợp & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CAT-UI-07 & Catalog & Đang ở \texttt{/menu} & Rê chuột vào thẻ món ăn & Thẻ món có hiệu ứng hover và nút xem chi tiết & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
-TC-DET-API-01 & Detail & Món tồn tại trong DB & Gửi \texttt{GET /products/:id} với ID hợp lệ & HTTP 200, nạp đủ \texttt{sizePrices} (S,M,L) và toppings & HTTP 200, đủ 3 size và danh sách topping & Đạt \\
-TC-DET-API-02 & Detail & Món tồn tại trong DB & Gửi \texttt{GET /products/:id} kiểm tra giá topping & Danh sách toppings kèm giá: Trân châu, Kem Cheese... & HTTP 200, giá topping nguyên chẵn & Đạt \\
-TC-DET-API-03 & Detail & Không có ID này & Gửi \texttt{GET /products/:id} với ID không tồn tại & HTTP 404 Not Found, "Không tìm thấy sản phẩm" & HTTP 404 Not Found & Đạt \\
-TC-DET-UI-01 & Detail & Mở \texttt{/products/[id]} & Quan sát giao diện trang chi tiết món & Hiển thị tên món, ảnh lớn, mô tả, nút chọn size/topping & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-DET-UI-02 & Detail & Ở trang chi tiết & Mặc định chọn Size S & Giá hiển thị bằng \texttt{basePrice} gốc của món & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-DET-UI-03 & Detail & Ở trang chi tiết & Bấm chọn Size M (+6.000đ) & Đơn giá tự động cộng thêm 6.000đ & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-DET-UI-04 & Detail & Ở trang chi tiết & Bấm chọn thêm Kem Cheese (+10.000đ) & Đơn giá tự động cộng thêm 10.000đ & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-DET-UI-05 & Detail & Đã chọn 3 topping & Cố gắng bấm chọn loại topping thứ 4 & Không cho chọn thêm, hiển thị thông báo tối đa 3 topping & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-DET-01 & Detail & Món tồn tại trong DB & Gửi \texttt{GET /products/:id} với ID hợp lệ & HTTP 200, nạp đủ \texttt{sizePrices} (S,M,L) và toppings & HTTP 200, đủ 3 size và danh sách topping & \textbf{Đạt} \\
+TC-DET-02 & Detail & Món tồn tại trong DB & Gửi \texttt{GET /products/:id} kiểm tra giá topping & Danh sách toppings kèm giá: Trân châu, Kem Cheese, Đào miếng & HTTP 200, giá topping nguyên chẵn & \textbf{Đạt} \\
+TC-DET-03 & Detail & Không có ID này & Gửi \texttt{GET /products/:id} với ID không tồn tại & HTTP 404 Not Found, "Không tìm thấy sản phẩm" & HTTP 404 Not Found & \textbf{Đạt} \\
+TC-DET-UI-01 & Detail & Mở \texttt{/products/}\allowbreak\texttt{[id]} & Quan sát giao diện trang chi tiết món & Hiển thị tên món, ảnh lớn, mô tả, nút chọn size/topping & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-DET-UI-02 & Detail & Ở trang chi tiết & Mặc định chọn Size S & Giá hiển thị bằng \texttt{basePrice} gốc của món & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-DET-UI-03 & Detail & Ở trang chi tiết & Bấm chọn Size M (+5.000đ) & Đơn giá tự động cộng thêm 5.000đ & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-DET-UI-04 & Detail & Ở trang chi tiết & Bấm chọn thêm Kem Cheese (+10.000đ) & Đơn giá tự động cộng thêm 10.000đ & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-DET-UI-05 & Detail & Đã chọn 3 topping & Cố gắng bấm chọn loại topping thứ 4 & Không cho chọn thêm, hiển thị thông báo tối đa 3 topping & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 3. CART MODULE ---
-TC-CART-UI-01 & Cart & Giỏ hàng trống & Truy cập trang \texttt{/cart} & Hiển thị thông báo giỏ trống và nút Khám phá thực đơn & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-02 & Cart & Thêm món vào giỏ & Bấm "Thêm vào giỏ hàng" tại trang chi tiết món & Icon giỏ hàng trên header cập nhật số lượng món & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-03 & Cart & Mở trang giỏ hàng & Quan sát thông tin từng dòng món & Hiển thị tên món, size, đường, đá, topping và giá & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-04 & Cart & Giỏ có 1 món & Bấm nút dấu cộng (+) tăng số lượng lên 2 & Số lượng hiển thị = 2, tổng tiền dòng tăng gấp đôi & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-05 & Cart & Món có số lượng 2 & Bấm nút dấu trừ (-) giảm số lượng về 1 & Số lượng hiển thị = 1, tổng tiền giảm tương ứng & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-06 & Cart & Món có số lượng 1 & Bấm nút xóa món (biểu tượng thùng rác) & Dòng món biến mất khỏi giỏ hàng, cập nhật tổng tiền & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-07 & Cart & Giỏ hàng có món & Tải lại trang (F5) hoặc mở tab mới & Dữ liệu giỏ hàng vẫn nguyên vẹn nhờ LocalStorage & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-08 & Cart & Giỏ hàng có món & Bấm nút "Xóa tất cả" & Giỏ hàng trở về trạng thái trống rỗng & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-09 & Cart & Giỏ hàng có món & Bấm nút "Tiến hành đặt hàng" & Chuyển hướng sang trang \texttt{/checkout} & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-10 & Cart & Thêm 2 món giống nhau & Thêm cùng món, cùng size, cùng topping & Giỏ hàng gộp dòng và tăng số lượng lên 2 & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-11 & Cart & Thêm 2 món khác size & Thêm cùng món nhưng 1 Size S và 1 Size M & Giỏ hàng tách thành 2 dòng riêng biệt & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-CART-UI-12 & Cart & Giỏ trống & Bấm vào icon giỏ hàng trên Header & Mở Drawer/Trang giỏ hàng báo chưa có món & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-CART-UI-01 & Cart & Giỏ hàng trống & Truy cập trang \texttt{/cart} & Hiển thị thông báo giỏ trống và nút Khám phá thực đơn & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-02 & Cart & Thêm món vào giỏ & Bấm "Thêm vào giỏ hàng" tại trang chi tiết món & Icon giỏ hàng trên header cập nhật số lượng món & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-03 & Cart & Mở trang giỏ hàng & Quan sát danh sách các món đã thêm & Hiển thị tên món, size, topping và đơn giá từng món & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-04 & Cart & Có món trong giỏ & Bấm nút dấu cộng (+) tăng số lượng món & Số lượng tăng lên 1, tổng tiền tự động tính lại & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-05 & Cart & Món có số lượng > 1 & Bấm nút dấu trừ (-) giảm số lượng & Số lượng giảm 1, tổng tiền tự động trừ đi tương ứng & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-06 & Cart & Có món trong giỏ & Bấm icon thùng rác xóa hẳn một món & Món biến mất khỏi giỏ, tổng tiền cập nhật lại & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-07 & Cart & F5 tải lại trang & Refresh trình duyệt khi đang có giỏ hàng & Dữ liệu giỏ hàng vẫn giữ nguyên nhờ Zustand LocalStorage & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-CART-UI-08 & Cart & Giỏ có ít nhất 1 món & Bấm nút "Tiến hành Đặt hàng" & Chuyển hướng người dùng sang trang \texttt{/checkout} & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 4. ORDER MODULE ---
-TC-ORD-API-01 & Order & Có Bearer JWT, đủ kho & Gửi \texttt{POST /orders} với danh sách món hợp lệ & HTTP 201 Created, đơn trạng thái PENDING, trừ tồn kho & HTTP 201, tạo đơn thành công & Đạt \\
-TC-ORD-API-02 & Order & Client gửi kèm giá giả & Gửi \texttt{POST /orders} kèm \texttt{unitPrice: 1000} & Server bỏ qua giá client, tự tính toán snapshot từ DB & HTTP 201, tổng tiền tính đúng từ DB & Đạt \\
-TC-ORD-API-03 & Order & Không có token & Gửi \texttt{POST /orders} không đính kèm Bearer token & HTTP 401 Unauthorized & HTTP 401 Unauthorized & Đạt \\
-TC-ORD-API-04 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} với \texttt{items: []} rỗng & HTTP 400 Bad Request, "Danh sách món không được rỗng" & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-05 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} với món có \texttt{quantity: 0} & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-06 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} với món có \texttt{quantity: 100} & HTTP 400 Bad Request (giới hạn tối đa 99 ly/món) & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-07 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} với \texttt{size: "XL"} không hợp lệ & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-08 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} với \texttt{productId} không tồn tại & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-09 & Order & Có Bearer JWT & Gửi \texttt{POST /orders} chọn 4 loại topping cho 1 ly & HTTP 400 Bad Request (\texttt{@ArrayMaxSize(3)}) & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-10 & Order & Đặt số lượng > tồn kho & Gửi \texttt{POST /orders} mua số lượng lớn hơn tồn kho & HTTP 400 Bad Request, rollback transaction & HTTP 400 Bad Request, kho giữ nguyên & Đạt \\
-TC-ORD-API-11 & Order & Đơn đạt điều kiện & Gửi \texttt{POST /orders} kèm mã \texttt{WELCOME10} & Giảm 10\% (tối đa 20.000đ), tính đúng \texttt{finalAmount} & HTTP 201, trừ đúng 10\% chiết khấu & Đạt \\
-TC-ORD-API-12 & Order & Mã không tồn tại & Gửi \texttt{POST /orders} kèm mã \texttt{VOUCHER\_SAI} & HTTP 400 Bad Request, thông báo mã không hợp lệ & HTTP 400 Bad Request & Đạt \\
-TC-ORD-API-13 & Order & Đơn PENDING của user & Gửi \texttt{POST /orders/:id/cancel} từ chủ sở hữu đơn & HTTP 200 OK, đơn chuyển sang CANCELLED, hoàn kho & HTTP 200 OK, hoàn trả kho nguyên tử & Đạt \\
-TC-ORD-API-14 & Order & Đơn đã CANCELLED & Gửi \texttt{POST /orders/:id/cancel} lần thứ hai & HTTP 409 Conflict, chặn hủy lại & HTTP 409 Conflict & Đạt \\
-TC-ORD-API-15 & Order & Đơn của user khác & Gửi \texttt{POST /orders/:id/cancel} với đơn người khác & HTTP 404 Not Found, không làm lộ sự tồn tại của đơn & HTTP 404 Not Found & Đạt \\
-TC-ORD-UI-01 & Order & Mở \texttt{/checkout} & Quan sát bảng tóm tắt đơn hàng & Hiển thị danh sách món, phụ thu size/topping và tổng tiền & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-ORD-UI-02 & Order & Tại \texttt{/checkout} & Nhập mã \texttt{WELCOME10} và bấm áp dụng & Dòng giảm giá cập nhật số tiền trừ, tổng thanh toán giảm & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-ORD-UI-03 & Order & Tại \texttt{/checkout} & Nhập mã sai và bấm áp dụng & Hiển thị thông báo mã không tồn tại & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-ORD-UI-04 & Order & Tại \texttt{/checkout} & Bấm nút "Xác nhận đặt hàng" & Tạo đơn thành công và chuyển sang màn hình thanh toán & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+% 4.1 State Machine
+TC-ST-01 & Order State & Đơn PENDING & Thanh toán thành công & PENDING $\to$ PAID & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-02 & Order State & Đơn PENDING & Thanh toán lỗi & PENDING $\to$ PAYMENT\_\allowbreak FAILED & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-03 & Order State & Đơn PENDING & Khách hủy đơn & PENDING $\to$ CANCELLED & Chuyển trạng thái hợp lệ, hoàn tồn kho & \textbf{Đạt} \\
+TC-ST-04 & Order State & Đơn PAYMENT\_\allowbreak FAILED & Thử lại thanh toán & PAYMENT\_\allowbreak FAILED $\to$ PENDING & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-05 & Order State & Đơn PAYMENT\_\allowbreak FAILED & Khách hủy đơn & PAYMENT\_\allowbreak FAILED $\to$ CANCELLED & Chuyển trạng thái hợp lệ, hoàn tồn kho & \textbf{Đạt} \\
+TC-ST-06 & Order State & Đơn PAID & Barista nhận đơn & PAID $\to$ PREPARING & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-07 & Order State & Đơn PAID & Hủy ở mức state machine/service & PAID $\to$ CANCELLED & Cho phép theo State Machine chuẩn & \textbf{Đạt} \\
+TC-ST-08 & Order State & Đơn PREPARING & Pha chế hoàn tất & PREPARING $\to$ READY & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-09 & Order State & Đơn READY & Giao đồ uống cho khách & READY $\to$ COMPLETED & Chuyển trạng thái hợp lệ & \textbf{Đạt} \\
+TC-ST-10 & Order State & Đơn PENDING & Chuyển sang PREPARING khi chưa thanh toán & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-11 & Order State & Đơn PENDING & Nhảy cóc sang READY & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-12 & Order State & Đơn PENDING & Nhảy cóc sang COMPLETED & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-13 & Order State & PAYMENT\_\allowbreak FAILED & Bỏ qua PENDING chuyển thẳng sang PAID & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-14 & Order State & Đơn PAID & Quay lui về PENDING & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-15 & Order State & Đơn PAID & Bỏ qua PREPARING chuyển thẳng sang READY & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-16 & Order State & Đơn PREPARING & Cố hủy đơn khi barista đang pha & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-17 & Order State & Đơn PREPARING & Quay lui về PAID & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-18 & Order State & Đơn READY & Cố hủy đơn khi đã pha xong & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-19 & Order State & Đơn COMPLETED & Chuyển về PAID & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-20 & Order State & Đơn COMPLETED & Cố hủy đơn đã hoàn tất & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-21 & Order State & Đơn CANCELLED & Phục hồi về PENDING & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-22 & Order State & Đơn CANCELLED & Chuyển sang PAID & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-23 & Order State & Đơn PENDING & Chuyển về chính nó (PENDING $\to$ PENDING) & Chặn, ném HTTP 409 Conflict & Chặn với HTTP 409 Conflict & \textbf{Đạt} \\
+TC-ST-24 & Order State & Hai request đồng thời & Cùng đổi trạng thái đơn từ PENDING & Đúng 1 request thành công, request kia nhận 409 & 1 request thành công, 1 nhận 409 & \textbf{Đạt} \\
+% 4.2 Create Order
+TC-CO-01 & Order & Đủ tồn kho, có JWT & Gửi \texttt{POST /orders} hợp lệ & HTTP 201 Created, đơn PENDING, trừ tồn kho chính xác & HTTP 201 Created & \textbf{Đạt} \\
+TC-CO-02 & Order & Client gửi kèm giá & Body cố tình truyền trường \texttt{price} sai lệch & Server bỏ qua giá client, tự tính toán từ CSDL & Server tính đúng đơn giá CSDL & \textbf{Đạt} \\
+TC-CO-03 & Order & Không có JWT & Gửi \texttt{POST /orders} không có token & HTTP 401 Unauthorized & HTTP 401 Unauthorized & \textbf{Đạt} \\
+TC-CO-04 & Order & Token hết hạn & Gửi \texttt{POST /orders} với JWT quá hạn & HTTP 401 Unauthorized & HTTP 401 Unauthorized & \textbf{Đạt} \\
+TC-CO-05 & Order & Giỏ hàng rỗng & Gửi \texttt{POST /orders} với \texttt{items: []} & HTTP 400 Bad Request, từ chối tạo đơn & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-06 & Order & Số lượng bằng 0 & Gửi \texttt{POST /orders} với \texttt{quantity = 0} & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-07 & Order & Số lượng quá lớn & Gửi \texttt{POST /orders} với \texttt{quantity = 100} & HTTP 400 Bad Request (\texttt{@Max(99)}) & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-08 & Order & Số lượng biên trên & Gửi \texttt{POST /orders} với \texttt{quantity = 99} & HTTP 201 nếu đủ kho & Tạo đơn thành công nếu đủ kho & \textbf{Đạt} \\
+TC-CO-09 & Order & Size không hợp lệ & Gửi \texttt{POST /orders} với \texttt{size = "XL"} & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-10 & Order & Món không tồn tại & Gửi \texttt{POST /orders} với \texttt{productId} bịa & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-11 & Order & Topping không có & Gửi \texttt{POST /orders} với \texttt{toppingId} không tồn tại & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-11a & Order & Quá 3 topping & Gửi \texttt{POST /orders} chọn 4 loại topping cho 1 ly & HTTP 400 Bad Request (\texttt{@Array}\allowbreak\texttt{MaxSize(3)}) & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-11b & Order & Trùng topping & Gửi body chứa cùng 1 topping ID 2 lần trong 1 ly & HTTP 400 Bad Request (\texttt{@ArrayUnique}) & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-CO-12 & Order & Body chứa userId & Client cố tình nhồi \texttt{userId} của người khác & \texttt{ValidationPipe} loại bỏ, lấy ID từ JWT token & Lấy \texttt{sub} an toàn từ JWT & \textbf{Đạt} \\
+TC-CO-13 & Order & Món hết tồn kho & Đặt món có \texttt{quantity} lớn hơn \texttt{stock} khả dụng & HTTP 400 Bad Request, tồn kho không âm & HTTP 400 Bad Request, kho giữ nguyên & \textbf{Đạt} \\
+TC-CO-14 & Order & Món thứ 2 hết kho & Đơn 2 món, món 1 còn hàng, món 2 hết hàng & HTTP 400 Bad Request, rollback toàn bộ transaction & Rollback an toàn, kho món 1 không mất & \textbf{Đạt} \\
+TC-CO-15 & Order & Stock = 1, tranh mua & 2 request đồng thời cùng mua món cuối & Đúng 1 đơn 201, đơn kia nhận 400, stock về 0 & 1 đơn 201, 1 đơn 400, stock = 0 & \textbf{Đạt} \\
+TC-CO-16 & Order & Stock = 5, tranh mua & 10 request đồng thời cùng mua & 5 đơn 201 thành công, 5 đơn nhận 400, stock về 0 & Đúng 5 đơn thành công, stock = 0 & \textbf{Đạt} \\
+TC-CO-17 & Order & Lỗi DB bất ngờ & Giả lập lỗi DB khi đang chèn bản ghi & Rollback transaction toàn bộ, không rò rỉ dữ liệu & Rollback sạch sẽ & \textbf{Đạt} \\
+TC-CO-18 & Order & Áp mã WELCOME10 & Áp mã \texttt{WELCOME10} cho đơn từ 40.000đ & Giảm 10\% (tối đa 20.000đ), tính đúng \texttt{finalAmount} & Giảm 10\% chuẩn xác & \textbf{Đạt} \\
+TC-CO-19 & Order & Áp mã sai điều kiện & Áp mã khi giá trị đơn chưa đạt \texttt{minOrderAmount} & HTTP 400 Bad Request, từ chối áp dụng mã & HTTP 400 Bad Request & \textbf{Đạt} \\
+% 4.3 Cancel Order
+TC-CX-01 & Order Cancel & Đơn PENDING & Gửi \texttt{POST /orders/:id/cancel} & HTTP 200 OK, trạng thái CANCELLED, hoàn kho sản phẩm & HTTP 200 OK, hoàn kho trong transaction & \textbf{Đạt} \\
+TC-CX-02 & Order Cancel & PAYMENT\_\allowbreak FAILED & Gửi \texttt{POST /orders/:id/cancel} & HTTP 200 OK, trạng thái CANCELLED, hoàn kho sản phẩm & HTTP 200 OK, hoàn kho thành công & \textbf{Đạt} \\
+TC-CX-03 & Order Cancel & Đơn đã PAID & Cố tình gửi \texttt{POST /orders/:id/cancel} khi đơn đã trả tiền & HTTP 409 Conflict, chặn không cho hủy & HTTP 409 Conflict & \textbf{Đạt} \\
+TC-CX-04 & Order Cancel & Đơn của người khác & Gửi \texttt{POST /orders/:id/cancel} mã đơn của tài khoản khác & HTTP 404 Not Found, không làm lộ sự tồn tại của đơn & HTTP 404 Not Found & \textbf{Đạt} \\
+TC-CX-05 & Order Cancel & Chưa đăng nhập & Gửi request hủy đơn không mang Bearer token & HTTP 401 Unauthorized & HTTP 401 Unauthorized & \textbf{Đạt} \\
+% 4.4 Order UI
+TC-ORD-UI-01 & Order & Đang ở \texttt{/checkout} & Quan sát màn hình xác nhận đơn hàng & Hiển thị đủ danh sách món, phụ thu size, topping, tạm tính & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-ORD-UI-02 & Order & Đang ở \texttt{/checkout} & Nhập mã \texttt{WELCOME10} vào ô voucher & Hiển thị dòng giảm giá màu xanh và cập nhật \texttt{finalAmount} & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-ORD-UI-03 & Order & Đang ở \texttt{/checkout} & Bấm nút "Xác nhận đặt hàng" & Gọi API tạo đơn, chuyển hướng người dùng sang trang thanh toán & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-ORD-UI-04 & Order & Đang ở \texttt{/checkout} & Món trong giỏ vừa bị người khác mua hết & Hiển thị toast cảnh báo hết hàng, không chuyển trang & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 5. PAYMENT MODULE ---
-TC-PAY-API-01 & Payment & Đơn PENDING, key mới & Gửi \texttt{POST /payments} chọn \texttt{BANK\_CARD} & HTTP 201 Created, status SUCCESS, đơn chuyển PAID & HTTP 201, tạo payment thành công & Đạt \\
-TC-PAY-API-02 & Payment & Đơn PENDING, key mới & Gửi \texttt{POST /payments} chọn \texttt{E\_WALLET} & HTTP 201 Created, status SUCCESS, đơn chuyển PAID & HTTP 201, tạo payment thành công & Đạt \\
-TC-PAY-API-03 & Payment & Header test lỗi & Gửi \texttt{POST /payments} kèm \texttt{X-Mock-Outcome: FAILED} & HTTP 201, Payment FAILED, đơn sang \texttt{PAYMENT\_}\allowbreak\texttt{FAILED} & HTTP 201, đơn chuyển PAYMENT\_FAILED & Đạt \\
-TC-PAY-API-04 & Payment & Có Bearer JWT & Gửi \texttt{POST /payments} thiếu trường \texttt{orderId} & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-PAY-API-05 & Payment & Có Bearer JWT & Gửi \texttt{POST /payments} phương thức sai \texttt{TIEN\_MAT} & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-PAY-API-06 & Payment & Đơn không tồn tại & Gửi \texttt{POST /payments} với \texttt{orderId} không có & HTTP 404 Not Found & HTTP 404 Not Found & Đạt \\
-TC-PAY-API-07 & Payment & Đơn của user khác & Gửi \texttt{POST /payments} thanh toán đơn của người khác & HTTP 404 Not Found & HTTP 404 Not Found & Đạt \\
-TC-PAY-API-08 & Payment & Đơn đã thanh toán & Gửi \texttt{POST /payments} vào đơn hàng đã ở trạng thái PAID & HTTP 409 Conflict, "Trạng thái không cho phép" & HTTP 409 Conflict & Đạt \\
-TC-PAY-API-09 & Payment & Cùng key, cùng body & Gửi lại \texttt{POST /payments} trùng key và cùng nội dung & HTTP 201, trả lại kết quả cũ (replay), không gọi gateway & HTTP 201, replay kết quả cũ an toàn & Đạt \\
-TC-PAY-API-10 & Payment & Cùng key, khác body & Gửi \texttt{POST /payments} trùng key nhưng thay đổi phương thức & HTTP 409 Conflict & HTTP 409 Conflict & Đạt \\
-TC-PAY-API-11 & Payment & Thử lại sau thất bại & Đơn PAYMENT\_FAILED, gửi payment mới với key mới & Đơn PENDING $\to$ PAID, tạo payment mới thành công & HTTP 201, đơn chuyển sang PAID & Đạt \\
-TC-PAY-API-12 & Payment & Thanh toán thành công & Kiểm tra bảng \texttt{loyalty\_}\allowbreak\texttt{transactions} & Cộng điểm thưởng cho khách hàng (\(1.000\text{đ} = 1\text{ điểm}\)) & Cộng đủ điểm thưởng vào tài khoản & Đạt \\
-TC-PAY-UI-01 & Payment & Tại trang thanh toán & Quan sát màn hình \texttt{/checkout/payment} & Hiển thị tổng tiền và 2 tùy chọn Thẻ ngân hàng / Ví điện tử & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-PAY-UI-02 & Payment & Chọn phương thức & Bấm chọn Ví điện tử và bấm nút "Thanh toán ngay" & Hiển thị loading và chuyển sang trang thành công & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-PAY-UI-03 & Payment & Thanh toán thành công & Chuyển hướng về trang lịch sử \texttt{/orders} & Xuất hiện banner chúc mừng và đơn mang trạng thái PAID & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-PAY-01 & Payment & Đơn PENDING, ví điện tử & Gửi \texttt{POST /payments} với \texttt{method = "E\_WALLET"} & Payment SUCCESS, Order PAID, xóa rỗng giỏ & HTTP 201, Payment SUCCESS & \textbf{Đạt} \\
+TC-PAY-02 & Payment & Đơn PENDING, thẻ ngân hàng & Gửi \texttt{POST /payments} với \texttt{method = "BANK\_CARD"} & Payment SUCCESS, Order PAID, xóa rỗng giỏ & HTTP 201, Payment SUCCESS & \textbf{Đạt} \\
+TC-PAY-03 & Payment & Gateway trả lỗi & Header \texttt{X-Mock-Outcome: FAILED} & Payment FAILED, Order PAYMENT\_\allowbreak FAILED & HTTP 201, Payment FAILED & \textbf{Đạt} \\
+TC-PAY-04 & Payment & Thiếu orderId & Body không có trường \texttt{orderId} & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-PAY-05 & Payment & Thiếu method & Body không có trường \texttt{method} & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-PAY-06 & Payment & method sai chuẩn & Body gửi \texttt{method = "CASH"} & HTTP 400 Bad Request (\texttt{@IsEnum}) & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-PAY-07 & Payment & Order không tồn tại & Gửi \texttt{POST /payments} với ID đơn bịa & HTTP 404 Not Found, không gọi gateway & HTTP 404 Not Found & \textbf{Đạt} \\
+TC-PAY-08 & Payment & Đơn của người khác & Gửi \texttt{POST /payments} cho đơn tài khoản khác & HTTP 404 Not Found, từ chối thanh toán & HTTP 404 Not Found & \textbf{Đạt} \\
+TC-PAY-09 & Payment & Đơn đã thanh toán & Gửi \texttt{POST /payments} cho đơn đã ở trạng thái PAID & HTTP 409 Conflict, "Trạng thái không cho phép" & HTTP 409 Conflict & \textbf{Đạt} \\
+TC-PAY-10 & Payment & Cùng key, cùng nội dung & Gửi lại request trùng \texttt{Idempotency-Key} và body & Trả lại kết quả cũ đã lưu, không tạo giao dịch trùng\footnote{Lệch docs--code: Tài liệu docs/payment ghi nhận kết quả HTTP 200, trong khi Backend NestJS trả HTTP 201 Created theo mặc định cho phương thức POST.} & HTTP 201 Created, trả kết quả cũ đã lưu & \textbf{Cần xác nhận} \\
+TC-PAY-11 & Payment & Cùng key, khác payload & Gửi trùng key nhưng thay đổi \texttt{method} & HTTP 409 Conflict (\texttt{requestHash} không khớp) & HTTP 409 Conflict & \textbf{Đạt} \\
+TC-PAY-12 & Payment & 5 request cùng key đồng thời & Bắn song song 5 request thanh toán cùng key & Chỉ 1 giao dịch được tạo, request thua cuộc nhận kết quả an toàn\footnote{Lệch docs--code: Docs ghi nhận các request nhận HTTP 200 đã lưu; thực tế code NestJS replay trả HTTP 201 Created.} & Đúng 1 payment trong DB, 5 request nhận 201 & \textbf{Cần xác nhận} \\
+TC-PAY-13 & Payment & Thử lại sau thất bại & Đơn PAYMENT\_\allowbreak FAILED, gửi payment mới với key mới & Chuyển Order sang PENDING $\to$ PAID thành công & Tạo payment mới thành công & \textbf{Đạt} \\
+TC-PAY-14 & Payment & Gateway timeout & Giả lập gateway timeout & Ghi nhận Payment FAILED, Order PAYMENT\_\allowbreak FAILED & Ghi nhận Payment FAILED chuẩn xác & \textbf{Đạt} \\
+TC-PAY-15 & Payment & Thử lại sau timeout & Gửi request mới với key mới sau timeout & Chuyển Order PENDING $\to$ PAID thành công & Thanh toán thành công & \textbf{Đạt} \\
+TC-PAY-16 & Payment & Header test giả lập & Header \texttt{X-Mock-Outcome: FAILED} ở dev & Mock gateway giả lập thất bại an toàn & Mock gateway trả FAILED & \textbf{Đạt} \\
+TC-PAY-17 & Payment & Frontend gửi sai tiền & Client cố tình truyền số tiền khác & Backend tự lấy từ \texttt{Order.}\allowbreak\texttt{finalAmount} & Tiền luôn lấy từ CSDL & \textbf{Đạt} \\
+TC-PAY-18 & Payment & Thử nhiều lần & Lần 1 thất bại, lần 2 thành công & Lưu đủ lịch sử các lần thử (1-N), Order PAID & Lưu đủ lịch sử các lần thanh toán & \textbf{Đạt} \\
+TC-PAY-19 & Payment & Header giả lập ở Prod & \texttt{NODE\_ENV = 'production'} & Backend bỏ qua header test, xử lý bình thường & Bỏ qua header ở môi trường production & \textbf{Đạt} \\
+TC-PAY-UI-01 & Payment & Tại trang thanh toán & Quan sát màn hình \texttt{/checkout/payment} & Hiển thị tổng tiền và 2 tùy chọn Thẻ ngân hàng / Ví điện tử & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-PAY-UI-02 & Payment & Chọn phương thức & Bấm chọn Ví điện tử và bấm nút "Thanh toán ngay" & Hiển thị loading và chuyển sang trang thành công & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-PAY-UI-03 & Payment & Thanh toán thành công & Chuyển hướng về trang lịch sử \texttt{/orders} & Xuất hiện banner chúc mừng và đơn mang trạng thái PAID & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 6. HISTORY MODULE ---
-TC-HIS-API-01 & History & User đã có đơn & Gửi \texttt{GET /orders/me} có kèm Bearer token & HTTP 200, danh sách đơn của chính mình xếp mới nhất & HTTP 200, trả về đủ danh sách đơn & Đạt \\
-TC-HIS-API-02 & History & User mới chưa có đơn & Gửi \texttt{GET /orders/me} từ tài khoản mới & HTTP 200, mảng đơn rỗng \texttt{items: []} & HTTP 200, mảng rỗng & Đạt \\
-TC-HIS-API-03 & History & Có Bearer JWT & Gửi \texttt{GET /orders/me} lọc \texttt{status=PAID} & HTTP 200, chỉ trả về các đơn có trạng thái PAID & HTTP 200, lọc đúng trạng thái & Đạt \\
-TC-HIS-API-04 & History & Có Bearer JWT & Gửi \texttt{GET /orders/me} với trạng thái sai & HTTP 400 Bad Request & HTTP 400 Bad Request & Đạt \\
-TC-HIS-API-05 & History & Đơn của chính mình & Gửi \texttt{GET /orders/:id} xem chi tiết đơn hàng & HTTP 200, kèm mảng \texttt{items}, toppings và payment & HTTP 200, chi tiết đơn đầy đủ & Đạt \\
-TC-HIS-API-06 & History & Đơn của user khác & Gửi \texttt{GET /orders/:id} xem đơn của tài khoản khác & HTTP 404 Not Found, không làm lộ đơn người khác & HTTP 404 Not Found & Đạt \\
-TC-HIS-API-07 & History & Đơn có chuyển trạng thái & Kiểm tra bảng \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history} & Ghi nhận đủ lịch sử chuyển: NULL $\to$ PENDING $\to$ PAID & Ghi vết đầy đủ các mốc thời gian & Đạt \\
-TC-HIS-UI-01 & History & Mở \texttt{/orders} & Quan sát danh sách các đơn hàng đã đặt & Hiển thị mã đơn, ngày đặt, tổng tiền và badge trạng thái & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-HIS-UI-02 & History & Mở \texttt{/orders} & Bấm lọc theo tab trạng thái "Đã thanh toán" & Danh sách chỉ hiển thị các đơn mang trạng thái PAID & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-HIS-UI-03 & History & Tại \texttt{/orders} & Bấm nút "Xem chi tiết" của một đơn hàng & Mở trang chi tiết đơn với đầy đủ thông tin món và thanh toán & Đã xác minh thủ công trên Chrome & Chưa chạy \\
-TC-HIS-UI-04 & History & Đơn PENDING & Bấm nút "Hủy đơn" tại màn hình chi tiết & Hiển thị popup xác nhận, sau khi bấm hủy badge đổi sang Đã hủy & Đã xác minh thủ công trên Chrome & Chưa chạy \\
+TC-HIS-01 & History & User đã có đơn & Gửi \texttt{GET /orders/me} có kèm Bearer token & HTTP 200, danh sách đơn của chính mình xếp mới nhất & HTTP 200, trả về đủ danh sách đơn & \textbf{Đạt} \\
+TC-HIS-02 & History & User mới chưa có đơn & Gửi \texttt{GET /orders/me} từ tài khoản mới & HTTP 200, mảng đơn rỗng \texttt{items: []} & HTTP 200, mảng rỗng & \textbf{Đạt} \\
+TC-HIS-03 & History & Có Bearer JWT & Gửi \texttt{GET /orders/me} lọc \texttt{status=PAID} & HTTP 200, chỉ trả về các đơn có trạng thái PAID & HTTP 200, lọc đúng trạng thái & \textbf{Đạt} \\
+TC-HIS-04 & History & Có Bearer JWT & Gửi \texttt{GET /orders/me} với trạng thái sai & HTTP 400 Bad Request & HTTP 400 Bad Request & \textbf{Đạt} \\
+TC-HIS-05 & History & Đơn của chính mình & Gửi \texttt{GET /orders/:id} xem chi tiết đơn hàng & HTTP 200, kèm mảng \texttt{items}, toppings và payment & HTTP 200, chi tiết đơn đầy đủ & \textbf{Đạt} \\
+TC-HIS-06 & History & Đơn của user khác & Gửi \texttt{GET /orders/:id} xem đơn của tài khoản khác & HTTP 404 Not Found, không làm lộ đơn người khác & HTTP 404 Not Found & \textbf{Đạt} \\
+TC-HIS-07 & History & Đơn có chuyển trạng thái & Kiểm tra bảng \texttt{order\_}\allowbreak\texttt{status\_}\allowbreak\texttt{history} & Ghi nhận đủ lịch sử chuyển: NULL $\to$ PENDING $\to$ PAID & Ghi vết đầy đủ các mốc thời gian & \textbf{Đạt} \\
+TC-HIS-UI-01 & History & Chưa đăng nhập & Truy cập trực tiếp \texttt{/orders} & Tự động chuyển hướng về \texttt{/auth/login?}\allowbreak\texttt{next=/orders} & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-02 & History & Mở \texttt{/orders} & User chưa có đơn hàng nào & Hiển thị "Chưa có đơn hàng nào" và nút Khám phá thực đơn & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-03 & History & Mở \texttt{/orders} & Bấm chọn tab "Chờ thanh toán" hoặc "Đã hủy" & Lọc và tải lại danh sách đơn tương ứng với tab & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-04 & History & Danh sách > 1 trang & Bấm nút "Trang sau" ở chân danh sách đơn & Tăng page, tải và hiển thị trang tiếp theo & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-05 & History & Tại \texttt{/orders} & Bấm nút "Xem chi tiết" của một đơn hàng & Mở trang chi tiết đơn với đầy đủ thông tin món và thanh toán & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-06 & History & Vừa thanh toán xong & URL chứa query \texttt{?paid=1} & Hiển thị banner màu xanh chúc mừng "Thanh toán thành công!" & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-07 & History & Quan sát trạng thái & Kiểm tra component badge trạng thái & Hiển thị đúng nhãn: PENDING, PAID, CANCELLED... & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
+TC-HIS-UI-08 & History & Đơn PENDING & Bấm nút "Hủy đơn" tại màn hình chi tiết & Hiển thị xác nhận, hủy thành công badge cập nhật Đã hủy & \todo{điền kết quả thủ công} & \textit{Chưa chạy} \\
 \midrule
 
 % --- 7. TASK 10 MANDATORY SCENARIOS ---
-TS-FR-07-02 & Task 10 & Đơn PAID hoặc CANCELLED & Chuyển trạng thái đơn hàng trái quy tắc Máy trạng thái & Chặn chuyển trạng thái, trả về HTTP 409 Conflict & Chặn thành công với HTTP 409 Conflict & Đạt \\
-TS-FR-08-01 & Task 10 & 5 requests song song & Bắn 5 request \texttt{POST /payments} đồng thời cùng key & Đúng 1 bản ghi thanh toán trong CSDL, không có mã lỗi 500 & Đúng 1 bản ghi Payment, 0 lỗi 500, replay an toàn & Đạt \\
-TS-FR-09-01 & Task 10 & 10 requests tranh chấp & Bắn 10 request \texttt{POST /orders} song song khi stock = 1 & Đúng 1 đơn thành công (201), 9 đơn bị chặn (400), stock = 0 & 1 đơn 201 Created, 9 đơn 400 Bad Request, stock = 0 & Đạt \\
+TS-FR-07-02 & Task 10 & Đơn PAID hoặc CANCELLED & Chuyển trạng thái đơn hàng trái quy tắc Máy trạng thái & Chặn chuyển trạng thái, trả về HTTP 409 Conflict & Chặn thành công với HTTP 409 Conflict & \textbf{Đạt} \\
+TS-FR-08-01 & Task 10 & 5 requests song song & Bắn 5 request \texttt{POST /payments} đồng thời cùng key & Đúng 1 bản ghi thanh toán trong CSDL, không có mã lỗi 500 & Đúng 1 bản ghi Payment, 0 lỗi 500, replay an toàn & \textbf{Đạt} \\
+TS-FR-09-01 & Task 10 & 10 requests tranh chấp & Bắn 10 request \texttt{POST /orders} song song khi stock = 1 & Đúng 1 đơn thành công (201), 9 đơn bị chặn (400), stock = 0 & 1 đơn 201 Created, 9 đơn 400 Bad Request, stock = 0 & \textbf{Đạt} \\
 
 \end{longtable}
 }
