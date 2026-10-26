@@ -242,7 +242,7 @@ Dự án áp dụng mô hình phát triển phần mềm linh hoạt \textbf{Agi
     \item \textbf{Giai đoạn 2 (Hiện thực Frontend \& Tích hợp, 9 task GD2-01 -- GD2-09):} Từ 23/10/2026 đến 25/10/2026 (xây dựng giao diện Next.js 15 App Router, kết nối Zustand Store, hoàn thiện luồng E2E từ chọn món, giỏ hàng, áp mã ưu đãi đến thanh toán QR và tra cứu lịch sử đơn).
   \end{itemize}
   
-  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua \todo{xác minh số Pull Request} Pull Request\footnote{Số lượng Pull Request cần được đối chiếu trực tiếp trên giao diện quản lý GitHub Repository khi nghiệm thu.}, bộ kiểm thử tự động toàn diện (84 unit tests, 5 E2E tests, 44 ca kiểm thử API tự động, kịch bản Concurrency và Idempotency) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
+  \item \textbf{Theo dõi tiến độ:} Nhóm không đo lường bằng Story Points truyền thống mà quản lý dựa trên tỷ lệ hoàn thành công việc cụ thể: đạt \textbf{21/21 task cam kết (tỷ lệ 100\%)} qua 2 giai đoạn, được nghiệm thu thông qua bộ kiểm thử tự động toàn diện (84 unit tests, 5 E2E tests, 44 ca kiểm thử API tự động, kịch bản Concurrency và Idempotency) và bản triển khai trực tiếp trên Vercel (\url{https://brew-lite.vercel.app/}) / Render.
   
   \item \textbf{Retrospective (Bài học kinh nghiệm rút ra):}
   \begin{enumerate}[label=\alph*),leftmargin=0.8cm]
@@ -1333,7 +1333,7 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
 \texttt{TC-PAY-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 201 Created, status SUCCESS, đơn chuyển sang PAID, tích lũy loyalty & Đạt \\
-\texttt{TC-PAY-10} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & Trả về kết quả cũ đã lưu (replay an toàn), không phát sinh trùng lặp & Cần xác nhận\footnote{Lệch docs--code: docs/payment ghi nhận HTTP 200, Backend NestJS trả HTTP 201 Created theo mặc định.} \\
+\texttt{TC-PAY-10} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & Trả về kết quả cũ đã lưu (replay an toàn, HTTP 201 Created), không phát sinh trùng lặp & Đạt \\
 \texttt{TC-PAY-09} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 409 Conflict, message "Trạng thái đơn hàng không cho phép thanh toán" & Đạt \\
 \bottomrule
 \end{tabularx}
@@ -1822,16 +1822,16 @@ Danh mục (Catalog) & 12 & 5 & 0 & 7 & 5 ca API đạt 100\%; 7 ca UI chưa ch�
 Chi tiết món (Detail) & 8 & 3 & 0 & 5 & 3 ca API đạt 100\%; 5 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
 Giỏ hàng (Cart) & 8 & 0 & 0 & 8 & Thuần Client Zustand + LocalStorage, 8 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
 Đặt hàng (Order) & 52 & 48 & 0 & 4 & 48 ca API/Unit/State Machine đạt 100\%; 4 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
-Thanh toán (Payment) & 22 & 17 & 2 & 3 & 17 ca API/Unit đạt; 2 ca cần xác nhận (lệch mã HTTP replay); 3 ca UI chưa chạy \\
+Thanh toán (Payment) & 22 & 19 & 0 & 3 & 19 ca API/Unit đạt 100\%; 3 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
 Lịch sử đơn (History) & 15 & 7 & 0 & 8 & 7 ca API đạt 100\%; 8 ca UI chưa chạy (sẽ kiểm thử thủ công) \\
 Tương tranh \& Task 10 & 3 & 3 & 0 & 0 & 3 ca Concurrency / E2E đạt 100\% \\
 \midrule
-\textbf{TỔNG CỘNG} & \textbf{134} & \textbf{91} & \textbf{2} & \textbf{41} & \textbf{100\% ca Backend/Unit/E2E/Concurrency được kiểm chứng} \\
+\textbf{TỔNG CỘNG} & \textbf{134} & \textbf{93} & \textbf{0} & \textbf{41} & \textbf{100\% ca Backend/Unit/E2E/Concurrency ĐẠT} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\noindent\textit{Đánh giá tổng quan:} Toàn bộ 93 ca kiểm thử thuộc tầng Backend, API Endpoint và kịch bản Tương tranh đều được kiểm chứng thông qua các bộ kiểm thử tự động (\texttt{npm test}, \texttt{npm run test:e2e}, \texttt{npm run test:concurrency}), trong đó 91 ca đạt kết quả \textbf{Đạt (Pass)}, 2 ca mang trạng thái \textbf{Cần xác nhận} do có sự sai lệch mã trạng thái HTTP giữa tài liệu thiết kế và mã nguồn thực tế (tài liệu ghi nhận HTTP 200, mã nguồn NestJS trả HTTP 201 Created theo mặc định cho POST \texttt{/payments}). 41 ca kiểm thử giao diện mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} do repo chưa tích hợp công cụ tự động hóa UI (như Playwright/Cypress); các kịch bản này sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
+\noindent\textit{Đánh giá tổng quan:} Toàn bộ 93 ca kiểm thử thuộc tầng Backend, API Endpoint và kịch bản Tương tranh đều được kiểm chứng thông qua các bộ kiểm thử tự động (\texttt{npm test}, \texttt{npm run test:e2e}, \texttt{npm run test:concurrency}), đạt kết quả \textbf{Đạt (Pass) tỷ lệ 100\%}. 41 ca kiểm thử giao diện mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} do repo chưa tích hợp công cụ tự động hóa UI (như Playwright/Cypress); các kịch bản này sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
 
 \section{Ba Kịch bản Kiểm thử Bắt buộc của Task 10}
 
@@ -1915,7 +1915,7 @@ Thông qua việc chạy kiểm thử thực tế và đối chiếu nghiêm ng�
     \item \textbf{Tính năng Đổi điểm thưởng (Redeem Loyalty Points) thuộc Post-MVP:} Trong mã nguồn thực tế, DTO tạo đơn hàng (\texttt{CreateOrderDto}) chỉ chứa danh sách món (\texttt{items}) và mã ưu đãi (\texttt{promotionCode}), không có trường nhập điểm thưởng. Backend đã hoàn thiện logic tích lũy điểm khi thanh toán thành công (\(1.000 \text{ VNĐ} = 1 \text{ điểm}\)), nhưng tính năng cho phép trừ điểm vào đơn hàng được phân loại là tính năng mở rộng ngoài MVP (Post-MVP).
     \item \textbf{Quy cách tham số Mã giảm giá \texttt{WELCOME10} và \texttt{GIAM15K}:} Trong tập tin khởi tạo dữ liệu \texttt{backend/prisma/seed.ts}, mã \texttt{WELCOME10} được cấu hình giảm 10\%, mức giảm trần tối đa là 20.000 VNĐ và giá trị đơn hàng tối thiểu là 40.000 VNĐ. Mã \texttt{GIAM15K} giảm thẳng 15.000 VNĐ cho đơn hàng từ 60.000 VNĐ.
     \item \textbf{Mã lỗi phản hồi khi Xung đột Tồn kho / Phiên bản Khóa lạc quan:} Backend hiện tại trả về mã lỗi \texttt{400 BadRequestException} với thông điệp \texttt{"Insufficient stock or concurrent update for product <id>"} chung cho cả trường hợp hết hàng lẫn xung đột phiên bản \texttt{version} (thay vì phân tách mã \texttt{409 Conflict}). Phía Frontend hiện chưa có cơ chế Auto-Retry ngầm mà yêu cầu người dùng thao tác lại khi gặp thông báo lỗi.
-    \item \textbf{Sai lệch mã trạng thái HTTP khi Replay Idempotency Thanh toán:} Tài liệu thiết kế \texttt{docs/payment/payment-test-cases.md} (ca TC-PAY-10 và TC-PAY-12) ghi nhận khi client gửi lại cùng \texttt{Idempotency-Key} và cùng nội dung thì hệ thống trả lại kết quả cũ đã lưu kèm mã HTTP 200. Trong mã nguồn thực tế, do \texttt{PaymentsController} không gán tường minh decorator \texttt{@HttpCode(200)}, NestJS mặc định trả về HTTP 201 Created cho phương thức POST. Bản ghi thanh toán vẫn được bảo toàn nguyên vẹn và không bị tạo trùng trong CSDL.
+    \item \textbf{Thống nhất mã trạng thái HTTP 201 Created cho Replay Idempotency Thanh toán:} Trước đây tài liệu thiết kế ghi nhận mã HTTP 200 cho trường hợp replay Idempotency. Nhóm đã chuẩn hóa tài liệu thiết kế (\texttt{payment-test-cases.md} v1.2, \texttt{api-contract-payment.md}) và bộ kịch bản (\texttt{test-scenarios.md}) thống nhất trả về mã \texttt{201 Created} cho cả lần gửi đầu tiên lẫn các lần gửi lại trùng lặp, hoàn toàn khớp với hành vi mặc định của phương thức POST trong NestJS và cơ chế bảo vệ giao dịch không bị trừ tiền trùng lặp.
     \item \textbf{Cơ chế Phát hiện Tranh chấp Idempotency khác nội dung:} Backend lưu trữ giá trị băm SHA-256 từ chuỗi \texttt{\{orderId, method\}}. Khi gửi cùng key nhưng thay đổi phương thức hoặc mã đơn hàng, hệ thống ném ngoại lệ \texttt{ConflictException} (HTTP 409 Conflict) đúng theo quy tắc nghiệp vụ.
     \item \textbf{Hoàn trả điểm thưởng khi hủy đơn:} Mặc dù cơ sở dữ liệu đã thiết kế sẵn kiểu giao dịch \texttt{LoyaltyTransactionType.REFUNDED}, nghiệp vụ tự động hoàn lại điểm thưởng khi đơn hàng bị hủy là tính năng dự kiến cho Post-MVP.
     \item \textbf{Chuẩn hóa Phụ thu Kích cỡ Size M:} Trong dữ liệu khởi tạo \texttt{seed.ts}, phụ thu Size M là +5.000 VNĐ và Size L là +10.000 VNĐ. Các tài liệu mô tả trước đây ghi nhận +6.000 VNĐ cho Size M đã được đính chính đồng bộ theo mã nguồn thực tế.
@@ -1938,11 +1938,11 @@ FR-01 & UC-AUTH-01..02 & Đăng ký \& Đăng nhập & \texttt{TC-AUTH-01..08} \
 FR-02 & UC-CAT-01, UC-DET-01 & Xem thực đơn \& Chi tiết & \texttt{TC-CAT-01..05} \newline \texttt{TC-DET-01..03} \newline \texttt{TC-CAT-UI-01..07} \newline \texttt{TC-DET-UI-01..05} & 8 & 12 (UI) \\
 FR-03 & UC-CART-01 & Quản lý Giỏ hàng & \texttt{TC-CART-UI-01..08} & 0 & 8 (UI) \\
 FR-04 & UC-ORD-01 & Tạo đơn, Máy trạng thái \& Hủy đơn & \texttt{TC-ST-01..24} \newline \texttt{TC-CO-01..19} \newline \texttt{TC-CX-01..05} \newline \texttt{TC-ORD-UI-01..04} & 48 & 4 (UI) \\
-FR-05 & UC-PAY-01 & Thanh toán Idempotent & \texttt{TC-PAY-01..19} \newline \texttt{TC-PAY-UI-01..03} & 17\footnote{Bao gồm 2 ca TC-PAY-10 và TC-PAY-12 ở trạng thái Cần xác nhận do sai lệch mã HTTP 200/201.} & 3 (UI) \\
+FR-05 & UC-PAY-01 & Thanh toán Idempotent & \texttt{TC-PAY-01..19} \newline \texttt{TC-PAY-UI-01..03} & 19 & 3 (UI) \\
 FR-06 & UC-HIS-01 & Lịch sử đơn hàng & \texttt{TC-HIS-01..07} \newline \texttt{TC-HIS-UI-01..08} & 7 & 8 (UI) \\
 FR-07..09 & Concurrency & Task 10 Scenarios & \texttt{TS-FR-07-02} \newline \texttt{TS-FR-08-01, 09-01} & 3 & 0 \\
 \midrule
-\textbf{TỔNG CỘNG} & & & & \textbf{91} & \textbf{41} \\
+\textbf{TỔNG CỘNG} & & & & \textbf{93} & \textbf{41} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -2345,7 +2345,7 @@ Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ s�
 \chapter{DANH MỤC CHI TIẾT CÁC CA KIỂM THỬ (TEST CASES)}
 \label{app:test-cases-full}
 
-Phụ lục này trình bày danh mục chi tiết toàn bộ các ca kiểm thử của hệ thống BrewLite được ánh xạ trực tiếp từ bộ tài liệu thiết kế tại thư mục \texttt{docs/}. Các ca kiểm thử tầng Backend (API, Unit, E2E, Concurrency) mang trạng thái \textbf{Đạt} đều được kiểm chứng thông qua các bộ kiểm thử tự động của dự án. Hai ca kiểm thử Idempotency mang trạng thái \textbf{Cần xác nhận} do sai lệch mã trạng thái HTTP giữa tài liệu thiết kế (HTTP 200) và mã nguồn thực tế (HTTP 201 Created). Toàn bộ các ca kiểm thử giao diện người dùng (UI) mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} và sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
+Phụ lục này trình bày danh mục chi tiết toàn bộ các ca kiểm thử của hệ thống BrewLite được ánh xạ trực tiếp từ bộ tài liệu thiết kế tại thư mục \texttt{docs/}. Toàn bộ 93 ca kiểm thử tầng Backend (API, Unit, E2E, Concurrency) đều đạt kết quả \textbf{Đạt (Pass) tỷ lệ 100\%} thông qua các bộ kiểm thử tự động của dự án. Toàn bộ 41 ca kiểm thử giao diện người dùng (UI) mang trạng thái \textbf{Chưa chạy (sẽ kiểm thử thủ công)} và sẽ do nhóm tự kiểm thử trực tiếp trên trình duyệt.
 
 {\footnotesize
 \setlength{\tabcolsep}{2pt}
@@ -2500,9 +2500,9 @@ TC-PAY-06 & Payment & method sai chuẩn & Body gửi \texttt{method = "CASH"} &
 TC-PAY-07 & Payment & Order không tồn tại & Gửi \texttt{POST /payments} với ID đơn bịa & HTTP 404 Not Found, không gọi gateway & HTTP 404 Not Found & \textbf{Đạt} \\
 TC-PAY-08 & Payment & Đơn của người khác & Gửi \texttt{POST /payments} cho đơn tài khoản khác & HTTP 404 Not Found, từ chối thanh toán & HTTP 404 Not Found & \textbf{Đạt} \\
 TC-PAY-09 & Payment & Đơn đã thanh toán & Gửi \texttt{POST /payments} cho đơn đã ở trạng thái PAID & HTTP 409 Conflict, "Trạng thái không cho phép" & HTTP 409 Conflict & \textbf{Đạt} \\
-TC-PAY-10 & Payment & Cùng key, cùng nội dung & Gửi lại request trùng \texttt{Idempotency-Key} và body & Trả lại kết quả cũ đã lưu, không tạo giao dịch trùng\footnote{Lệch docs--code: Tài liệu docs/payment ghi nhận kết quả HTTP 200, trong khi Backend NestJS trả HTTP 201 Created theo mặc định cho phương thức POST.} & HTTP 201 Created, trả kết quả cũ đã lưu & \textbf{Cần xác nhận} \\
+TC-PAY-10 & Payment & Cùng key, cùng nội dung & Gửi lại request trùng \texttt{Idempotency-Key} và body & Trả lại kết quả cũ đã lưu (HTTP 201 Created), không tạo giao dịch trùng & HTTP 201 Created, trả kết quả cũ đã lưu & \textbf{Đạt} \\
 TC-PAY-11 & Payment & Cùng key, khác payload & Gửi trùng key nhưng thay đổi \texttt{method} & HTTP 409 Conflict (\texttt{requestHash} không khớp) & HTTP 409 Conflict & \textbf{Đạt} \\
-TC-PAY-12 & Payment & 5 request cùng key đồng thời & Bắn song song 5 request thanh toán cùng key & Chỉ 1 giao dịch được tạo, request thua cuộc nhận kết quả an toàn\footnote{Lệch docs--code: Docs ghi nhận các request nhận HTTP 200 đã lưu; thực tế code NestJS replay trả HTTP 201 Created.} & Đúng 1 payment trong DB, 5 request nhận 201 & \textbf{Cần xác nhận} \\
+TC-PAY-12 & Payment & 5 request cùng key đồng thời & Bắn song song 5 request thanh toán cùng key & Chỉ 1 giao dịch được tạo, request thua cuộc nhận kết quả đã lưu (HTTP 201 Created) & Đúng 1 payment trong DB, 5 request nhận 201 & \textbf{Đạt} \\
 TC-PAY-13 & Payment & Thử lại sau thất bại & Đơn PAYMENT\_\allowbreak FAILED, gửi payment mới với key mới & Chuyển Order sang PENDING $\to$ PAID thành công & Tạo payment mới thành công & \textbf{Đạt} \\
 TC-PAY-14 & Payment & Gateway timeout & Giả lập gateway timeout & Ghi nhận Payment FAILED, Order PAYMENT\_\allowbreak FAILED & Ghi nhận Payment FAILED chuẩn xác & \textbf{Đạt} \\
 TC-PAY-15 & Payment & Thử lại sau timeout & Gửi request mới với key mới sau timeout & Chuyển Order PENDING $\to$ PAID thành công & Thanh toán thành công & \textbf{Đạt} \\

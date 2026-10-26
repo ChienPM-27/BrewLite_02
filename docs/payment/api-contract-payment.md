@@ -35,7 +35,7 @@ Backend phải lấy số tiền từ đơn hàng trong database, không sử d�
 
 Tất cả các API thành công (`200 OK` hoặc `201 Created`) đều được bọc tự động qua `TransformInterceptor` theo quy chuẩn của nhóm (`docs/checklist-review.md`).
 
-**HTTP Status:** `201 Created` (hoặc `200 OK` khi trả về kết quả idempotency đã hoàn tất trước đó).
+**HTTP Status:** `201 Created` (thống nhất `201 Created` cho cả lần tạo đầu và khi trả về kết quả idempotency đã hoàn tất trước đó).
 
 ```json
 {
@@ -111,9 +111,9 @@ Khi xảy ra lỗi (Status code 400, 401, 403, 404, 409, 500), response được
 
 ## 5. Quy tắc Idempotency & Thử lại (Retry Policy)
 
-- **Cùng key, cùng nội dung:** Backend trả lại kết quả giao dịch đã lưu trong `payments` (HTTP 200) mà không tạo Payment mới hay gọi lại Mock Gateway.
+- **Cùng key, cùng nội dung:** Backend trả lại kết quả giao dịch đã lưu trong `payments` (HTTP 201 Created) mà không tạo Payment mới hay gọi lại Mock Gateway.
 - **Cùng key, khác nội dung (`requestHash`):** Backend ném `409 Conflict` từ chối yêu cầu.
-- **Xử lý đồng thời (Concurrency):** Ràng buộc `unique` trên `idempotency_key` đảm bảo không bao giờ phát sinh 2 bản ghi thanh toán trùng nhau. Với các request đồng thời dùng cùng key, request thua cuộc (bị lỗi unique constraint) phải truy vấn và trả về kết quả đã lưu (HTTP 200), **tuyệt đối không được trả lỗi 500**.
+- **Xử lý đồng thời (Concurrency):** Ràng buộc `unique` trên `idempotency_key` đảm bảo không bao giờ phát sinh 2 bản ghi thanh toán trùng nhau. Với các request đồng thời dùng cùng key, request thua cuộc (bị lỗi unique constraint) phải truy vấn và trả về kết quả đã lưu (HTTP 201 Created), **tuyệt đối không được trả lỗi 500**.
 - **Retry sau thất bại:** Khi giao dịch thất bại (`FAILED`), khách hàng bấm "Thử lại":
   1. Frontend chuyển đơn hàng `PAYMENT_FAILED → PENDING` qua `OrderService.transition`.
   2. Frontend **bắt buộc phải sinh một `Idempotency-Key` mới**.
