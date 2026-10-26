@@ -1,135 +1,95 @@
 @startuml sequence-order
-title Sequence Diagram - Tạo Đơn Hàng & Kiểm Soát Tồn Kho Đồng Thời (Order Creation)
+title Sơ Đồ Tuần Tự - Tạo Đơn Hàng & Khóa Tồn Kho Lạc Quan (Order Creation)
 autonumber
+skinparam maxMessageSize 110
+skinparam ParticipantPadding 4
+skinparam BoxPadding 6
+skinparam defaultFontSize 11
+skinparam NoteFontSize 10
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam roundcorner 6
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
 
-actor "Khách hàng (User)" as User
+actor "Khách hàng" as User
 box "Frontend (Next.js)" #F9F9F9
-    participant "Page: CheckoutPage\n(app/checkout/page.tsx)" as Page
-    participant "Zustand: useCartStore\n(store/useCartStore.ts)" as CartStore
-    participant "Client: order.service.ts\n(services/order.service.ts)" as ClientService
+    participant "CheckoutPage" as Page
+    participant "useCartStore" as CartStore
+    participant "order.service" as ClientService
 end box
 
 box "Backend (NestJS)" #F0F7FF
-    participant "Guard: JwtAuthGuard\n(modules/auth/guards/jwt-auth.guard.ts)" as Guard
-    participant "Controller: OrdersController\n(modules/orders/orders.module.ts)" as Controller
-    participant "Service: OrdersService\n(modules/orders/orders.service.ts)" as Service
-    participant "Service: PricingService\n(modules/pricing/pricing.service.ts)" as Pricing
-    participant "Service: PromotionsService\n(modules/promotions/promotions.service.ts)" as Promo
-    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+    participant "JwtAuthGuard" as Guard
+    participant "OrdersController" as Controller
+    participant "OrdersService" as Service
+    participant "Prisma DB" as DB
 end box
 
 User -> Page: Truy cập /checkout & nhấn "Tiếp tục thanh toán"
 activate Page
-Page -> Page: handleCreateOrder()
 
-opt Đã có đơn PENDING trước đó và giỏ hàng không thay đổi (pendingCartSignature === currentSignature)
-    Page --> User: Điều hướng thẳng sang /checkout/payment?orderId=pendingOrderId (Tái sử dụng đơn)
+opt Tái sử dụng đơn PENDING (giỏ không đổi: signature khớp)
+    Page --> User: Chuyển thẳng sang /checkout/payment?orderId=pendingOrderId
 end
 
-opt Đã có đơn PENDING trước đó nhưng giỏ hàng đã thay đổi
+opt Giỏ đã đổi nhưng còn pendingOrderId cũ
     Page -> ClientService: cancelOrder(pendingOrderId)
-    ClientService -> Controller: POST /api/v1/orders/:id/cancel (Kèm JWT)
+    ClientService -> Controller: POST /api/v1/orders/:id/cancel
     Controller --> ClientService: 200 OK: Đã hủy đơn cũ
 end
 
 Page -> ClientService: createOrder({ items, promotionCode })
 activate ClientService
 
-ClientService -> Guard: POST /api/v1/orders\nHeaders: Authorization: Bearer <JWT>\nBody: CreateOrderDto
+ClientService -> Guard: POST /api/v1/orders (Bearer JWT)
 activate Guard
 
-alt Token không hợp lệ / Hết hạn
-    Guard --> ClientService: 401 Unauthorized: { success: false, message: "Token không hợp lệ" }
-    ClientService --> Page: Ném ApiError(401)
-    Page --> User: Điều hướng về /auth/login?next=/checkout
-else Token hợp lệ (Trích xuất req.user = { sub: userId })
-    Guard -> Controller: Chuyển tiếp Request kèm req.user
+alt Token không hợp lệ
+    Guard --> ClientService: 401 Unauthorized
+    ClientService --> Page: 401 Error
+    Page --> User: Điều hướng về /auth/login
+else Token hợp lệ
+    Guard -> Controller: Chuyển tiếp Request (userId = req.user.sub)
     deactivate Guard
     activate Controller
 
     Controller -> Service: create(userId, dto)
     activate Service
 
-    alt Đơn hàng không có sản phẩm nào (dto.items.length === 0)
-        Service --> Controller: throw BadRequestException('An order must contain at least one item.')
-        Controller --> ClientService: 400 Bad Request
-        ClientService --> Page: Hiển thị lỗi
-    end
-
-    ' 1. Tính giá qua PricingService
-    Service -> Pricing: calculate(pricingInput)
-    activate Pricing
-    Pricing --> Service: { subtotal, lines: [{ productId, unitPrice, lineTotal }] }
-    deactivate Pricing
-
-    ' 2. Kiểm tra khuyến mãi qua PromotionsService
-    opt Có gửi kèm promotionCode
-        Service -> Promo: validate(promotionCode, pricing.subtotal)
-        activate Promo
-        alt Mã khuyến mãi không hợp lệ hoặc không đủ điều kiện
-            Promo --> Service: null
-            Service --> Controller: throw BadRequestException('Promotion code is invalid or not applicable.')
-            Controller --> ClientService: 400 Bad Request
-            ClientService --> Page: Hiển thị lỗi khuyến mãi
-        else Mã khuyến mãi hợp lệ
-            Promo --> Service: { promotionId, discountAmount, ... }
-            deactivate Promo
-        end
-    end
-
-    ' 3. Transaction và Optimistic Locking kiểm soát tồn kho
-    Service -> DB: prisma.$transaction(async (tx) => { ... })
+    Service -> DB: Kiểm tra tồn kho & lấy bảng giá hiện hành
     activate DB
-
-    DB -> DB: tx.user.findUnique({ where: { id: userId } })
-    DB -> DB: tx.product.findMany({ where: { id: { in: productIds }, isAvailable: true } })
-    DB -> DB: tx.topping.findMany({ where: { id: { in: toppingIds }, isAvailable: true } })
-
-    loop Duyệt từng sản phẩm: Kiểm soát tồn kho bằng Optimistic Locking
-        DB -> DB: tx.product.updateMany({\n  where: { id: productId, isAvailable: true, version: product.version, stock: { gte: quantity } },\n  data: { stock: { decrement: quantity }, version: { increment: 1 } }\n})
-        alt Tranh chấp đồng thời (version đổi) hoặc tồn kho không đủ (stock < quantity)
-            DB --> Service: result.count !== 1
-            Service --> Controller: throw BadRequestException('Insufficient stock or concurrent update for product ...')
-            Controller --> ClientService: 400 Bad Request
-            ClientService --> Page: Ném ApiError(400)
-            Page --> User: Hiển thị thông báo "Sản phẩm đã hết hàng hoặc có tranh chấp đặt hàng!"
-        end
-    end
-
-    loop Duyệt từng topping: Trừ kho có điều kiện
-        DB -> DB: tx.topping.updateMany({\n  where: { id: toppingId, isAvailable: true, stock: { gte: quantity } },\n  data: { stock: { decrement: quantity } }\n})
-        alt Topping không đủ tồn kho
-            DB --> Service: result.count !== 1
-            Service --> Controller: throw BadRequestException('Insufficient stock for topping ...')
-            Controller --> ClientService: 400 Bad Request
-        end
-    end
-
-    DB -> DB: tx.order.create({\n  data: {\n    userId,\n    status: 'PENDING',\n    totalAmount,\n    discountAmount,\n    finalAmount,\n    items: { create: [...] },\n    statusLogs: { create: { fromStatus: null, toStatus: 'PENDING' } }\n  }\n})
-    DB --> Service: newOrder (OrderDetail)
+    DB --> Service: Thông tin sản phẩm, topping
     deactivate DB
 
-    Service --> Controller: newOrder
-    deactivate Service
+    Service -> Service: Tính toán chi phí authoritative pricing & áp dụng mã giảm giá (nếu có)
 
-    Controller --> ClientService: 201 Created: {\n  success: true,\n  statusCode: 201,\n  data: OrderDetail,\n  timestamp\n}
-    deactivate Controller
+    Service -> DB: Bắt đầu $transaction: Khóa lạc quan (Optimistic Locking):\nUPDATE "Product" SET stock = stock - qty, version = version + 1\nWHERE id = :id AND version = :v AND stock >= qty
+    activate DB
 
-    ClientService --> Page: OrderDetail
-    deactivate ClientService
+    alt Có tranh chấp đồng thời hoặc hết hàng
+        DB --> Service: RecordNotFound (0 rows updated)
+        Service -> DB: Rollback Transaction
+        Service --> Controller: Conflict / BadRequest (400)
+        Controller --> ClientService: 400 Bad Request
+        ClientService --> Page: Ném lỗi tồn kho
+        Page --> User: Cảnh báo "Sản phẩm đã hết hàng hoặc có tranh chấp"
+    else Khóa tồn kho thành công
+        DB --> Service: Update OK
+        Service -> DB: Tạo Order (PENDING), OrderItem, OrderItemTopping, OrderStatusHistory
+        Service -> DB: Commit Transaction
+        DB --> Service: Order Entity đã tạo
+        deactivate DB
 
-    Page -> CartStore: setPendingOrder(order.id, currentSignature)
-    activate CartStore
-    CartStore --> Page: State updated
-    deactivate CartStore
+        Service --> Controller: OrderResponseDto
+        deactivate Service
+        Controller --> ClientService: 201 Created: { success: true, data: order }
+        deactivate Controller
+        ClientService --> Page: Dữ liệu đơn hàng mới
+        deactivate ClientService
 
-    Page --> User: router.push(`/checkout/payment?orderId=${order.id}`)
-    deactivate Page
+        Page -> CartStore: setPendingOrderId(order.id, currentCartSignature)
+        Page --> User: Điều hướng sang trang thanh toán (/checkout/payment)
+    end
 end
+deactivate Page
 
 @enduml
