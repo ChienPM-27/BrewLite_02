@@ -45,7 +45,7 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \midrule
 \textbf{Luồng ngoại lệ} & 
 - Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
-- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\newline
+- Đơn hàng đã được thanh toán trước đó hoặc ở trạng thái không cho phép: Báo lỗi \texttt{409 Conflict} ("Trạng thái đơn hàng không cho phép thanh toán").\newline
 - Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{409 Conflict} (\"Idempotency-Key đã được sử dụng với nội dung khác\"). \\
 \bottomrule
 \end{tabularx}
@@ -83,7 +83,7 @@ Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa 
 \midrule
 \texttt{POST} & \texttt{/api/v1/payments} & 
 Header: \texttt{Idempotency-Key: <UUID>}, Bearer Token.\newline Body: \texttt{\{orderId, method\}} & 
-\texttt{200 OK}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại an toàn). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không hợp lệ). \\
+\texttt{201 Created}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại an toàn). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không cho phép). \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -118,9 +118,9 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 200, status SUCCESS, đơn chuyển sang PAID & Chưa chạy \\
-\texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 200, trả về kết quả cũ, không gọi lại gateway & Chưa chạy \\
-\texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 400, báo lỗi đơn hàng đã thanh toán & Chưa chạy \\
+\texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 201 Created, status SUCCESS, đơn chuyển sang PAID & Đạt \\
+\texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 201 Created, trả về kết quả cũ (replay), không gọi lại gateway & Đạt \\
+\texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 409 Conflict, message "Trạng thái đơn hàng không cho phép thanh toán" & Đạt \\
 \texttt{TC-PAY-UI-01} & Giao diện & Đơn hàng chờ & Trang \texttt{/checkout/payment} & Hiển thị tổng tiền và 2 phương thức thẻ/ví & Chưa chạy \\
 \bottomrule
 \end{tabularx}

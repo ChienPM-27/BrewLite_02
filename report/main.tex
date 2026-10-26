@@ -4,6 +4,9 @@
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
 
+% Mathematics
+\usepackage{amsmath,amssymb}
+
 % Page Layout & Margins
 \usepackage[top=2.5cm, bottom=2.5cm, left=3.0cm, right=2.0cm]{geometry}
 \setlength{\headheight}{15pt}
@@ -475,11 +478,11 @@ Các lớp dịch vụ chính bao gồm:
 \section{Luồng tương tác nghiệp vụ tổng thể (Overall Business Flow)}
 Luồng tương tác nghiệp vụ từ đầu đến cuối (End-to-End) của một khách hàng trên hệ thống diễn ra tuần tự qua các giai đoạn:
 \begin{enumerate}
-    \item \textbf{Giai đoạn 1 - Khám phá và Chọn món:} Khách hàng duyệt danh mục thực đơn tại trang chủ (\texttt{/products}), chọn đồ uống để xem chi tiết (\texttt{/products/[id]}), cấu hình kích cỡ (Size M/L), mức đường, mức đá và các món topping đi kèm. Sau đó món ăn được đưa vào giỏ hàng cục bộ (\texttt{Cart}).
-    \item \textbf{Giai đoạn 2 - Xác thực tài khoản:} Khi người dùng chọn tiến hành đặt hàng (\texttt{Checkout}), nếu chưa đăng nhập, hệ thống sẽ tự động điều hướng sang trang Đăng nhập/Đăng ký để xác thực danh tính.
-    \item \textbf{Giai đoạn 3 - Đặt hàng và Tính giá:} Khách hàng nhập địa chỉ giao hàng hoặc chọn nhận tại quầy, áp dụng mã ưu đãi \texttt{WELCOME10} và chọn số điểm tích lũy muốn đổi. Backend thực thi kiểm tra tồn kho đồng thời qua cơ chế Optimistic Lock, tạo bản ghi đơn hàng ở trạng thái \texttt{PENDING\_PAYMENT}.
-    \item \textbf{Giai đoạn 4 - Thanh toán Trực tuyến:} Hệ thống chuyển hướng khách hàng sang màn hình thanh toán (\texttt{/payment}). Khách hàng chọn phương thức (Thẻ ngân hàng hoặc Ví điện tử). Lệnh thanh toán được gửi kèm \texttt{Idempotency-Key}. Mock Gateway xác nhận giao dịch thành công.
-    \item \textbf{Giai đoạn 5 - Cập nhật và Hoàn tất:} Đơn hàng được chuyển trạng thái sang \texttt{PAID}, ghi nhận điểm thưởng mới vào tài khoản khách hàng, giải phóng giỏ hàng và lưu vết vào Lịch sử đơn hàng (\texttt{/orders}).
+    \item \textbf{Giai đoạn 1 - Khám phá và Chọn món:} Khách hàng duyệt danh mục thực đơn tại trang (\texttt{/menu}), chọn đồ uống để xem chi tiết (\texttt{/products/[id]}), tùy chọn kích cỡ (Size S/M/L), mức đường, mức đá và các món topping đi kèm. Món ăn sau khi cấu hình được đưa vào giỏ hàng cục bộ (\texttt{Cart}) quản lý bằng Zustand.
+    \item \textbf{Giai đoạn 2 - Xác thực tài khoản:} Khi người dùng chọn tiến hành đặt hàng (\texttt{/checkout}), nếu chưa đăng nhập, hệ thống sẽ tự động điều hướng sang trang Đăng nhập (\texttt{/auth/login}) hoặc Đăng ký (\texttt{/auth/register}) để xác thực danh tính qua JWT.
+    \item \textbf{Giai đoạn 3 - Đặt hàng và Tính giá:} Khách hàng xác nhận danh sách món trong giỏ hàng và áp dụng mã ưu đãi \texttt{WELCOME10} (nếu có). Backend thực thi kiểm tra tồn kho đồng thời qua cơ chế Optimistic Locking (khóa lạc quan theo phiên bản \texttt{version}), tính toán đơn giá snapshot và tạo bản ghi đơn hàng ở trạng thái \texttt{PENDING}.
+    \item \textbf{Giai đoạn 4 - Thanh toán Trực tuyến:} Hệ thống chuyển hướng khách hàng sang màn hình thanh toán (\texttt{/checkout/payment}). Khách hàng chọn phương thức (Thẻ ngân hàng hoặc Ví điện tử). Lệnh thanh toán được gửi kèm \texttt{Idempotency-Key}. Mock Gateway xác nhận giao dịch thành công.
+    \item \textbf{Giai đoạn 5 - Cập nhật và Hoàn tất:} Đơn hàng được chuyển trạng thái sang \texttt{PAID}, hệ thống tự động tích lũy điểm thưởng thành viên vào tài khoản người dùng, xóa các món đã đặt khỏi giỏ hàng cục bộ và lưu vết vào Lịch sử đơn hàng (\texttt{/orders}).
 \end{enumerate}
 
 % ====== END INLINE: chapters/ch3-architecture ======
@@ -1257,7 +1260,7 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \midrule
 \textbf{Luồng ngoại lệ} & 
 - Gateway từ chối hoặc giao dịch thất bại: Cập nhật bản ghi payment thành \texttt{FAILED}, đơn hàng chuyển sang \texttt{PAYMENT\_FAILED}, cho phép khách hàng nhấn thử lại (tạo lượt payment mới).\newline
-- Đơn hàng đã được thanh toán trước đó: Báo lỗi \texttt{400 Bad Request} ("Đơn hàng đã được thanh toán").\newline
+- Đơn hàng đã được thanh toán trước đó hoặc ở trạng thái không cho phép: Báo lỗi \texttt{409 Conflict} ("Trạng thái đơn hàng không cho phép thanh toán").\newline
 - Trùng Idempotency-Key nhưng khác payload: Báo lỗi \texttt{409 Conflict} (\"Idempotency-Key đã được sử dụng với nội dung khác\"). \\
 \bottomrule
 \end{tabularx}
@@ -1298,7 +1301,7 @@ Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa 
 \midrule
 \texttt{POST} & \texttt{/api/v1/payments} & 
 Header: \texttt{Idempotency-Key: <UUID>}, Bearer Token.\newline Body: \texttt{\{orderId, method\}} & 
-\texttt{200 OK}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại an toàn). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không hợp lệ). \\
+\texttt{201 Created}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại an toàn). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không cho phép). \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1333,9 +1336,9 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 200, status SUCCESS, đơn chuyển sang PAID & Chưa chạy \\
-\texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 200, trả về kết quả cũ, không gọi lại gateway & Chưa chạy \\
-\texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 400, báo lỗi đơn hàng đã thanh toán & Chưa chạy \\
+\texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 201 Created, status SUCCESS, đơn chuyển sang PAID & Đạt \\
+\texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 201 Created, trả về kết quả cũ (replay), không gọi lại gateway & Đạt \\
+\texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 409 Conflict, message "Trạng thái đơn hàng không cho phép thanh toán" & Đạt \\
 \texttt{TC-PAY-UI-01} & Giao diện & Đơn hàng chờ & Trang \texttt{/checkout/payment} & Hiển thị tổng tiền và 2 phương thức thẻ/ví & Chưa chạy \\
 \bottomrule
 \end{tabularx}
