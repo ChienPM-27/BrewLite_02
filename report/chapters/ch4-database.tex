@@ -3,16 +3,17 @@
 \section{Sơ đồ Thực thể Liên kết (ERD) toàn hệ thống}
 Cơ sở dữ liệu của hệ thống BrewLite được chuẩn hóa theo dạng chuẩn 3NF, thiết kế bám sát tập tin mô hình dữ liệu \texttt{backend/prisma/schema.prisma}. Toàn bộ hệ thống bao gồm 12 thực thể quan hệ, đảm bảo tính toàn vẹn dữ liệu, hiệu năng truy vấn và hỗ trợ chuyên sâu cho các nghiệp vụ phức tạp như kiểm soát đồng thời (Optimistic Locking) và thanh toán bất biến (Idempotency).
 
-Sơ đồ ERD toàn hệ thống được trình bày tại Hình~\ref{fig:database-erd}.
+Sơ đồ ERD toàn hệ thống được trình bày ở chế độ khổ ngang (Landscape) tại Hình~\ref{fig:database-erd}.
 
-\begin{figure}[H]
+\begin{landscape}
+\begin{figure}[p]
     \centering
-    \includegraphics[width=\textwidth, height=0.78\textheight, keepaspectratio]{figures/database-erd.pdf}
+    \includegraphics[width=0.98\linewidth,height=0.88\textheight,keepaspectratio]{figures/database-erd.pdf}
     \caption{Sơ đồ Thực thể Liên kết (ERD) toàn hệ thống BrewLite}
     \label{fig:database-erd}
 \end{figure}
+\end{landscape}
 
-\clearpage
 \section{Chi tiết 12 thực thể trong Cơ sở dữ liệu}
 Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm nghiệp vụ chính:
 
@@ -26,7 +27,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
     \begin{itemize}
         \item \textbf{\texttt{categories}:} Phân loại thực đơn (Cà phê, Trà...). Gồm: \texttt{id} (PK), \texttt{name} (Unique), \texttt{slug} (Unique), \texttt{display\_order} (thứ tự hiển thị trên tab giao diện), \texttt{created\_at}, \texttt{updated\_at}.
         \item \textbf{\texttt{products}:} Thông tin đồ uống. Gồm: \texttt{id} (PK), \texttt{category\_id} (FK \(\to\) \texttt{categories.id}), \texttt{name}, \texttt{base\_price} (Decimal(12,0) tiền VNĐ nguyên chẵn), \texttt{image\_url}, \texttt{stock} (số lượng tồn kho khả dụng), \texttt{version} (Int, default 0 - trường phiên bản phục vụ Optimistic Locking), \texttt{is\_available} (Boolean), \texttt{created\_at}, \texttt{updated\_at}.
-        \item \textbf{\texttt{product\_size\_prices}:} Cấu hình phụ thu theo từng kích cỡ (S, M, L) cho từng sản phẩm. Gồm: \texttt{id} (PK), \texttt{product\_id} (FK \(\to\) \texttt{products.id}, Cascade), \texttt{size} (Enum \texttt{ProductSize}: S, M, L), \texttt{price\_adjustment} (Decimal(12,0)). Có ràng buộc duy nhất \texttt{@@unique([product\_id, size])}.
+        \item \textbf{\texttt{product\_size_prices}:} Cấu hình phụ thu theo từng kích cỡ (S, M, L) cho từng sản phẩm. Gồm: \texttt{id} (PK), \texttt{product\_id} (FK \(\to\) \texttt{products.id}, Cascade), \texttt{size} (Enum \texttt{ProductSize}: S, M, L), \texttt{price\_adjustment} (Decimal(12,0)). Có ràng buộc duy nhất \texttt{@@unique([product\_id, size])}.
         \item \textbf{\texttt{toppings}:} Danh mục topping dùng kèm. Gồm: \texttt{id} (PK), \texttt{name} (Unique), \texttt{price} (Decimal(12,0)), \texttt{stock} (Int, default 100), \texttt{is\_available} (Boolean), \texttt{created\_at}, \texttt{updated\_at}.
     \end{itemize}
 
@@ -40,7 +41,7 @@ Mô hình dữ liệu bao gồm 12 bảng được phân chia theo các nhóm ng
         \item \textbf{\texttt{orders}:} Bảng trung tâm lưu trữ thông tin đơn hàng. Gồm: \texttt{id} (PK), \texttt{order\_number} (Int, Unique, autoincrement - mã hiển thị cho khách dạng \#1042), \texttt{user\_id} (FK \(\to\) \texttt{users.id}), \texttt{promotion\_id} (FK \(\to\) \texttt{promotions.id}, có thể null), \texttt{status} (Enum \texttt{OrderStatus}), \texttt{total\_amount} (tạm tính trước giảm), \texttt{discount\_amount} (số tiền được giảm), \texttt{final\_amount} (số tiền thực trả), \texttt{points\_earned} (số điểm thưởng tích được từ đơn), \texttt{paid\_at} (thời điểm thanh toán), \texttt{version} (Int, default 0 - Optimistic Locking khi chuyển trạng thái), \texttt{created\_at}, \texttt{updated\_at}.
         \item \textbf{\texttt{order\_items}:} Chi tiết từng món trong đơn. Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{product\_id} (FK \(\to\) \texttt{products.id}), \texttt{size} (Enum \texttt{ProductSize}), \texttt{quantity} (Int), \texttt{unit\_price} (Decimal(12,0) - đơn giá snapshot đã cộng phụ thu size), \texttt{line\_total} (Decimal(12,0) = (unitPrice + toppings) \(\times\) quantity).
         \item \textbf{\texttt{order\_item\_toppings}:} Lưu trữ topping kèm theo từng món. Gồm: \texttt{id} (PK), \texttt{order\_item\_id} (FK \(\to\) \texttt{order\_items.id}, Cascade), \texttt{topping\_id} (FK \(\to\) \texttt{toppings.id}), \texttt{price} (Decimal(12,0) - snapshot giá topping tại thời điểm đặt).
-        \item \textbf{\texttt{order\_status\_history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
+        \item \textbf{\texttt{order\_status_history}:} Lưu vết lịch sử chuyển đổi trạng thái đơn hàng (phục vụ giám sát 9 chuyển tiếp của máy trạng thái). Gồm: \texttt{id} (PK), \texttt{order\_id} (FK \(\to\) \texttt{orders.id}, Cascade), \texttt{from\_status} (OrderStatus?), \texttt{to\_status} (OrderStatus), \texttt{changed\_by} (String?), \texttt{reason} (String?), \texttt{created\_at}.
     \end{itemize}
 
     \item \textbf{Nhóm Thanh toán và Điểm thành viên:}

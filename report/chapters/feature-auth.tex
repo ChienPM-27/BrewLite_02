@@ -3,14 +3,14 @@
 \subsection{Đặc tả Use Case}
 Phân hệ Xác thực quản lý vòng đời tài khoản của người dùng, cung cấp cơ chế đăng ký và đăng nhập bảo mật bằng JSON Web Token (JWT). Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-auth}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-auth.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Xác thực}
     \label{fig:usecase-auth}
 \end{figure}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Đặc tả Use Case: Đăng ký và Đăng nhập người dùng}
@@ -46,31 +46,28 @@ Phân hệ Xác thực quản lý vòng đời tài khoản của người dùng
 \end{tabularx}
 \end{table}
 
-\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Sơ đồ Hoạt động mô tả chi tiết quy trình xử lý luồng đăng nhập và kiểm tra xác thực người dùng được biểu diễn tại Hình~\ref{fig:activity-auth}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth, height=0.82\textheight, keepaspectratio]{figures/activity-auth.png}
+    \includegraphics[width=0.75\textwidth]{figures/activity-auth.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Xác thực}
     \label{fig:activity-auth}
 \end{figure}
 
-\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh chuẩn xác các lời gọi hàm từ giao diện qua Controller đến Service và Prisma DB tại Hình~\ref{fig:sequence-auth}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth, height=0.82\textheight, keepaspectratio]{figures/sequence-auth.pdf}
+    \includegraphics[width=0.9\textwidth]{figures/sequence-auth.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Xác thực (Happy path \& Exception paths)}
     \label{fig:sequence-auth}
 \end{figure}
 
-\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Xác thực}
@@ -94,7 +91,7 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Xác thực}
@@ -113,7 +110,7 @@ Mọi thao tác của AuthModule tác động trực tiếp lên bảng \texttt{
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering

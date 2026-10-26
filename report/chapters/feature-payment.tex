@@ -1,17 +1,16 @@
-\clearpage
 \section{Phân hệ Thanh toán (Payment)}
 
 \subsection{Đặc tả Use Case}
 Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao dịch tài chính cho các đơn hàng đang ở trạng thái chờ. Phân hệ được thiết kế với cơ chế an toàn cấp cao: bảo vệ giao dịch bất biến (\textit{Idempotency}) để chống trùng lặp tiền khi người dùng nhấp đúp hoặc xảy ra lỗi chập chờn mạng, đồng thời hỗ trợ nhiều lượt thử lại (\textit{Retry}) cho cùng một đơn hàng thông qua quan hệ 1-N giữa \texttt{Order} và \texttt{Payment}. Sơ đồ Use Case được minh họa tại Hình~\ref{fig:usecase-payment}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.75\textwidth]{figures/usecase-payment.pdf}
     \caption{Sơ đồ Use Case - Phân hệ Thanh toán}
     \label{fig:usecase-payment}
 \end{figure}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Đặc tả Use Case: Thực hiện Thanh toán Trực tuyến (UC-PAY-01)}
@@ -52,31 +51,28 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \end{tabularx}
 \end{table}
 
-\clearpage
 \subsection{Sơ đồ Hoạt động (Activity Diagram)}
 Quy trình thẩm định Idempotency, gọi cổng thanh toán và xử lý kết quả giao dịch được mô tả tại Hình~\ref{fig:activity-payment}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/activity-payment.pdf}
+    \includegraphics[width=0.75\textwidth]{figures/activity-payment.pdf}
     \caption{Sơ đồ Hoạt động - Phân hệ Thanh toán}
     \label{fig:activity-payment}
 \end{figure}
 
-\clearpage
 \subsection{Sơ đồ Tuần tự (Sequence Diagram)}
 Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa Frontend, PaymentsController, PaymentsService, Prisma DB và Mock Payment Gateway tại Hình~\ref{fig:sequence-payment}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth, height=0.80\textheight, keepaspectratio]{figures/sequence-payment.pdf}
+    \includegraphics[width=0.9\textwidth]{figures/sequence-payment.pdf}
     \caption{Sơ đồ Tuần tự - Phân hệ Thanh toán (Idempotent Flow \& Gateway Integration)}
     \label{fig:sequence-payment}
 \end{figure}
 
-\clearpage
 \subsection{Hợp đồng API (API Contract)}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Danh mục API Endpoints - Phân hệ Thanh toán}
@@ -115,7 +111,7 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Tóm lược các Ca kiểm thử tiêu biểu - Phân hệ Thanh toán}
@@ -133,7 +129,7 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \end{table}
 
 \subsection{Giao diện Người dùng}
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/ui-payment.png}
     \caption{Giao diện Cổng thanh toán không tiền mặt đa phương thức}

@@ -18,6 +18,8 @@ with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             # Exclude auxiliary build files
             if file.endswith(('.aux', '.log', '.out', '.toc', '.synctex.gz', '.fdb_latexmk', '.fls', '.xdv', '.bbl', '.blg')):
                 continue
+            if file == 'main_full.tex':
+                continue
                 
             full_path = os.path.join(root, file)
             # Store relative path inside zip
