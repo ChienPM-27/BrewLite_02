@@ -28,8 +28,8 @@ Phân hệ Chi tiết Sản phẩm cung cấp thông tin toàn diện về đồ
 \textbf{Luồng chính} & 
 1. Khách hàng nhấp vào thẻ món tại trang thực đơn.\newline
 2. Trình duyệt điều hướng sang \texttt{/products/[id]}.\newline
-3. Frontend gọi đồng thời \texttt{GET /api/v1/products/:id} và \texttt{GET /api/v1/toppings}.\newline
-4. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\newline
+3. Frontend gửi request \texttt{GET /api/v1/products/:id}.\newline
+4. Hệ thống phản hồi chi tiết món ăn, bảng giá kích cỡ (\texttt{sizePrices}) và danh sách topping khả dụng (\texttt{toppings}) trong cùng một phản hồi. Giao diện hiển thị: tên món, hình ảnh, nút "Quay lại thực đơn", lựa chọn Size (Mặc định: M), mức đường (0\%, 30\%, 50\%, 70\%, 100\%), mức đá (0\%, 30\%, 50\%, 70\%, 100\%) và danh sách Topping kèm giá phụ thu.\newline
 5. Khi người dùng thay đổi kích cỡ hoặc chọn thêm topping, giao diện tự động tính lại tổng đơn giá của món ăn theo thời gian thực.\newline
 6. Khách hàng nhấn "Thêm vào giỏ hàng" để lưu món vào giỏ. \\
 \midrule
@@ -70,16 +70,14 @@ Sơ đồ Tuần tự thể hiện các tương tác truy vấn dữ liệu chi 
 \toprule
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Tham số Đường dẫn} & \textbf{Phản hồi chính} \\
 \midrule
-\texttt{GET} & \texttt{/api/v1/products/:id} & \texttt{id} (CUID của sản phẩm) & \texttt{200 OK}: Chi tiết sản phẩm kèm mảng \texttt{sizePrices} và thông tin \texttt{category}. Lỗi \texttt{404} nếu không tìm thấy. \\
-\texttt{GET} & \texttt{/api/v1/toppings} & Không có & \texttt{200 OK}: Danh sách các loại topping đang hoạt động kèm giá và số lượng tồn. \\
+\texttt{GET} & \texttt{/api/v1/products/:id} & \texttt{id} (CUID của sản phẩm) & \texttt{200 OK}: Chi tiết sản phẩm kèm mảng cấu hình kích cỡ (\texttt{sizePrices}), danh sách \texttt{toppings} khả dụng và thông tin \texttt{category}. Lỗi \texttt{404} nếu không tìm thấy. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Ánh xạ Cơ sở dữ liệu (Database Mapping)}
 \begin{itemize}
-    \item Truy vấn chi tiết sản phẩm: \texttt{prisma.product.findUnique(\{ where: \{ id \}, include: \{ sizePrices: true, category: true \} \})}.
-    \item Truy vấn danh sách topping: \texttt{prisma.topping.findMany(\{ where: \{ isAvailable: true \} \})}.
+    \item Truy vấn chi tiết sản phẩm và topping: \texttt{ProductDetailService} thực hiện truy vấn món cùng các bảng quan hệ qua \texttt{prisma.product.findUnique(\{ where: \{ id \}, include: \{ sizePrices: true, category: true \} \})}, đồng thời kết hợp danh sách topping đang kinh doanh từ bảng \texttt{toppings} (\texttt{isAvailable: true}) để đóng gói hoàn chỉnh dữ liệu phản hồi cho client.
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}

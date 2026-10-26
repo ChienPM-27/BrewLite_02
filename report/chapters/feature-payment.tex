@@ -26,7 +26,7 @@ Phân hệ Thanh toán chịu trách nhiệm tiếp nhận và xử lý giao d�
 \textbf{Hậu điều kiện} & Bản ghi thanh toán được lưu trữ; trạng thái đơn hàng chuyển thành \texttt{PAID}; điểm loyalty được cộng vào tài khoản khách hàng. \\
 \midrule
 \textbf{Luồng chính} & 
-1. Khách hàng truy cập trang thanh toán \texttt{/payment/[orderId]}.\newline
+1. Khách hàng truy cập trang thanh toán \texttt{/checkout/payment} (hoặc mở Modal xác nhận thanh toán).\newline
 2. Chọn phương thức thanh toán: Thẻ ngân hàng (\texttt{BANK\_CARD}) hoặc Ví điện tử (\texttt{E\_WALLET}).\newline
 3. Nhấn "Thanh toán ngay".\newline
 4. Trình duyệt tự động sinh mã UUID \texttt{Idempotency-Key} duy nhất và gửi request \texttt{POST /api/v1/payments}.\newline
@@ -83,9 +83,7 @@ Sơ đồ Tuần tự phản ánh toàn diện các luồng tương tác giữa 
 \midrule
 \texttt{POST} & \texttt{/api/v1/payments} & 
 Header: \texttt{Idempotency-Key: <UUID>}, Bearer Token.\newline Body: \texttt{\{orderId, method\}} & 
-\texttt{200 OK}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không hợp lệ). \\
-\texttt{GET} & \texttt{/api/v1/payments/:id} & Tham số \texttt{id} bản ghi thanh toán & 
-\texttt{200 OK}: Tra cứu trạng thái giao dịch thanh toán hiện tại. \\
+\texttt{200 OK}: Trả về chi tiết thanh toán thành công (hoặc kết quả phát lại an toàn). Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}, \texttt{404 Not Found}, \texttt{409 Conflict} (sai lệch requestHash hoặc trạng thái đơn không hợp lệ). \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -123,7 +121,7 @@ VALUES (cuid(), :orderId, 'PENDING', 'PAID', 'payment_gateway', NOW());
 \texttt{TC-PAY-API-01} & Hợp lệ & Đơn PENDING, key mới & \texttt{POST /payments} & HTTP 200, status SUCCESS, đơn chuyển sang PAID & Chưa chạy \\
 \texttt{TC-PAY-API-03} & Idempotent & Gửi lại cùng key & \texttt{POST /payments} & HTTP 200, trả về kết quả cũ, không gọi lại gateway & Chưa chạy \\
 \texttt{TC-PAY-API-05} & Lỗi & Đơn đã thanh toán & \texttt{POST /payments} & HTTP 400, báo lỗi đơn hàng đã thanh toán & Chưa chạy \\
-\texttt{TC-PAY-UI-01} & Giao diện & Đơn hàng chờ & Trang \texttt{/payment/[id]} & Hiển thị tổng tiền và 2 phương thức thẻ/ví & Chưa chạy \\
+\texttt{TC-PAY-UI-01} & Giao diện & Đơn hàng chờ & Trang \texttt{/checkout/payment} & Hiển thị tổng tiền và 2 phương thức thẻ/ví & Chưa chạy \\
 \bottomrule
 \end{tabularx}
 \end{table}

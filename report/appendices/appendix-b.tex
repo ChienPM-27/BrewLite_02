@@ -15,20 +15,20 @@ Bảng~\ref{tab:full-api-list} liệt kê toàn bộ các API Endpoints được
 \texttt{POST} & \texttt{/api/v1/auth/register} & Công khai & Đăng ký tài khoản người dùng mới \\
 \texttt{POST} & \texttt{/api/v1/auth/login} & Công khai & Đăng nhập và nhận mã Bearer JWT \\
 \midrule
-\texttt{GET} & \texttt{/api/v1/categories} & Công khai & Lấy danh sách phân loại danh mục sản phẩm \\
-\texttt{GET} & \texttt{/api/v1/products} & Công khai & Tìm kiếm và lọc danh sách sản phẩm \\
-\texttt{GET} & \texttt{/api/v1/products/:id} & Công khai & Xem chi tiết thông tin và giá theo size sản phẩm \\
-\texttt{GET} & \texttt{/api/v1/toppings} & Công khai & Lấy danh sách các món topping khả dụng \\
+\texttt{GET} & \texttt{/api/v1/products} & Công khai & Lấy danh sách sản phẩm kèm phân loại danh mục (\texttt{categoryName}), hỗ trợ tìm kiếm (\texttt{search}) và lọc danh mục (\texttt{categoryId}) \\
+\texttt{GET} & \texttt{/api/v1/products/:id} & Công khai & Xem chi tiết thông tin sản phẩm, bảng giá các kích cỡ (\texttt{sizePrices}) và danh sách topping khả dụng (\texttt{toppings}) \\
 \midrule
-\texttt{POST} & \texttt{/api/v1/orders} & Bearer JWT & Tạo đơn hàng mới từ giỏ hàng, trừ kho, áp voucher \\
-\texttt{GET} & \texttt{/api/v1/orders/:id} & Bearer JWT & Xem chi tiết thông tin và trạng thái đơn hàng \\
-\texttt{GET} & \texttt{/api/v1/orders} & Bearer JWT & Lấy danh sách lịch sử đơn hàng của người dùng \\
+\texttt{POST} & \texttt{/api/v1/orders} & Bearer JWT & Tạo đơn hàng mới từ giỏ hàng, trừ kho với khóa lạc quan, áp voucher \\
+\texttt{GET} & \texttt{/api/v1/orders/me} & Bearer JWT & Lấy danh sách lịch sử đơn hàng của người dùng đang đăng nhập \\
+\texttt{GET} & \texttt{/api/v1/orders/:id} & Bearer JWT & Xem chi tiết thông tin đơn hàng, danh sách món, trạng thái xử lý và giao dịch thanh toán \\
+\texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Bearer JWT & Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\texttt{PAYMENT\_FAILED}) và hoàn trả tồn kho \\
 \midrule
-\texttt{POST} & \texttt{/api/v1/payments} & Bearer JWT + Idempotency & Thực hiện thanh toán trực tuyến với khóa bất biến \\
-\texttt{GET} & \texttt{/api/v1/payments/:id} & Bearer JWT & Tra cứu trạng thái giao dịch thanh toán \\
+\texttt{POST} & \texttt{/api/v1/payments} & Bearer JWT + Idempotency & Thực hiện thanh toán trực tuyến an toàn với khóa Idempotency, gọi cổng thanh toán giả lập và cộng điểm loyalty \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\noindent\textit{Ghi chú thiết kế API:} Nhằm tối ưu hóa hiệu năng truyền tải và hạn chế hiện tượng roundtrip mạng dư thừa, hệ thống tích hợp phân loại danh mục trực tiếp vào \texttt{GET /products} (thay vì tách riêng \texttt{GET /categories}), và nhúng danh sách topping khả dụng vào phản hồi chi tiết món \texttt{GET /products/:id} (thay vì tách riêng \texttt{GET /toppings}). Trạng thái giao dịch thanh toán được truy vấn trực tiếp qua chi tiết đơn hàng \texttt{GET /orders/:id} thay vì tạo endpoint độc lập \texttt{GET /payments/:id}.
 
 Mọi phản hồi thành công từ hệ thống đều được chuẩn hóa qua \texttt{TransformInterceptor} theo cấu trúc:
 \begin{lstlisting}[language=Java]

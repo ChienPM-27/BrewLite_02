@@ -85,6 +85,8 @@ Sơ đồ Tuần tự minh họa chi tiết toàn bộ các lời gọi dịch v
 \texttt{201 Created}: Trả về đơn hàng mới tạo với cấu trúc bọc chuẩn \texttt{TransformInterceptor}. Lỗi: \texttt{400 Bad Request}, \texttt{401 Unauthorized}. \\
 \texttt{GET} & \texttt{/api/v1/orders/:id} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
 \texttt{200 OK}: Chi tiết đơn hàng, danh sách món, trạng thái xử lý và các lần thử thanh toán. \\
+\texttt{POST} & \texttt{/api/v1/orders/:id/cancel} & Tham số \texttt{id} của đơn hàng (Header: Bearer Token) & 
+\texttt{200 OK}: Hủy đơn hàng khi còn ở trạng thái hợp lệ (\texttt{PENDING}/\texttt{PAYMENT\_FAILED}), hoàn trả tồn kho và cập nhật lịch sử trạng thái. \\
 \bottomrule
 \end{tabularx}
 \end{table}

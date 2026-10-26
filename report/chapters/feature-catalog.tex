@@ -26,9 +26,9 @@ Phân hệ Danh mục Sản phẩm cho phép người dùng khám phá toàn b�
 \textbf{Hậu điều kiện} & Danh sách sản phẩm tương ứng hiển thị trực quan trên giao diện thực đơn. \\
 \midrule
 \textbf{Luồng chính} & 
-1. Người dùng truy cập trang Thực đơn (\texttt{/products}).\newline
-2. Giao diện gửi request \texttt{GET /api/v1/categories} và \texttt{GET /api/v1/products}.\newline
-3. Hệ thống trả về danh sách danh mục (Cà phê, Trà) và danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data).\newline
+1. Người dùng truy cập trang Thực đơn (\texttt{/menu}).\newline
+2. Giao diện gửi request \texttt{GET /api/v1/products}.\newline
+3. Hệ thống trả về danh sách 10 sản phẩm (6 món cà phê, 4 món trà theo seed data) kèm phân loại danh mục (\texttt{categoryName}).\newline
 4. Khách hàng nhấp chọn tab phân loại (ví dụ "Cà phê") hoặc nhập từ khóa tìm kiếm (ví dụ "Latte").\newline
 5. Hook \texttt{useProductCatalog} lọc lại danh sách hiển thị tương ứng kèm nhãn giá cơ bản và trạng thái còn hàng/hết hàng. \\
 \midrule
@@ -69,17 +69,15 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \toprule
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Tham số Query} & \textbf{Phản hồi chính} \\
 \midrule
-\texttt{GET} & \texttt{/api/v1/categories} & Không có & \texttt{200 OK}: Danh sách danh mục sắp xếp theo \texttt{displayOrder} tăng dần. \\
-\texttt{GET} & \texttt{/api/v1/products} & \texttt{categoryId}, \texttt{search}, \texttt{availableOnly} & \texttt{200 OK}: Danh sách sản phẩm kèm thông tin giá cơ bản, hình ảnh và trạng thái khả dụng. \\
+\texttt{GET} & \texttt{/api/v1/products} & \texttt{categoryId}, \texttt{search} & \texttt{200 OK}: Danh sách sản phẩm kèm thông tin giá cơ bản, phân loại danh mục (\texttt{categoryName}), hình ảnh và trạng thái khả dụng. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Ánh xạ Cơ sở dữ liệu (Database Mapping)}
 \begin{itemize}
-    \item Truy vấn danh mục: \texttt{prisma.category.findMany(\{ orderBy: \{ displayOrder: 'asc' \} \})}.
-    \item Truy vấn sản phẩm: \texttt{prisma.product.findMany(\{ where: \{ ...filter \}, include: \{ sizePrices: true, category: true \} \})}.
-    \item Dữ liệu seed chuẩn gồm 2 danh mục chính ("Cà phê" - 6 món, "Trà" - 4 món), tổng cộng 10 sản phẩm mẫu được nạp vào bảng \texttt{categories} và \texttt{products}.
+    \item Truy vấn sản phẩm và danh mục: Backend gọi \texttt{prisma.product.findMany(\{ include: \{ sizePrices: true, category: true \} \})}, trả về danh sách sản phẩm mang đầy đủ tên phân loại (\texttt{categoryName}) giúp Frontend hiển thị và lọc trực tiếp mà không cần gọi thêm endpoint danh mục độc lập.
+    \item Dữ liệu seed chuẩn gồm 2 danh mục chính ("Cà phê" - 6 món, "Trà" - 4 món), tổng cộng 10 sản phẩm mẫu được nạp sẵn vào bảng \texttt{categories} và \texttt{products}.
 \end{itemize}
 
 \subsection{Kịch bản Kiểm thử (Test Cases)}
@@ -92,9 +90,9 @@ Sơ đồ Tuần tự phản ánh quá trình truy vấn danh mục và sản ph
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-CAT-API-01} & Hợp lệ & DB có 2 danh mục & \texttt{GET /categories} & Trả về đủ 2 danh mục "Cà phê", "Trà" & Chưa chạy \\
+\texttt{TC-CAT-API-01} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về đủ 10 món kèm phân loại danh mục "Cà phê", "Trà" & Chưa chạy \\
 \texttt{TC-CAT-API-02} & Hợp lệ & DB có 10 sản phẩm & \texttt{GET /products} & Trả về danh sách 10 món kèm \texttt{basePrice} & Chưa chạy \\
-\texttt{TC-CAT-UI-01} & Giao diện & Trang \texttt{/products} & Thực đơn chính & Hiển thị tab "Tất cả", "Cà phê", "Trà" & Chưa chạy \\
+\texttt{TC-CAT-UI-01} & Giao diện & Trang \texttt{/menu} & Thực đơn chính & Hiển thị tab "Tất cả", "Cà phê", "Trà" & Chưa chạy \\
 \texttt{TC-CAT-UI-07} & Giao diện & Chọn tab "Cà phê" & Lọc danh mục & Hiển thị đúng 6 món cà phê từ seed data & Chưa chạy \\
 \bottomrule
 \end{tabularx}

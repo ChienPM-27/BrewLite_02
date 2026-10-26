@@ -27,7 +27,7 @@ Phân hệ Lịch sử Đơn hàng cho phép khách hàng tra cứu toàn bộ c
 \midrule
 \textbf{Luồng chính} & 
 1. Khách hàng nhấp vào mục "Lịch sử đơn hàng" trên thanh điều hướng hoặc truy cập \texttt{/orders}.\newline
-2. Giao diện gửi request \texttt{GET /api/v1/orders} kèm Bearer Token.\newline
+2. Giao diện gửi request \texttt{GET /api/v1/orders/me} kèm Bearer Token.\newline
 3. Backend truy vấn các đơn hàng thuộc về \texttt{userId} hiện tại, sắp xếp giảm dần theo thời gian tạo (\texttt{createdAt desc}).\newline
 4. Màn hình hiển thị danh sách các thẻ đơn hàng: mã hiển thị \texttt{\#orderNumber}, ngày giờ đặt, tổng tiền, huy hiệu trạng thái (ví dụ "Đã thanh toán", "Đã hủy").\newline
 5. Khách hàng nhấp vào một đơn hàng để xem chi tiết hóa đơn (\texttt{/orders/[id]}): danh sách từng món, size, topping, số tiền giảm giá và phương thức thanh toán. \\
@@ -69,8 +69,8 @@ Sơ đồ Tuần tự minh họa tương tác nạp dữ liệu lịch sử đơ
 \toprule
 \textbf{Phương thức} & \textbf{Endpoint} & \textbf{Header} & \textbf{Phản hồi chính} \\
 \midrule
-\texttt{GET} & \texttt{/api/v1/orders} & \texttt{Authorization: Bearer <JWT>} & \texttt{200 OK}: Danh sách các đơn hàng của user đang đăng nhập, kèm tổng tiền và trạng thái. \\
-\texttt{GET} & \texttt{/api/v1/orders/:id} & \texttt{Authorization: Bearer <JWT>} & \texttt{200 OK}: Chi tiết đơn hàng gồm các món (\texttt{items}), topping và lịch sử trạng thái (\texttt{statusHistory}). Lỗi \texttt{404} nếu không tìm thấy hoặc không thuộc sở hữu. \\
+\texttt{GET} & \texttt{/api/v1/orders/me} & \texttt{Authorization: Bearer <JWT>} & \texttt{200 OK}: Danh sách các đơn hàng của user đang đăng nhập, kèm tổng tiền và trạng thái. \\
+\texttt{GET} & \texttt{/api/v1/orders/:id} & \texttt{Authorization: Bearer <JWT>} & \texttt{200 OK}: Chi tiết đơn hàng gồm các món (\texttt{items}), topping, giao dịch thanh toán và lịch sử trạng thái. Lỗi \texttt{404} nếu không tìm thấy hoặc không thuộc sở hữu. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -97,7 +97,7 @@ ORDER BY created_at DESC;
 \toprule
 \textbf{Mã TC} & \textbf{Loại} & \textbf{Tiền điều kiện} & \textbf{Endpoint / Màn hình} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\
 \midrule
-\texttt{TC-HIS-API-01} & Hợp lệ & User có 3 đơn hàng & \texttt{GET /orders} & HTTP 200, trả về đủ 3 đơn sắp xếp mới nhất & Chưa chạy \\
+\texttt{TC-HIS-API-01} & Hợp lệ & User có 3 đơn hàng & \texttt{GET /orders/me} & HTTP 200, trả về đủ 3 đơn sắp xếp mới nhất & Chưa chạy \\
 \texttt{TC-HIS-API-02} & Bảo mật & Xem đơn của user khác & \texttt{GET /orders/:id} & HTTP 404 hoặc 403, không lộ đơn của người khác & Chưa chạy \\
 \texttt{TC-HIS-UI-01} & Giao diện & User chưa có đơn nào & Màn hình \texttt{/orders} & Hiển thị chuỗi "Bạn chưa có đơn hàng nào" & Chưa chạy \\
 \texttt{TC-HIS-UI-03} & Giao diện & Đơn đã bị hủy & Danh sách đơn & Hiển thị đúng badge trạng thái "Đã hủy" & Chưa chạy \\

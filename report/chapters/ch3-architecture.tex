@@ -17,7 +17,7 @@ Hệ thống bao gồm các thành phần cốt lõi:
     \item \textbf{Tầng Trình bày (Frontend Presentation Layer - Next.js 15):}
     \begin{itemize}
         \item Xây dựng bằng Next.js App Router, sử dụng TypeScript và TailwindCSS.
-        \item Phân chia thành các module giao diện tương ứng với các trang: Xác thực (\texttt{/login}, \texttt{/register}), Thực đơn (\texttt{/products}), Chi tiết món (\texttt{/products/[id]}), Giỏ hàng (\texttt{/cart}), Đặt hàng (\texttt{/checkout}) và Lịch sử (\texttt{/orders}).
+        \item Phân chia thành các module giao diện tương ứng với các trang: Xác thực (\texttt{/auth/login}, \texttt{/auth/register}), Thực đơn (\texttt{/menu}), Chi tiết món (\texttt{/products/[id]}), Giỏ hàng (\texttt{/cart}), Đặt hàng (\texttt{/checkout}), Thanh toán (\texttt{/checkout/payment}) và Lịch sử (\texttt{/orders}).
         \item Quản lý trạng thái cục bộ của giỏ hàng thông qua Custom Hook / Zustand và đồng bộ token xác thực lưu trong bộ nhớ an toàn.
     \end{itemize}
     \item \textbf{Tầng Xử lý Nghiệp vụ (Backend Application Layer - NestJS 11):}
