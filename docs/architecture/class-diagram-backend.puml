@@ -181,6 +181,11 @@ package "Backend Services (NestJS Providers)" #EDF2F7 {
         - replayExistingPayment(payment, userId: string, requestHash: string): PaymentResponse
     }
 
+    class IngredientStockHelper {
+        + deductIngredients(tx, needs)
+        + restoreIngredients(tx, usages)
+    }
+
     class MockGatewayService {
         + processPayment(mockOutcome?: string): 'SUCCESS' | 'FAILED'
     }
@@ -219,6 +224,7 @@ OrderItem "1" *-- "0..*" OrderItemTopping
 Topping "1" <-- "0..*" OrderItemTopping
 
 ' Tương tác giữa các Service
+OrdersService --> IngredientStockHelper : deducts/restores ingredients
 OrdersService --> PricingService : delegates pricing
 OrdersService --> PromotionsService : delegates coupon validation
 OrdersService --> PrismaService : uses transaction & lock
