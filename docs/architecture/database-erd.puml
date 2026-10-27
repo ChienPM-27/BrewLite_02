@@ -76,8 +76,8 @@ class "Product (products)" as Product {
   + name : String
   + base_price : Decimal(12,0)
   + image_url : String?
-  + stock : Int = 0
-  + version : Int = 0 <<OptimisticLock>>
+  + stock : Int = 0 <<DEPRECATED>>
+  + version : Int = 0 <<DEPRECATED>>
   + is_available : Boolean = true
   + created_at : DateTime
   + updated_at : DateTime
@@ -96,7 +96,7 @@ class "Topping (toppings)" as Topping {
   + id : String [PK] <<cuid>>
   + name : String [UK]
   + price : Decimal(12,0)
-  + stock : Int = 100
+  + stock : Int = 100 <<DEPRECATED>>
   + is_available : Boolean = true
   + created_at : DateTime
   + updated_at : DateTime
@@ -183,6 +183,46 @@ class "OrderStatusHistory (order_status_history)" as OrderStatusHistory {
   + created_at : DateTime
 }
 
+
+class "Ingredient (ingredients)" as Ingredient {
+  + id : String [PK] <<cuid>>
+  + name : String [UK]
+  + unit : String
+  + stock : Int = 0
+  + min_threshold : Int = 50
+  + is_available : Boolean = true
+  + created_at : DateTime
+  + updated_at : DateTime
+}
+
+class "ProductRecipe (product_recipes)" as ProductRecipe {
+  + id : String [PK] <<cuid>>
+  + product_id : String [FK]
+  + size : ProductSize = M
+  + ingredient_id : String [FK]
+  + quantity : Int
+  --
+  UK: [product_id, size, ingredient_id]
+}
+
+class "ToppingRecipe (topping_recipes)" as ToppingRecipe {
+  + id : String [PK] <<cuid>>
+  + topping_id : String [FK]
+  + ingredient_id : String [FK]
+  + quantity : Int
+  --
+  UK: [topping_id, ingredient_id]
+}
+
+class "OrderIngredientUsage (order_ingredient_usages)" as OrderIngredientUsage {
+  + id : String [PK] <<cuid>>
+  + order_id : String [FK]
+  + ingredient_id : String [FK]
+  + quantity : Int
+  --
+  UK: [order_id, ingredient_id]
+}
+
 ' Relationships & Multiplicities (Đã sửa khớp 100% schema.prisma)
 Category "0..1" o-- "0..*" Product : classifies
 Product "1" *-- "1..*" ProductSizePrice : sizes
@@ -196,6 +236,14 @@ Order "0..1" <-- "0..*" LoyaltyTransaction : origin_order
 Product "1" <-- "0..*" OrderItem : references
 OrderItem "1" *-- "0..*" OrderItemTopping : includes
 Topping "1" <-- "0..*" OrderItemTopping : references
+Product "1" *-- "0..*" ProductRecipe : recipes
+Ingredient "1" <-- "0..*" ProductRecipe : ingredient
+Topping "1" *-- "0..*" ToppingRecipe : recipes
+Ingredient "1" <-- "0..*" ToppingRecipe : ingredient
+Order "1" *-- "0..*" OrderIngredientUsage : usages
+Ingredient "1" <-- "0..*" OrderIngredientUsage : ingredient
+ProductRecipe ..> ProductSize : uses
+
 
 ' Enum dependencies
 Order ..> OrderStatus : uses

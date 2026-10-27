@@ -33,8 +33,8 @@ classDiagram
         +String name
         +Decimal basePrice
         +String imageUrl
-        +Int stock = 0
-        +Int version = 0 (OptimisticLock)
+        +Int stock = 0 (DEPRECATED)
+        +Int version = 0 (DEPRECATED)
         +Boolean isAvailable = true
     }
 
@@ -49,7 +49,7 @@ classDiagram
         +String id PK
         +String name UK
         +Decimal price
-        +Int stock = 100
+        +Int stock = 100 (DEPRECATED)
         +Boolean isAvailable = true
     }
 
@@ -127,6 +127,39 @@ classDiagram
         +DateTime createdAt
     }
 
+    class Ingredient {
+        +String id PK
+        +String name UK
+        +String unit
+        +Int stock = 0
+        +Int minThreshold = 50
+        +Boolean isAvailable = true
+        +DateTime createdAt
+        +DateTime updatedAt
+    }
+
+    class ProductRecipe {
+        +String id PK
+        +String productId FK
+        +ProductSize size = M
+        +String ingredientId FK
+        +Int quantity
+    }
+
+    class ToppingRecipe {
+        +String id PK
+        +String toppingId FK
+        +String ingredientId FK
+        +Int quantity
+    }
+
+    class OrderIngredientUsage {
+        +String id PK
+        +String orderId FK
+        +String ingredientId FK
+        +Int quantity
+    }
+
     Category "1" o-- "0..*" Product : classifies
     Product "1" *-- "1..*" ProductSizePrice : sizes
     User "1" *-- "0..*" Order : places
@@ -138,6 +171,12 @@ classDiagram
     Product "1" <-- "0..*" OrderItem : references
     OrderItem "1" *-- "0..*" OrderItemTopping : includes
     Topping "1" <-- "0..*" OrderItemTopping : references
+    Product "1" *-- "0..*" ProductRecipe : recipes
+    Ingredient "1" <-- "0..*" ProductRecipe : ingredient
+    Topping "1" *-- "0..*" ToppingRecipe : recipes
+    Ingredient "1" <-- "0..*" ToppingRecipe : ingredient
+    Order "1" *-- "0..*" OrderIngredientUsage : usages
+    Ingredient "1" <-- "0..*" OrderIngredientUsage : ingredient
 ```
 
 ---
@@ -171,7 +210,7 @@ classDiagram
 ---
 
 ### 2.3. Bảng `products` (Danh mục sản phẩm & Tồn kho Concurrency)
-* **Nghiệp vụ:** Hiển thị Menu (Task 2, 3), kiểm soát tồn kho đồng thời với **Optimistic Locking** (Task 10).
+* **Nghiệp vụ:** Hiển thị Menu (Task 2, 3), kiểm soát tồn kho (trước đây dùng stock, nay chuyển sang quản lý theo nguyên liệu qua Change Request CR-01).
 
 | Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
 | :--- | :--- | :--- | :--- |
@@ -180,8 +219,8 @@ classDiagram
 | `name` | `VARCHAR(150)` | **NOT NULL** | Tên món (Cà phê sữa đá, Americano, Cappuccino, Trà đào). |
 | `base_price` | `DECIMAL(12,0)`| **NOT NULL** | Giá gốc đồ uống (VNĐ). |
 | `image_url` | `VARCHAR(500)` | NULLABLE | Link ảnh món đồ uống. |
-| `stock` | `INTEGER` | **DEFAULT 0** | Số lượng ly/nguyên liệu còn lại trong kho. |
-| `version` | `INTEGER` | **DEFAULT 0** | **Cột Optimistic Lock:** Ngăn chặn overselling khi nhiều khách đặt cùng lúc. |
+| `stock` | `INTEGER` | **DEFAULT 0** | **DEPRECATED — không còn dùng để trừ kho (CR ingredients).** Giữ nguyên tương thích, xóa ở GĐ2. |
+| `version` | `INTEGER` | **DEFAULT 0** | **DEPRECATED — không còn dùng cho Optimistic Lock tồn kho (CR ingredients).** Giữ nguyên tương thích, xóa ở GĐ2. |
 | `is_available` | `BOOLEAN` | **DEFAULT TRUE** | Còn bán hay tạm hết. |
 
 ---
@@ -202,7 +241,7 @@ classDiagram
 | `id` | `VARCHAR(36)` | **PK** | Mã topping. |
 | `name` | `VARCHAR(100)` | **UK, NOT NULL** | Tên topping: "Trân châu trắng", "Kem Cheese", "Đào miếng". |
 | `price` | `DECIMAL(12,0)`| **NOT NULL** | Đơn giá thêm (5.000đ, 10.000đ, 8.000đ). |
-| `stock` | `INTEGER` | **DEFAULT 100** | Tồn kho topping. |
+| `stock` | `INTEGER` | **DEFAULT 100** | **DEPRECATED — không còn dùng để trừ kho (CR ingredients).** Giữ nguyên tương thích, xóa ở GĐ2. |
 | `is_available` | `BOOLEAN` | **DEFAULT TRUE** | Trạng thái còn topping không. |
 
 ---
@@ -264,3 +303,60 @@ classDiagram
 ### 2.10. Bảng `loyalty_transactions` & `order_status_history` (Audit Trail)
 * `loyalty_transactions`: Lưu lịch sử cộng/trừ điểm thưởng của khách sau khi đơn `PAID`.
 * `order_status_history`: Lưu vết audit lịch sử chuyển trạng thái đơn (`PENDING` -> `PAID` -> `PREPARING` -> `READY` -> `COMPLETED`) kèm người thực hiện và lý do.
+
+---
+
+### 2.11. Bảng `ingredients` (Nguyên liệu kho & Tồn kho thực tế - CR ingredients)
+* **Nghiệp vụ:** Quản lý số lượng tồn kho thực tế của các loại nguyên liệu pha chế (hạt cà phê, sữa đặc, búp trà, siro,...).
+* **Trừ kho nguyên tử:** Áp dụng `UPDATE ingredients SET stock = stock - :qty WHERE id = :id AND stock >= :qty` (D10). Không dùng cột version để tránh xung đột 400 giả mạo khi nhiều đơn đồng thời.
+
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã nguyên liệu (CUID). |
+| `name` | `VARCHAR(150)` | **UK, NOT NULL** | Tên nguyên liệu ("Hạt cà phê Robusta", "Sữa đặc", "Siro đào",...). |
+| `unit` | `VARCHAR(20)` | **NOT NULL** | Đơn vị tính chuẩn: `g`, `ml`, `piece`. |
+| `stock` | `INTEGER` | **DEFAULT 0, NOT NULL** | Số lượng tồn kho hiện tại (lưu số nguyên). |
+| `min_threshold` | `INTEGER` | **DEFAULT 50, NOT NULL** | Ngưỡng tồn kho tối thiểu để cảnh báo sắp hết hàng. |
+| `is_available` | `BOOLEAN` | **DEFAULT TRUE, NOT NULL** | Cờ bật/tắt nhập kho & kinh doanh nguyên liệu. |
+| `created_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời điểm tạo nguyên liệu. |
+| `updated_at` | `TIMESTAMP` | **DEFAULT NOW()** | Thời điểm cập nhật cuối. |
+
+---
+
+### 2.12. Bảng `product_recipes` (Công thức sản phẩm theo Size S/M/L - CR ingredients)
+* **Nghiệp vụ:** Định lượng tiêu hao nguyên liệu cho từng kích cỡ sản phẩm (Size S, M, L).
+* **Ràng buộc duy nhất:** `UNIQUE (product_id, size, ingredient_id)`.
+
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã dòng công thức (CUID). |
+| `product_id` | `VARCHAR(36)` | **FK -> products(id), NOT NULL** | Món áp dụng công thức (onDelete: Cascade). |
+| `size` | `ENUM` | **'S', 'M', 'L', DEFAULT 'M'** | Cỡ ly tương ứng. |
+| `ingredient_id` | `VARCHAR(36)` | **FK -> ingredients(id), NOT NULL**| Nguyên liệu tiêu hao. |
+| `quantity` | `INTEGER` | **NOT NULL** | Định mức tiêu hao (số nguyên g, ml, piece). |
+
+---
+
+### 2.13. Bảng `topping_recipes` (Công thức định mức Topping - CR ingredients)
+* **Nghiệp vụ:** Định lượng tiêu hao nguyên liệu khi khách hàng chọn thêm topping.
+* **Ràng buộc duy nhất:** `UNIQUE (topping_id, ingredient_id)`.
+
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã dòng công thức topping (CUID). |
+| `topping_id` | `VARCHAR(36)` | **FK -> toppings(id), NOT NULL** | Topping áp dụng công thức (onDelete: Cascade). |
+| `ingredient_id` | `VARCHAR(36)` | **FK -> ingredients(id), NOT NULL**| Nguyên liệu tiêu hao. |
+| `quantity` | `INTEGER` | **NOT NULL** | Định mức tiêu hao (số nguyên g, ml, piece). |
+
+---
+
+### 2.14. Bảng `order_ingredient_usages` (Snapshot tiêu hao nguyên liệu đơn hàng - CR ingredients)
+* **Nghiệp vụ:** Lưu lại snapshot chính xác tổng lượng nguyên liệu đã trừ của đơn hàng tại thời điểm `POST /orders`. Dùng để hoàn kho khi `POST /orders/:id/cancel`, không phụ thuộc vào công thức sản phẩm tại thời điểm hủy.
+* **Ràng buộc duy nhất:** `UNIQUE (order_id, ingredient_id)`.
+
+| Cột | Kiểu | Ràng buộc | Mục đích nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | **PK** | Mã dòng snapshot (CUID). |
+| `order_id` | `VARCHAR(36)` | **FK -> orders(id), NOT NULL** | Đơn hàng tiêu hao (onDelete: Cascade). |
+| `ingredient_id` | `VARCHAR(36)` | **FK -> ingredients(id), NOT NULL**| Nguyên liệu tiêu hao. |
+| `quantity` | `INTEGER` | **NOT NULL** | Tổng số lượng nguyên liệu đã trừ của đơn hàng. |

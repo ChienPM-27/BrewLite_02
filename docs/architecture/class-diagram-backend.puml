@@ -80,6 +80,11 @@ package "Core Domain Services (NestJS Providers)" #EDF2F7 {
         + award(tx, order)
     }
 
+    class IngredientStockHelper {
+        + deductIngredients(tx, needs)
+        + restoreIngredients(tx, usages)
+    }
+
     class MockGatewayService {
         + processPayment(mockOutcome?)
     }
@@ -98,6 +103,7 @@ OrdersController --> OrdersService
 PaymentsController --> PaymentsService
 
 ' Inter-service collaboration
+OrdersService --> IngredientStockHelper : deducts/restores ingredients
 OrdersService --> PricingService : delegates pricing
 OrdersService --> PromotionsService : validates coupon
 OrdersService --> OrderStateMachine : transitions state
