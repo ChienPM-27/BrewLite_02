@@ -1,27 +1,45 @@
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam actorStyle awesome
+@startuml usecase-order
+title Sơ Đồ Use Case - Phân Hệ Đặt Hàng (Order Creation)
 
-actor "Khách hàng\n(Customer)" as Customer
-actor "Hệ thống Backend\n(BrewLite API)" as Backend
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontSize 11
+skinparam nodesep 14
+skinparam ranksep 16
 
-rectangle "Phân hệ Đặt hàng (Order Management)" {
-  usecase "Tạo đơn hàng\n(UC-ORDER-CREATE)" as UC_CreateOrder
-  usecase "Xác thực phiên đăng nhập\n(JWT)" as UC_Auth
-  usecase "Kiểm tra giỏ hàng & tính giá\n(Pricing Validation)" as UC_ValidatePricing
-  usecase "Kiểm tra & giữ tồn kho\n(Stock Check & Decrement)" as UC_Stock
-  usecase "Chuyển trạng thái đơn\n(Order State Machine)" as UC_StateMachine
+skinparam actor {
+    BackgroundColor white
+    BorderColor black
+}
+skinparam usecase {
+    BackgroundColor white
+    BorderColor black
+}
+
+actor "Khách hàng" as Customer
+actor "Hệ thống Backend" as Backend
+
+rectangle "Phân Hệ Đặt Hàng (Order Management)" {
+    usecase "Tạo đơn hàng\n(UC-ORDER-CREATE)" as UC_CreateOrder
+    usecase "Xác thực phiên (JWT Guard)" as UC_Auth
+    usecase "Kiểm tra giá & khuyến mãi" as UC_ValidatePricing
+    usecase "Khóa tồn kho (Optimistic Lock)" as UC_Stock
+    usecase "Chuyển trạng thái đơn (State Machine)" as UC_StateMachine
 }
 
 Customer --> UC_CreateOrder
 
-UC_CreateOrder ..> UC_Auth            : <<include>>
+UC_CreateOrder ..> UC_Auth : <<include>>
 UC_CreateOrder ..> UC_ValidatePricing : <<include>>
-UC_CreateOrder ..> UC_Stock           : <<include>>
-UC_CreateOrder ..> UC_StateMachine   : <<include>>
+UC_CreateOrder ..> UC_Stock : <<include>>
+UC_CreateOrder ..> UC_StateMachine : <<include>>
 
 Backend --> UC_ValidatePricing
 Backend --> UC_Stock
 Backend --> UC_StateMachine
+
+UC_CreateOrder -[hidden]down-> UC_Auth
+UC_ValidatePricing -[hidden]down-> UC_Stock
+UC_Stock -[hidden]down-> UC_StateMachine
 @enduml

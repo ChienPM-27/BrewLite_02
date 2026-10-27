@@ -1,0 +1,42 @@
+\chapter{MA TRẬN TRUY VẾT YÊU CẦU (TRACEABILITY MATRIX)}
+\label{app:traceability-matrix}
+
+Ma trận truy vết yêu cầu cung cấp khả năng kiểm soát chất lượng từ yêu cầu chức năng (FR), đặc tả Use Case (UC), API Endpoint, bảng cơ sở dữ liệu cho đến các ca kiểm thử (TC) tương ứng.
+
+\begin{longtable}{p{1.2cm}p{2.2cm}p{3.2cm}p{3cm}p{2.5cm}p{2.2cm}}
+\caption{Ma trận Truy vết Toàn diện Yêu cầu - Thiết kế - Cài đặt - Kiểm thử} \label{tab:traceability-full} \\
+\toprule
+\textbf{Mã FR} & \textbf{Mã UC} & \textbf{API Endpoint} & \textbf{Bảng CSDL} & \textbf{Mã Test Case} & \textbf{Màn hình} \\
+\midrule
+\endfirsthead
+
+\multicolumn{6}{c}%
+{{\bfseries \tablename\ \thetable{} -- Tiếp tục từ trang trước}} \\
+\toprule
+\textbf{Mã FR} & \textbf{Mã UC} & \textbf{API Endpoint} & \textbf{Bảng CSDL} & \textbf{Mã Test Case} & \textbf{Màn hình} \\
+\midrule
+\endhead
+
+\midrule \multicolumn{6}{r}{{Tiếp tục ở trang sau...}} \\ \bottomrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+\textbf{FR-01} & UC-AUTH-01 & \texttt{POST /auth/register} & \texttt{users} & \texttt{TC-AUTH-API-01..04} & \texttt{/auth/register} \\
+& UC-AUTH-02 & \texttt{POST /auth/login} & \texttt{users} & \texttt{TC-AUTH-API-05..08} & \texttt{/auth/login} \\
+\midrule
+\textbf{FR-02} & UC-CAT-01 & \texttt{GET /products} & \texttt{products, categories} & \texttt{TC-CAT-API-01..02} & \texttt{/menu} \\
+& UC-DET-01 & \texttt{GET /products/:id} & \texttt{products, sizes, toppings} & \texttt{TC-DET-API-01..04} & \texttt{/products/:id} \\
+\midrule
+\textbf{FR-03} & UC-CART-01 & \textit{(Client-side)} & \textit{(LocalStorage)} & \texttt{TC-CART-UI-01..05} & \texttt{/cart} \\
+\midrule
+\textbf{FR-04} & UC-ORD-01 & \texttt{POST /orders} & \texttt{orders, items, toppings, history} & \texttt{TC-ORD-API-01..07} & \texttt{/checkout} \\
+& & \texttt{GET /orders/:id} & \texttt{orders, items, payments} & \texttt{TC-ORD-API-08} & \texttt{/checkout} \\
+& & \texttt{POST /orders/:id/cancel} & \texttt{orders, history, products} & \texttt{TC-ORD-API-09} & \texttt{/orders/:id} \\
+\midrule
+\textbf{FR-05} & UC-PAY-01 & \texttt{POST /payments} & \texttt{payments, orders, loyalty, history} & \texttt{TC-PAY-API-01..06} & \texttt{/checkout/payment} \\
+\midrule
+\textbf{FR-06} & UC-HIS-01 & \texttt{GET /orders/me} & \texttt{orders} & \texttt{TC-HIS-API-01} & \texttt{/orders} \\
+& & \texttt{GET /orders/:id} & \texttt{orders, items, status\_history} & \texttt{TC-HIS-API-02} & \texttt{/orders/:id} \\
+\end{longtable}

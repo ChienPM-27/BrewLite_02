@@ -1,0 +1,120 @@
+\chapter{HIỆN THỰC HÓA VÀ ĐỐI CHIẾU THIẾT KẾ}
+
+Chương này trình bày ngắn gọn các minh chứng kỹ thuật nhằm xác nhận rằng toàn bộ các thiết kế Use Case, sơ đồ tương tác và mô hình dữ liệu trong Giai đoạn 1 và Giai đoạn 2 đã được cài đặt đầy đủ vào mã nguồn thực tế của dự án BrewLite.
+
+\section{Ma trận Ánh xạ Nhiệm vụ GD1 \& GD2 sang Mã nguồn}
+Bảng~\ref{tab:implementation-matrix} tổng hợp chi tiết mối liên kết giữa các nhiệm vụ thiết kế nghiệp vụ của Giai đoạn 1 và 2 với các tập tin và hàm cụ thể trong mã nguồn Backend (\texttt{backend/src}) và Frontend (\texttt{frontend/src}).
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Ma trận Đối chiếu Thiết kế GD1 \& GD2 sang Mã nguồn thực tế}
+\label{tab:implementation-matrix}
+\begin{tabularx}{\textwidth}{lp{3.2cm}Xp{4.3cm}}
+\toprule
+\textbf{Phân hệ} & \textbf{Nhiệm vụ GD1 \& GD2} & \textbf{Hiện thực Backend} & \textbf{Hiện thực Frontend} \\
+\midrule
+\textbf{Auth} & Đăng ký tài khoản, Đăng nhập nhận JWT & \texttt{auth.controller.ts}\newline (\texttt{register}, \texttt{login})\newline \texttt{auth.service.ts} & \texttt{store/useAuthStore.ts}\newline \texttt{services/auth.service.ts}\newline \texttt{app/auth/login/page.tsx}\newline \texttt{app/auth/register/page.tsx} \\
+\midrule
+\textbf{Catalog} & Xem danh mục, Lọc món theo loại, Tìm kiếm & \texttt{products.controller.ts}\newline (\texttt{getProducts})\newline \texttt{products.service.ts} & \texttt{hooks/useProductCatalog.ts}\newline \texttt{services/product.service.ts}\newline \texttt{app/menu/page.tsx} \\
+\midrule
+\textbf{Detail} & Xem chi tiết đồ uống, Chọn size, đường, đá, topping & \texttt{product-detail.controller.ts}\newline (\texttt{getProductById})\newline \texttt{product-detail.service.ts} & \texttt{hooks/useProductDetail.ts}\newline \texttt{services/product.service.ts}\newline \texttt{app/products/[id]/page.tsx} \\
+\midrule
+\textbf{Cart} & Quản lý giỏ hàng cục bộ, Thêm/sửa/xóa, Tạm tính & \textit{(FE-Only State Management)} & \texttt{store/useCartStore.ts}\newline \texttt{app/cart/page.tsx} \\
+\midrule
+\textbf{Order} & Tạo đơn hàng, Kiểm tra tồn kho, Tính giá, Áp voucher, Hủy đơn & \texttt{orders.module.ts} (\texttt{OrdersController.create})\newline \texttt{orders.service.ts} (\texttt{create})\newline \texttt{pricing.service.ts}\newline \texttt{promotions.service.ts}\newline \texttt{cancel-order.controller.ts} & \texttt{services/order.service.ts}\newline \texttt{store/useCartStore.ts}\newline \texttt{app/checkout/page.tsx} \\
+\midrule
+\textbf{Payment} & Thanh toán an toàn, Xử lý Idempotency, Gọi Gateway & \texttt{payments.controller.ts}\newline (\texttt{createPayment})\newline \texttt{payments.service.ts}\newline \texttt{mock-gateway.service.ts} & \texttt{services/payment.service.ts}\newline \texttt{app/checkout/payment/page.tsx}\newline \texttt{MockGatewayModal.tsx} \\
+\midrule
+\textbf{History} & Tra cứu danh sách đơn hàng và trạng thái & \texttt{history.controller.ts}\newline (\texttt{findAll}, \texttt{findOne})\newline \texttt{history.service.ts} & \texttt{services/order.service.ts}\newline \texttt{app/orders/page.tsx}\newline \texttt{app/orders/[id]/page.tsx} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Minh chứng Kỹ thuật Cốt lõi}
+Dưới đây là một số đoạn trích mã nguồn tiêu biểu chứng minh tính chính xác của các giải pháp kỹ thuật đã thiết kế:
+
+\subsection{Cơ chế Mã hóa Bcrypt và Cấp phát Token trong AuthService}
+\begin{lstlisting}[language=Java]
+// backend/src/modules/auth/auth.service.ts
+const saltRounds = 10;
+const passwordHash = await bcrypt.hash(dto.password, saltRounds);
+
+const user = await this.prisma.user.create({
+  data: {
+    email: dto.email,
+    passwordHash,
+    fullName: dto.fullName,
+    loyaltyPoints: 0,
+  },
+});
+const { passwordHash: _, ...result } = user;
+return result;
+\end{lstlisting}
+
+\subsection{Interactive Transaction và Khóa Lạc quan trong OrdersService}
+\begin{lstlisting}[language=Java]
+// backend/src/modules/orders/orders.service.ts
+// Product: optimistic locking theo version va ton kho trong tx
+for (const [productId, quantity] of productQuantities) {
+  const product = productById.get(productId);
+  if (!product) {
+    throw new BadRequestException(`Product ${productId} is unavailable.`);
+  }
+
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      isAvailable: true,
+      version: product.version,
+      stock: { gte: quantity },
+    },
+    data: {
+      stock: { decrement: quantity },
+      version: { increment: 1 },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new BadRequestException(
+      `Insufficient stock or concurrent update for product ${productId}.`,
+    );
+  }
+}
+\end{lstlisting}
+
+\subsection{Kiểm tra Bất biến Idempotency và Xử lý Tranh chấp trong PaymentsService}
+\begin{lstlisting}[language=Java]
+// backend/src/modules/payments/payments.service.ts
+// 1. Tinh requestHash tren { orderId, method }
+const requestHash = createHash('sha256')
+  .update(JSON.stringify({ orderId: body.orderId, method: body.method }))
+  .digest('hex');
+
+// 2. Kiem tra key da ton tai: phat lai ket qua da luu (replay)
+const existingPayment = await this.prisma.payment.findUnique({
+  where: { idempotencyKey: normalizedKey },
+  include: { order: true },
+});
+if (existingPayment) {
+  return this.replayExistingPayment(existingPayment, userId, requestHash);
+}
+
+// 3. Bat tranh chap dong thoi (Race Condition P2002) de replay an toan
+try {
+  return await this.prisma.$transaction(async (tx) => {
+    // Tao payment voi unique idempotencyKey va requestHash...
+  });
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const paymentAfterRace = await this.prisma.payment.findUnique({
+      where: { idempotencyKey: normalizedKey },
+      include: { order: true },
+    });
+    if (paymentAfterRace) {
+      return this.replayExistingPayment(paymentAfterRace, userId, requestHash);
+    }
+  }
+  throw error;
+}
+\end{lstlisting}

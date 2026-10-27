@@ -1,0 +1,229 @@
+\chapter{TỪ ĐIỂN DỮ LIỆU (DATA DICTIONARY)}
+\label{app:data-dictionary}
+
+Phụ lục này trình bày cấu trúc chi tiết của 12 bảng trong cơ sở dữ liệu PostgreSQL của BrewLite, bám sát tập tin mô hình dữ liệu \texttt{backend/prisma/schema.prisma}.
+
+\section{Bảng \texttt{users}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính định danh người dùng \\
+\texttt{email} & VARCHAR(255) & No & - & Địa chỉ email (UNIQUE) \\
+\texttt{password\_hash} & VARCHAR(255) & No & - & Mật khẩu băm Bcrypt 10 rounds \\
+\texttt{full\_name} & VARCHAR(100) & Yes & NULL & Họ và tên hiển thị \\
+\texttt{loyalty\_points} & INTEGER & No & 0 & Điểm thưởng tích lũy thành viên \\
+\texttt{created\_at} & TIMESTAMP & No & NOW() & Thời điểm tạo tài khoản \\
+\texttt{updated\_at} & TIMESTAMP & No & NOW() & Thời điểm cập nhật cuối cùng \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{categories}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{name} & VARCHAR(100) & No & - & Tên phân loại (UNIQUE) \\
+\texttt{slug} & VARCHAR(100) & No & - & Đường dẫn thân thiện (UNIQUE) \\
+\texttt{display\_order} & INTEGER & No & 0 & Thứ tự sắp xếp hiển thị tab \\
+\texttt{created\_at} & TIMESTAMP & No & NOW() & Thời điểm tạo \\
+\texttt{updated\_at} & TIMESTAMP & No & NOW() & Thời điểm cập nhật \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{products}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{category\_id} & VARCHAR(30) & Yes & NULL & Khóa ngoại \(\to\) \texttt{categories.id} \\
+\texttt{name} & VARCHAR(150) & No & - & Tên đồ uống \\
+\texttt{base\_price} & DECIMAL(12,0) & No & - & Đơn giá cơ bản (tiền chẵn VNĐ) \\
+\texttt{image\_url} & VARCHAR(500) & Yes & NULL & Đường dẫn hình ảnh \\
+\texttt{stock} & INTEGER & No & 0 & Số lượng tồn kho khả dụng \\
+\texttt{version} & INTEGER & No & 0 & Phiên bản Optimistic Locking \\
+\texttt{is\_available} & BOOLEAN & No & TRUE & Trạng thái mở bán \\
+\texttt{created\_at} & TIMESTAMP & No & NOW() & Thời điểm tạo \\
+\texttt{updated\_at} & TIMESTAMP & No & NOW() & Thời điểm cập nhật \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{product\_size\_prices}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{product\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{products.id} (Cascade) \\
+\texttt{size} & ENUM & No & - & Giá trị: 'S', 'M', 'L' \\
+\texttt{price\_adjustment} & DECIMAL(12,0) & No & 0 & Phụ thu thêm theo size (UNIQUE:[product\_id, size]) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{toppings}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{name} & VARCHAR(100) & No & - & Tên topping (UNIQUE) \\
+\texttt{price} & DECIMAL(12,0) & No & - & Đơn giá topping \\
+\texttt{stock} & INTEGER & No & 100 & Tồn kho topping \\
+\texttt{is\_available} & BOOLEAN & No & TRUE & Trạng thái kinh doanh \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{promotions}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{code} & VARCHAR(50) & No & - & Mã voucher (UNIQUE) \\
+\texttt{discount\_percent} & INTEGER & Yes & NULL & \% chiết khấu (ví dụ 10) \\
+\texttt{discount\_amount} & DECIMAL(12,0) & Yes & NULL & Tiền chiết khấu cố định \\
+\texttt{max\_discount} & DECIMAL(12,0) & Yes & NULL & Mức giảm tối đa (ví dụ 20.000đ) \\
+\texttt{min\_order\_amount} & DECIMAL(12,0) & No & 0 & Giá trị đơn hàng tối thiểu \\
+\texttt{is\_active} & BOOLEAN & No & TRUE & Trạng thái kích hoạt \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{orders}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{order\_number} & SERIAL & No & autoincrement & Mã hiển thị khách hàng (UNIQUE) \\
+\texttt{user\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{users.id} (INDEX) \\
+\texttt{promotion\_id} & VARCHAR(30) & Yes & NULL & Khóa ngoại \(\to\) \texttt{promotions.id} \\
+\texttt{status} & ENUM & No & 'PENDING' & Trạng thái đơn (INDEX) \\
+\texttt{total\_amount} & DECIMAL(12,0) & No & - & Tạm tính trước giảm \\
+\texttt{discount\_amount} & DECIMAL(12,0) & No & 0 & Số tiền giảm giá \\
+\texttt{final\_amount} & DECIMAL(12,0) & No & - & Tiền thực trả \\
+\texttt{points\_earned} & INTEGER & No & 0 & Điểm loyalty tích được \\
+\texttt{version} & INTEGER & No & 0 & Khóa lạc quan máy trạng thái \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{order\_items}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{order\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{orders.id} (Cascade, INDEX) \\
+\texttt{product\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{products.id} \\
+\texttt{size} & ENUM & No & 'M' & Kích cỡ: 'S', 'M', 'L' \\
+\texttt{quantity} & INTEGER & No & 1 & Số lượng đặt \\
+\texttt{unit\_price} & DECIMAL(12,0) & No & - & Đơn giá snapshot tại thời điểm đặt \\
+\texttt{line\_total} & DECIMAL(12,0) & No & - & Thành tiền của dòng món \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{order\_item\_toppings}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{order\_item\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{order\_items.id} (Cascade) \\
+\texttt{topping\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{toppings.id} \\
+\texttt{price} & DECIMAL(12,0) & No & - & Giá snapshot topping \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{payments}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{order\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{orders.id} (INDEX) \\
+\texttt{idempotency\_key} & VARCHAR(100) & No & - & Khóa chống trùng lặp (UNIQUE) \\
+\texttt{request\_hash} & VARCHAR(64) & Yes & NULL & Mã băm SHA-256 nội dung request \\
+\texttt{amount} & DECIMAL(12,0) & No & - & Số tiền thanh toán \\
+\texttt{method} & ENUM & No & - & 'BANK\_CARD' hoặc 'E\_WALLET' \\
+\texttt{status} & ENUM & No & 'PENDING' & 'PENDING', 'SUCCESS', 'FAILED' \\
+\texttt{transaction\_ref} & VARCHAR(100) & Yes & NULL & Mã đối soát từ Gateway \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{loyalty\_transactions}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{user\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{users.id} (INDEX) \\
+\texttt{order\_id} & VARCHAR(30) & Yes & NULL & Khóa ngoại \(\to\) \texttt{orders.id} \\
+\texttt{points} & INTEGER & No & - & Số điểm cộng hoặc trừ \\
+\texttt{type} & ENUM & No & - & 'EARNED', 'SPENT', 'REFUNDED' \\
+\texttt{reason} & VARCHAR(255) & No & - & Lý do biến động điểm \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bảng \texttt{order\_status\_history}}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Null} & \textbf{Mặc định} & \textbf{Mô tả / Ràng buộc} \\
+\midrule
+\texttt{id} & VARCHAR(30) & No & cuid() & Khóa chính \\
+\texttt{order\_id} & VARCHAR(30) & No & - & Khóa ngoại \(\to\) \texttt{orders.id} (Cascade, INDEX) \\
+\texttt{from\_status} & ENUM & Yes & NULL & Trạng thái bắt đầu \\
+\texttt{to\_status} & ENUM & No & - & Trạng thái chuyển đến \\
+\texttt{changed\_by} & VARCHAR(50) & Yes & NULL & Tác nhân thực hiện (user, barista, system) \\
+\texttt{reason} & VARCHAR(255) & Yes & NULL & Lý do chuyển trạng thái \\
+\texttt{created\_at} & TIMESTAMP & No & NOW() & Thời điểm ghi nhận \\
+\bottomrule
+\end{tabularx}
+\end{table}

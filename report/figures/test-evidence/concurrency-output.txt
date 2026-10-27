@@ -1,0 +1,36 @@
+﻿
+> brewlite-backend@1.0.0 test:concurrency
+> ts-node test/concurrency.ts
+
+================================================================
+   BREWLITE - CONCURRENCY & RACE CONDITIONS TEST SUITE (GD1-12)
+   Target: http://localhost:4000/api/v1
+================================================================
+Đã kết nối tới API server thành công.
+Đăng nhập thành công, đã nhận JWT token.
+
+--- [TEST 1] KIỂM TRA ĐẶT HÀNG ĐỒNG THỜI (OPTIMISTIC LOCKING) ---
+Sản phẩm test: "Bạc xỉu" (ID: cmvkxjx6p001bs81ykciddb4s)
+Tồn kho ban đầu: 5, Version: 0
+Đã reset tồn kho = 1, Version = 0
+Bắn đồng thời 10 requests POST /orders (mỗi đơn mua 1 ly size M)...
+Thời gian thực thi: 179ms
+- Đơn tạo thành công (201 Created): 1
+- Đơn bị chặn hết hàng/xung đột (400 Bad Request): 9
+Tồn kho cuối cùng trong DB: 0 (Version: 1)
+Đã khôi phục tồn kho sản phẩm về 5.
+✅ PASS [TEST 1]: Optimistic locking chặn tranh chấp thành công, không vượt tồn kho.
+
+--- [TEST 2] KIỂM TRA THANH TOÁN ĐỒNG THỜI CÙNG IDEMPOTENCY-KEY ---
+Đã tạo đơn hàng test payment: ID = cmvp1uw480003qo2rwqh51xwn
+Bắn đồng thời 5 requests POST /payments cùng key "concurrency-pay-1793006637993"...
+- Số request thành công (200/201): 5
+- Số request bị lỗi 500: 0
+- Số payment ID phân biệt trả về: 1
+- Số bản ghi Payment trong DB với key này: 1
+✅ PASS [TEST 2]: Idempotency xử lý tranh chấp đồng thời an toàn, đúng 1 bản ghi thanh toán.
+
+================================================================
+🎉 TẤT CẢ KỊCH BẢN KIỂM THỬ ĐỒNG THỜI (CONCURRENCY) ĐÃ VƯỢT QUA!
+================================================================
+

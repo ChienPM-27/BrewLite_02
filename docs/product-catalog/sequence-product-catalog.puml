@@ -1,35 +1,30 @@
 @startuml sequence-product-catalog
-title Sequence Diagram - Hiển Thị Thực Đơn Sản Phẩm (Product Catalog)
+title Sơ Đồ Tuần Tự - Hiển Thị Thực Đơn Sản Phẩm (Product Catalog)
 autonumber
+skinparam maxMessageSize 110
+skinparam ParticipantPadding 6
+skinparam BoxPadding 6
+skinparam defaultFontSize 11
+skinparam NoteFontSize 10
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam roundcorner 6
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
 
-actor "Khách hàng (User)" as User
+actor "Khách hàng" as User
 box "Frontend (Next.js)" #F9F9F9
-    participant "Page: MenuPage\n(app/menu/page.tsx)" as Page
-    participant "Component: ProductCatalogView\n(components/product-catalog/...)" as View
-    participant "Hook: useProductCatalog\n(hooks/useProductCatalog.ts)" as Hook
-    participant "Client: product.service.ts\n(services/product.service.ts)" as ClientService
+    participant "MenuPage & Hook" as UI
+    participant "product.service" as ClientService
 end box
 
 box "Backend (NestJS)" #F0F7FF
-    participant "Controller: ProductsController\n(modules/products/products.controller.ts)" as Controller
-    participant "Service: ProductsService\n(modules/products/products.service.ts)" as Service
-    participant "Database: PrismaService\n(prisma/prisma.service.ts)" as DB
+    participant "ProductsController" as Controller
+    participant "ProductsService" as Service
+    participant "Prisma DB" as DB
 end box
 
-User -> Page: Truy cập trang thực đơn (/menu)
-activate Page
-Page -> View: Render <ProductCatalogView />
-activate View
-View -> Hook: useProductCatalog()
-activate Hook
-
-Hook -> Hook: loadData() [useEffect on mount]
-Hook -> ClientService: getProductCatalog()
+User -> UI: Truy cập trang thực đơn (/menu)
+activate UI
+UI -> ClientService: getProductCatalog()
 activate ClientService
 
 ClientService -> Controller: GET /api/v1/products
@@ -37,56 +32,43 @@ activate Controller
 Controller -> Service: getProducts()
 activate Service
 
-Service -> DB: prisma.product.findMany({\n  where: { isAvailable: true, stock: { gt: 0 } },\n  include: { category: true, sizePrices: ... },\n  orderBy: { name: 'asc' }\n})
+Service -> DB: prisma.product.findMany({\n  where: { isAvailable: true, stock: { gt: 0 } },\n  include: { category: true, sizePrices: ... }\n})
 activate DB
 
 alt Lỗi truy vấn CSDL / Server Exception
-    DB --> Service: Database connection error / query failure
-    Service --> Controller: Ném lỗi Exception
-    Controller --> ClientService: 500 Internal Server Error: { success: false, message: ... }
-    ClientService --> Hook: throw ApiError(500)
-    Hook -> Hook: setError(errorMessage), setIsLoading(false)
-    Hook --> View: { products: [], isLoading: false, error: "..." }
-    View --> User: Hiển thị giao diện lỗi <MenuErrorState /> kèm nút "Thử lại"
+    DB --> Service: Database error
+    Service --> Controller: Ném Exception
+    Controller --> ClientService: 500 Internal Server Error
+    ClientService --> UI: throw ApiError(500)
+    UI --> User: Hiển thị giao diện thông báo lỗi & nút Thử lại
 else Truy vấn thành công
-    DB --> Service: Danh sách Product entity (kèm Category & SizePrices)
+    DB --> Service: Danh sách Product entity
     deactivate DB
 
-    Service -> Service: Map entity sang DTO:\n- Chuyển Decimal sang Number (basePrice, priceAdjustment)\n- Trích xuất categoryName\n- Bảo mật: Không để lộ số lượng tồn kho (stock)
-    Service --> Controller: ProductItem[]
+    Service -> Service: Map DTO: Decimal -> Number,\nẩn trường tồn kho nội bộ
+    Service --> Controller: ProductCatalogResponseDto
     deactivate Service
 
-    Controller --> ClientService: 200 OK: {\n  success: true,\n  statusCode: 200,\n  data: ProductItem[],\n  timestamp\n}
+    Controller --> ClientService: 200 OK: { success: true, data: [...] }
     deactivate Controller
 
-    ClientService --> Hook: ProductItem[]
+    ClientService --> UI: Return DTO array
     deactivate ClientService
 
-    Hook -> Hook: setProducts(data)\nTính danh mục: categories = useMemo(...)\nsetIsLoading(false)
-    Hook --> View: { products, categories, isLoading: false, error: null }
-    deactivate Hook
-
-    alt Thực đơn rỗng (products.length === 0)
-        View --> User: Hiển thị giao diện thực đơn trống <EmptyMenuState />
-    else Có sản phẩm mở bán
-        View --> User: Hiển thị danh sách sản phẩm <ProductList /> (các <ProductCard />)
-    end
+    UI -> UI: Trích xuất danh mục và\nnhóm sản phẩm theo category
+    UI --> User: Hiển thị Tab danh mục & lưới đồ uống
 end
 
-opt Người dùng tìm kiếm hoặc lọc theo danh mục
-    User -> View: Gõ từ khóa tìm kiếm (searchKeyword) hoặc chọn Tab danh mục
-    View -> Hook: setSearchKeyword(keyword) / setSelectedCategory(category)
-    activate Hook
-    Hook -> Hook: Lọc client-side bằng removeVietnameseTones():\n- Lọc theo Category\n- Lọc theo keyword không dấu
-    Hook --> View: filteredProducts[]
-    deactivate Hook
-    alt Không tìm thấy sản phẩm phù hợp
-        View --> User: Hiển thị trạng thái không có kết quả <NoResultsState />
-    else Tìm thấy sản phẩm
-        View --> User: Cập nhật lại danh sách <ProductCard /> phù hợp
-    end
+opt Tìm kiếm theo từ khóa hoặc lọc danh mục
+    User -> UI: Nhập tên món ("Cà phê") hoặc bấm Tab "Trà"
+    UI -> UI: Lọc client-side không cần gọi lại API
+    UI --> User: Cập nhật lưới sản phẩm tương ứng
 end
-deactivate View
-deactivate Page
+
+opt Chọn xem chi tiết món
+    User -> UI: Nhấp vào thẻ sản phẩm
+    UI --> User: Điều hướng sang /products/[id]
+    deactivate UI
+end
 
 @enduml

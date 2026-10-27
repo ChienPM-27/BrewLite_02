@@ -1,0 +1,64 @@
+﻿======================================================================
+BREWLITE - FULL AUTOMATED API TEST RUNNER
+Target: http://127.0.0.1:4000/api/v1
+======================================================================
+[PASS] TC-SYS-HEALTH: Hệ thống hoạt động bình thường (Healthcheck) (Expected: 200, Got: 200)
+
+--- 1. AUTH MODULE ---
+[PASS] TC-AUTH-01: Đăng ký tài khoản mới thành công (Expected: 201, Got: 201)
+[PASS] TC-AUTH-02: Đăng ký với email sai format và mật khẩu ngắn (Expected: 400, Got: 400)
+[PASS] TC-AUTH-03: Đăng ký với email đã tồn tại (Expected: 409, Got: 409)
+[PASS] TC-AUTH-04: Đăng nhập thành công và nhận JWT (Expected: 200, Got: 200)
+[PASS] TC-AUTH-05: Đăng nhập thất bại với sai mật khẩu (Expected: 401, Got: 401)
+[PASS] TC-AUTH-07: Chặn truy cập route yêu cầu xác thực khi không có token (Expected: 401, Got: 401)
+[PASS] TC-AUTH-08: Chặn truy cập route khi token sai chữ ký hoặc không hợp lệ (Expected: 401, Got: 401)
+
+--- 2. PRODUCTS MODULE ---
+[PASS] TC-CAT-01: Lấy danh sách thực đơn sản phẩm thành công (Expected: 200, Got: 200)
+[PASS] TC-CAT-04: Kiểm tra bảo mật: không lộ trường stock trong mảng sản phẩm (Expected: 200, Got: 200)
+[PASS] TC-CAT-05: Kiểm tra danh sách sản phẩm sắp xếp theo tên tăng dần (Expected: 200, Got: 200)
+[PASS] TC-DET-01: Xem chi tiết sản phẩm kèm mảng sizePrices và toppings (Expected: 200, Got: 200)
+[PASS] TC-DET-03: Xem chi tiết sản phẩm không tồn tại (Expected: 404, Got: 404)
+
+--- 3. ORDERS MODULE ---
+[PASS] TC-CO-01: Tạo đơn hàng hợp lệ trạng thái PENDING (Expected: 201, Got: 201)
+[PASS] TC-CO-03: Chặn tạo đơn hàng khi chưa đăng nhập (Expected: 401, Got: 401)
+[PASS] TC-CO-05: Chặn tạo đơn hàng với giỏ hàng rỗng (Expected: 400, Got: 400)
+[PASS] TC-CO-07: Chặn tạo đơn hàng với số lượng vượt giới hạn 99 ly (Expected: 400, Got: 400)
+[PASS] TC-CO-09: Chặn tạo đơn hàng với kích cỡ không hợp lệ (size XL) (Expected: 400, Got: 400)
+[PASS] TC-CO-10: Chặn tạo đơn hàng với sản phẩm không tồn tại (Expected: 400, Got: 400)
+[PASS] TC-CO-11a: Chặn chọn quá 3 loại topping cho một ly (Expected: 400, Got: 400)
+[PASS] TC-CO-13: Chặn tạo đơn hàng khi số lượng vượt tồn kho hiện có (Expected: 400, Got: 400)
+[PASS] TC-CO-18: Tạo đơn hàng áp dụng mã voucher WELCOME10 thành công (Expected: 201, Got: 201)
+[PASS] TC-CO-19: Chặn tạo đơn với mã khuyến mại không hợp lệ (Expected: 400, Got: 400)
+[PASS] TC-CX-01: Chủ đơn hủy đơn hàng ở trạng thái PENDING thành công (Expected: 200, Got: 200)
+[PASS] TC-CX-03: Chặn hủy lại đơn hàng đã ở trạng thái CANCELLED (409 Conflict) (Expected: 409, Got: 409)
+[PASS] TC-CX-04: Chặn hủy đơn hàng thuộc sở hữu của người dùng khác (404 Not Found) (Expected: 404, Got: 404)
+[PASS] TC-CX-05: Chặn hủy đơn hàng khi chưa xác thực (Expected: 401, Got: 401)
+
+--- 4. PAYMENTS MODULE ---
+[PASS] TC-PAY-01: Thanh toán bằng ví điện tử thành công (HTTP 201, status SUCCESS) (Expected: 201, Got: 201)
+[PASS] TC-PAY-10: Gửi lại cùng Idempotency-Key và payload: trả kết quả cũ (replay) (Expected: 201, Got: 201)
+[PASS] TC-PAY-11: Trùng Idempotency-Key nhưng khác payload trả 409 Conflict (Expected: 409, Got: 409)
+[PASS] TC-PAY-09: Chặn thanh toán đơn hàng đã ở trạng thái PAID (409 Conflict) (Expected: 409, Got: 409)
+[PASS] TC-PAY-04: Từ chối request thanh toán khi thiếu orderId (Expected: 400, Got: 400)
+[PASS] TC-PAY-06: Từ chối phương thức thanh toán không được hỗ trợ (Expected: 400, Got: 400)
+[PASS] TC-PAY-07: Từ chối thanh toán với orderId không tồn tại (Expected: 404, Got: 404)
+[PASS] TC-PAY-08: Chặn thanh toán đơn hàng của người dùng khác (404 Not Found) (Expected: 404, Got: 404)
+[PASS] TC-PAY-03: Giả lập thanh toán lỗi qua header X-Mock-Outcome: FAILED (Expected: 201, Got: 201)
+[PASS] TC-PAY-13: Thử lại thanh toán sau thất bại với Idempotency-Key mới thành công (Expected: 201, Got: 201)
+
+--- 5. ORDER HISTORY MODULE ---
+[PASS] TC-HIS-01: Lấy danh sách lịch sử đơn hàng của người dùng thành công (Expected: 200, Got: 200)
+[PASS] TC-HIS-02: Tra cứu lịch sử của tài khoản mới chưa có đơn hàng (Expected: 200, Got: 200)
+[PASS] TC-HIS-08: Lọc lịch sử đơn hàng theo trạng thái hợp lệ (status=PAID) (Expected: 200, Got: 200)
+[PASS] TC-HIS-09: Chặn lọc lịch sử theo trạng thái không hợp lệ (Expected: 400, Got: 400)
+[PASS] TC-HIS-10: Xem chi tiết đơn hàng của chính mình thành công (Expected: 200, Got: 200)
+[PASS] TC-HIS-11: Chặn xem chi tiết đơn hàng thuộc sở hữu của người dùng khác (404 Not Found) (Expected: 404, Got: 404)
+[PASS] TC-HIS-12: Tra cứu chi tiết đơn hàng với ID không tồn tại (404 Not Found) (Expected: 404, Got: 404)
+
+======================================================================
+SUMMARY: Total API tests executed: 44
+PASSED: 44/44 (100.0%)
+FAILED: 0/44
+======================================================================

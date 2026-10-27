@@ -1,0 +1,75 @@
+\chapter{YÊU CẦU HỆ THỐNG}
+
+\section{Các tác nhân hệ thống (Stakeholders \& Actors)}
+Dựa trên phân tích phạm vi nghiệp vụ của hệ thống BrewLite trong Giai đoạn 1 và 2, các tác nhân tương tác trực tiếp với hệ thống được xác định bao gồm:
+
+\begin{itemize}
+    \item \textbf{Khách vãng lai (Guest):} Người dùng truy cập hệ thống qua trình duyệt web mà chưa thực hiện đăng nhập. Tác nhân này có thể duyệt danh mục thực đơn, xem chi tiết món ăn, lựa chọn các tùy biến đồ uống và lưu trữ giỏ hàng tạm thời trên trình duyệt. Khi thực hiện thanh toán hoặc đặt hàng, hệ thống yêu cầu xác thực tài khoản.
+    \item \textbf{Khách hàng đã đăng ký (Registered Customer):} Khách hàng sở hữu tài khoản định danh trên hệ thống. Tác nhân này có đầy đủ quyền lợi: đặt hàng chính thức, áp dụng mã voucher ưu đãi, tích lũy điểm thưởng thành viên (Loyalty Points), thanh toán trực tuyến và tra cứu toàn bộ lịch sử đơn hàng cá nhân.
+    \item \textbf{Cổng thanh toán giả lập (Mock Payment Gateway):} Tác nhân hệ thống bên ngoài mô phỏng trung gian tài chính. Cổng tiếp nhận yêu cầu thanh toán kèm mã định danh bất biến (\texttt{Idempotency-Key}), kiểm tra thông tin và trả về kết quả giao dịch (\texttt{SUCCESS} hoặc \texttt{FAILED}).
+    \item \textbf{Hệ thống Quản trị dữ liệu (PostgreSQL Database Engine):} Đóng vai trò thực thi các ràng buộc toàn vẹn, đảm bảo tính bền vững (Durability) và cách ly (Isolation) cho các giao dịch đồng thời.
+\end{itemize}
+
+\section{Danh mục yêu cầu chức năng (Functional Requirements)}
+Hệ thống BrewLite được phân rã thành 6 nhóm yêu cầu chức năng chính (FR-01 đến FR-06), tương ứng với các phân hệ nghiệp vụ cốt lõi:
+
+\begin{table}[htbp]
+\centering
+\caption{Bảng tổng hợp Yêu cầu Chức năng (Functional Requirements)}
+\label{tab:functional-requirements}
+\begin{tabularx}{\textwidth}{lp{3.5cm}X}
+\toprule
+\textbf{Mã FR} & \textbf{Tên yêu cầu} & \textbf{Mô tả chi tiết} \\
+\midrule
+\textbf{FR-01} & Quản lý Xác thực \& Tài khoản & Cho phép người dùng đăng ký tài khoản với email duy nhất, họ tên, mật khẩu băm an toàn; Đăng nhập nhận JWT Token hợp lệ; Kiểm soát truy cập bảo vệ các endpoint nghiệp vụ. \\
+\textbf{FR-02} & Duyệt thực đơn \& Chi tiết món & Cung cấp danh mục sản phẩm phân nhóm theo phân loại (Cà phê, Trà...); Tìm kiếm món; Xem thông tin chi tiết về kích cỡ, giá phụ thu, mức đường, mức đá và danh sách topping khả dụng. \\
+\textbf{FR-03} & Quản lý Giỏ hàng & Cho phép thêm sản phẩm kèm tùy biến vào giỏ hàng cục bộ; Điều chỉnh số lượng món; Xóa từng món hoặc làm rỗng giỏ; Tạm tính tổng chi phí tự động. \\
+\textbf{FR-04} & Đặt hàng \& Xử lý Chiết khấu & Khởi tạo đơn hàng từ giỏ hàng; Kiểm tra tồn kho sản phẩm với Optimistic Locking; Áp dụng mã giảm giá hợp lệ (\texttt{promotionCode}); Tự động tính điểm tích lũy thành viên dự kiến; Lưu vết snapshot giá tại thời điểm đặt. \\
+\textbf{FR-05} & Thanh toán Trực tuyến & Khởi tạo giao dịch thanh toán; Kiểm tra trùng lặp giao dịch bằng cơ chế \texttt{Idempotency-Key} và băm \texttt{request\_hash}; Cập nhật trạng thái đơn hàng sang \texttt{PAID} khi giao dịch thành công. \\
+\textbf{FR-06} & Tra cứu Lịch sử Đơn hàng & Hiển thị danh sách các đơn hàng đã đặt của người dùng theo thứ tự thời gian giảm dần; Xem chi tiết thông tin thanh toán, danh mục món và trạng thái xử lý hiện tại. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Danh mục yêu cầu phi chức năng (Non-Functional Requirements)}
+Các yêu cầu phi chức năng đặt ra các tiêu chuẩn kỹ thuật nhằm đảm bảo chất lượng vận hành của hệ thống:
+
+\begin{itemize}
+    \item \textbf{NFR-01 (Hiệu năng - Performance):} Thời gian phản hồi trung bình (API Response Time) của các tác vụ truy vấn danh mục thực đơn và chi tiết sản phẩm không vượt quá 500ms dưới điều kiện tải thông thường.
+    \item \textbf{NFR-02 (Bảo mật - Security):} 
+    \begin{itemize}
+        \item Toàn bộ mật khẩu người dùng phải được mã hóa một chiều bằng thuật toán \texttt{bcrypt} với độ phức tạp 10 salt rounds trước khi lưu trữ vào cơ sở dữ liệu.
+        \item Hệ thống sử dụng giao thức xác thực JSON Web Token (JWT) không trạng thái (\textit{Stateless}). Tuyệt đối không để lộ trường nhạy cảm \texttt{password\_hash} trong bất kỳ phản hồi API nào.
+    \end{itemize}
+    \item \textbf{NFR-03 (Tính toàn vẹn \& Tin cậy - Reliability \& Idempotency):}
+    \begin{itemize}
+        \item Toàn bộ thao tác tạo đơn hàng và trừ kho phải được bọc trong một Interactive Transaction (\texttt{\$transaction}) của Prisma, đảm bảo nguyên lý ACID.
+        \item Nghiệp vụ thanh toán phải đảm bảo tính bất biến (\textit{Idempotency}). Các yêu cầu trùng lặp hoặc gửi đồng thời với cùng một \texttt{Idempotency-Key} phải được nhận diện và xử lý an toàn, loại trừ hoàn toàn nguy cơ thanh toán lặp (double charging).
+    \end{itemize}
+    \item \textbf{NFR-04 (Bảo toàn lịch sử giá - Data Immutability):} Giá bán của từng sản phẩm tại thời điểm tạo đơn hàng phải được ghi nhận độc lập vào trường \texttt{price\_at\_order} của bảng chi tiết đơn hàng (\texttt{order\_items}), đảm bảo lịch sử thanh toán không bị sai lệch khi giá niêm yết trong bảng sản phẩm (\texttt{products}) thay đổi trong tương lai.
+\end{itemize}
+
+\section{User Story tiêu biểu (US-05: Đặt hàng và áp dụng ưu đãi)}
+Để minh họa mối liên kết giữa yêu cầu của người dùng và thiết kế kỹ thuật, User Story tiêu biểu về quy trình đặt hàng được đặc tả theo chuẩn quốc tế:
+
+\begin{tcolorbox}[colback=blue!3,colframe=blue!40,title=\textbf{User Story US-05: Đặt hàng trực tuyến với mã ưu đãi}]
+\textbf{Là một:} Khách hàng đã đăng nhập vào hệ thống BrewLite,\\
+\textbf{Tôi muốn:} Thực hiện đặt các món trong giỏ hàng, áp dụng mã ưu đãi hợp lệ và được tích lũy điểm thưởng thành viên sau khi thanh toán,\\
+\textbf{Để:} Mua được đồ uống yêu thích với chi phí tiết kiệm nhất và tích lũy ưu đãi cho các đơn hàng tương lai.
+\end{tcolorbox}
+
+\paragraph{Tiêu chí chấp nhận (Acceptance Criteria - Gherkin Syntax):}
+\begin{enumerate}[label=\textbf{Kịch bản \arabic*:}]
+    \item \textit{Đặt hàng thành công với mã giảm giá hợp lệ và ghi nhận tích lũy điểm thưởng:}
+    \begin{itemize}
+        \item \textbf{Given:} Khách hàng có các món đồ uống trong giỏ hàng với tổng giá trị tạm tính là 120.000 VNĐ và nhập mã voucher \texttt{WELCOME10}.
+        \item \textbf{When:} Khách hàng chọn áp dụng mã voucher và gửi yêu cầu tạo đơn hàng (\texttt{POST /api/v1/orders}).
+        \item \textbf{Then:} Hệ thống áp dụng chiết khấu 10\% (12.000 VNĐ), tính tổng số tiền thanh toán chính xác là 108.000 VNĐ, kiểm tra đủ tồn kho với Optimistic Locking, tạo đơn hàng ở trạng thái \texttt{PENDING}, đồng thời tính toán điểm thưởng dự kiến tích lũy là +108 điểm khi thanh toán thành công và chuyển hướng sang trang thanh toán.
+    \end{itemize}
+    \item \textit{Xử lý ngoại lệ khi số lượng tồn kho không đủ (Out of Stock):}
+    \begin{itemize}
+        \item \textbf{Given:} Khách hàng đặt món Cà phê Sữa Đá với số lượng 2 ly, nhưng tồn kho khả dụng trong cơ sở dữ liệu chỉ còn 1 ly.
+        \item \textbf{When:} Khách hàng nhấn "Xác nhận đặt hàng".
+        \item \textbf{Then:} Hệ thống phát hiện vi phạm số lượng tồn kho trong transaction, hủy bỏ thao tác tạo đơn, trả về mã lỗi \texttt{400 Bad Request} kèm thông báo lỗi rõ ràng và giữ nguyên trạng thái giỏ hàng.
+    \end{itemize}
+\end{enumerate}

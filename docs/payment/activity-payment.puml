@@ -1,4 +1,10 @@
 @startuml
+skinparam nodesep 10
+skinparam ranksep 14
+skinparam defaultFontSize 10
+skinparam activityFontSize 10
+skinparam arrowFontSize 9
+skinparam wrapWidth 180
 title SƠ ĐỒ HOẠT ĐỘNG - QUY TRÌNH THANH TOÁN (D1, D2, D8, D9)
 
 skinparam backgroundColor white

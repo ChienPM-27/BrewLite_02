@@ -1,27 +1,43 @@
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam actorStyle awesome
+@startuml usecase-order-history
+title Sơ Đồ Use Case - Phân Hệ Lịch Sử Đơn Hàng (Order History)
 
-actor "Khách hàng\n(Customer)" as Customer
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontSize 11
+skinparam nodesep 14
+skinparam ranksep 16
 
-rectangle "feat/order-history usecase uml" {
-  usecase "Xem lịch sử đơn hàng\n(UC-ORDER-HISTORY)" as UC_History
-  usecase "Xác thực phiên đăng nhập\n(JWT)" as UC_Auth
-  usecase "Đăng nhập" as UC_Login
-  usecase "Lọc theo trạng thái" as UC_Filter
-  usecase "Tải thêm / chuyển trang" as UC_Paging
-  usecase "Xem chi tiết đơn hàng" as UC_Detail
-  usecase "Thử lại khi gặp lỗi" as UC_Retry
+skinparam actor {
+    BackgroundColor white
+    BorderColor black
+}
+skinparam usecase {
+    BackgroundColor white
+    BorderColor black
+}
+
+actor "Khách hàng" as Customer
+
+rectangle "Phân Hệ Lịch Sử Đơn Hàng" {
+    usecase "Xem lịch sử đơn hàng\n(UC-ORDER-HISTORY)" as UC_History
+    usecase "Xác thực phiên đăng nhập (JWT)" as UC_Auth
+    usecase "Xem chi tiết đơn hàng" as UC_Detail
+    usecase "Lọc theo trạng thái đơn" as UC_Filter
+    usecase "Tải thêm & phân trang" as UC_Paging
+    usecase "Đăng nhập lại khi hết hạn" as UC_Login
 }
 
 Customer --> UC_History
+Customer --> UC_Detail
 
-UC_History ..> UC_Auth    : <<include>>
-UC_Login   ..> UC_Auth    : <<include>>
-UC_Login   ..> UC_History : <<extend>>
-UC_Filter  ..> UC_History : <<extend>>
-UC_Paging  ..> UC_History : <<extend>>
-UC_Detail  ..> UC_History : <<extend>>
-UC_Retry   ..> UC_History : <<extend>>
+UC_History ..> UC_Auth : <<include>>
+UC_Detail ..> UC_Auth : <<include>>
+UC_History ..> UC_Filter : <<extend>>
+UC_History ..> UC_Paging : <<extend>>
+UC_Auth ..> UC_Login : <<extend>>
+
+UC_History -[hidden]down-> UC_Detail
+UC_Auth -[hidden]down-> UC_Filter
+UC_Filter -[hidden]down-> UC_Paging
 @enduml

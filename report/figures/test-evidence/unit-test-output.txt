@@ -1,0 +1,120 @@
+﻿
+> brewlite-backend@1.0.0 test
+> jest --verbose
+
+node.exe : PASS src/modules/orders/history/history.service.spec.ts (21.194 s)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/module...c.ts (21.194 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  HistoryService
+    findAll
+      √ returns paginated order history for the authenticated user (7 ms)
+      √ filters orders by status when status query parameter is provided (1 ms)
+      √ handles hasNextPage correctly when multiple pages exist (1 ms)
+      √ returns empty list and zero pages when user has no orders
+    findOne
+      √ returns order details with items and toppings for the owner
+      √ throws NotFoundException when order does not exist or belongs to another user (112 ms)
+
+PASS src/modules/orders/order.service.spec.ts (21.222 s)
+  OrderService.transition
+    √ updates status and records history in the supplied transaction (13 ms)
+    √ throws NotFoundException when the order does not exist (274 ms)
+    √ rejects an invalid state transition (3 ms)
+    √ throws ConflictException when optimistic locking fails (1 ms)
+    √ allows transition PENDING -> PAID (2 ms)
+    √ allows transition PENDING -> PAYMENT_FAILED (1 ms)
+    √ allows transition PENDING -> CANCELLED
+    √ allows transition PAYMENT_FAILED -> PENDING (1 ms)
+    √ allows transition PAYMENT_FAILED -> CANCELLED (1 ms)
+    √ allows transition PAID -> PREPARING
+    √ allows transition PAID -> CANCELLED (1 ms)
+    √ allows transition PREPARING -> READY (1 ms)
+    √ allows transition READY -> COMPLETED (13 ms)
+    √ rejects transitions out of terminal state COMPLETED (1 ms)
+    √ rejects transitions out of terminal state CANCELLED (2 ms)
+
+PASS src/modules/orders/order-state.spec.ts (21.26 s)
+  Order State Machine Transition Table
+    √ PENDING -> PENDING (valid: false) (299 ms)
+    √ PENDING -> PAID (valid: true) (1 ms)
+    √ PENDING -> PREPARING (valid: false) (1 ms)
+    √ PENDING -> READY (valid: false) (1 ms)
+    √ PENDING -> COMPLETED (valid: false) (1 ms)
+    √ PENDING -> PAYMENT_FAILED (valid: true) (1 ms)
+    √ PENDING -> CANCELLED (valid: true)
+    √ PAID -> PENDING (valid: false) (1 ms)
+    √ PAID -> PAID (valid: false) (2 ms)
+    √ PAID -> PREPARING (valid: true)
+    √ PAID -> READY (valid: false) (1 ms)
+    √ PAID -> COMPLETED (valid: false) (1 ms)
+    √ PAID -> PAYMENT_FAILED (valid: false) (1 ms)
+    √ PAID -> CANCELLED (valid: true)
+    √ PREPARING -> PENDING (valid: false) (1 ms)
+    √ PREPARING -> PAID (valid: false) (1 ms)
+    √ PREPARING -> PREPARING (valid: false) (1 ms)
+    √ PREPARING -> READY (valid: true) (1 ms)
+    √ PREPARING -> COMPLETED (valid: false) (1 ms)
+    √ PREPARING -> PAYMENT_FAILED (valid: false) (1 ms)
+    √ PREPARING -> CANCELLED (valid: false) (1 ms)
+    √ READY -> PENDING (valid: false) (1 ms)
+    √ READY -> PAID (valid: false) (1 ms)
+    √ READY -> PREPARING (valid: false) (2 ms)
+    √ READY -> READY (valid: false) (1 ms)
+    √ READY -> COMPLETED (valid: true)
+    √ READY -> PAYMENT_FAILED (valid: false) (2 ms)
+    √ READY -> CANCELLED (valid: false) (1 ms)
+    √ COMPLETED -> PENDING (valid: false) (2 ms)
+    √ COMPLETED -> PAID (valid: false) (1 ms)
+    √ COMPLETED -> PREPARING (valid: false) (1 ms)
+    √ COMPLETED -> READY (valid: false) (1 ms)
+    √ COMPLETED -> COMPLETED (valid: false) (1 ms)
+    √ COMPLETED -> PAYMENT_FAILED (valid: false) (1 ms)
+    √ COMPLETED -> CANCELLED (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> PENDING (valid: true)
+    √ PAYMENT_FAILED -> PAID (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> PREPARING (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> READY (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> COMPLETED (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> PAYMENT_FAILED (valid: false) (1 ms)
+    √ PAYMENT_FAILED -> CANCELLED (valid: true)
+    √ CANCELLED -> PENDING (valid: false)
+    √ CANCELLED -> PAID (valid: false)
+    √ CANCELLED -> PREPARING (valid: false) (1 ms)
+    √ CANCELLED -> READY (valid: false)
+    √ CANCELLED -> COMPLETED (valid: false) (1 ms)
+    √ CANCELLED -> PAYMENT_FAILED (valid: false)
+    √ CANCELLED -> CANCELLED (valid: false) (1 ms)
+
+PASS src/modules/orders/orders.service.spec.ts (21.319 s)
+  OrdersService.create
+    √ creates an order and records the initial status (14 ms)
+    √ rejects when the user does not exist (17 ms)
+    √ rejects an invalid promotion code (2 ms)
+    √ rejects when product stock cannot be reserved (2 ms)
+
+PASS src/modules/payments/payments.service.spec.ts (22.048 s)
+  PaymentsService
+    √ creates payment successfully and transitions PENDING -> PAID, awarding loyalty points (8 ms)
+    √ creates failed payment and transitions PENDING -> PAYMENT_FAILED without awarding loyalty (1 ms)
+    √ retries failed payment with new key: transitions PAYMENT_FAILED -> PENDING -> PAID (2 ms)
+    √ retries failed payment with new key and fails again: transitions PAYMENT_FAILED -> PENDING -> PAYMENT_FAILED
+    √ replays existing payment when same idempotency key and payload are submitted without order relation
+    √ handles concurrency race condition P2002 by replaying existing payment
+    √ throws ConflictException when same idempotency key is submitted with different payload (14 ms)
+    √ allows payment in production environment and defaults to SUCCESS (1 ms)
+    √ returns lean payment response without internal fields (idempotencyKey, requestHash, order) (1 ms)
+
+PASS test/health.spec.ts (23.573 s)
+  AppController
+    health
+      √ should return { status: "ok" } (15 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       84 passed, 84 total
+Snapshots:   0 total
+Time:        26.009 s
+Ran all test suites.

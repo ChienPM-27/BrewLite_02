@@ -4,7 +4,12 @@ skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam shadowing false
 skinparam defaultFontName Arial
-skinparam roundcorner 8
+skinparam roundcorner 6
+skinparam nodesep 16
+skinparam ranksep 20
+skinparam defaultFontSize 11
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
 
 skinparam class {
     BackgroundColor #FFFFFF
@@ -248,5 +253,12 @@ Payment ..> PaymentStatus : uses
 OrderItem ..> ProductSize : uses
 ProductSizePrice ..> ProductSize : uses
 LoyaltyTransaction ..> LoyaltyTransactionType : uses
+
+
+' Stack enums vertically to prevent horizontal expansion
+OrderStatus -[hidden]down-> PaymentMethod
+PaymentMethod -[hidden]down-> PaymentStatus
+PaymentStatus -[hidden]down-> ProductSize
+ProductSize -[hidden]down-> LoyaltyTransactionType
 
 @enduml

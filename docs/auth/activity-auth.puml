@@ -1,70 +1,62 @@
-@startuml
-title Activity Diagram - Luồng Đăng Ký & Đăng Nhập (Auth Flow)
-skinparam defaultFontName Arial
-skinparam shadowing false
-skinparam roundcorner 8
+@startuml activity-auth
+title Sơ Đồ Hoạt Động - Quy Trình Xác Thực Người Dùng (Auth Flow)
 
-|Khách hàng (Client/UI)|
+skinparam nodesep 12
+skinparam ranksep 16
+skinparam defaultFontSize 11
+skinparam activityFontSize 11
+skinparam arrowFontSize 10
+skinparam wrapWidth 220
+
+skinparam backgroundColor white
+skinparam activity {
+    BackgroundColor white
+    BorderColor black
+    FontColor black
+    DiamondBackgroundColor white
+    DiamondBorderColor black
+}
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ArrowColor black
+
 start
-:Mở Modal/Trang Đăng ký hoặc Đăng nhập;
+
+:Khách hàng truy cập màn hình Xác thực;
 
 if (Chọn hành động?) then (Đăng ký mới)
-  :Nhập Email, Password (>= 6 ký tự), Full Name;
-  :Nhấn nút "Tạo tài khoản";
-  |Hệ thống Backend (NestJS)|
-  :ValidationPipe kiểm tra DTO đầu vào;
-  if (Email hợp lệ & Password >= 6 ký tự?) then (Hợp lệ)
-    :Truy vấn kiểm tra Email trong Database;
-    if (Email đã tồn tại?) then (Đã tồn tại)
-      :Ném lỗi 409 Conflict: "Email đã được đăng ký";
-      |Khách hàng (Client/UI)|
-      :Hiển thị thông báo lỗi trên UI;
-      stop
-    else (Email chưa có)
-      :Băm mật khẩu an toàn bằng bcrypt (Salt = 10);
-      :Tạo bản ghi mới trong bảng 'users';
-      :Ký và phát hành mã JWT Token (hạn 7 ngày);
-      |Khách hàng (Client/UI)|
-      :Nhận JWT Token;
-      :Lưu Token vào LocalStorage/Cookie;
-      :Cập nhật Header: Hiển thị tên người dùng;
+    :Nhập email, password (>= 6 ký tự), họ tên;
+    :Gửi request POST /api/v1/auth/register;
+    :Backend ValidationPipe kiểm tra cú pháp DTO;
+    
+    if (Email đã tồn tại trong CSDL?) then (Đã tồn tại)
+        :Ném lỗi 409 Conflict\n("Email này đã được sử dụng");
+        :Giao diện hiển thị banner thông báo lỗi;
+        stop
+    else (Chưa có)
+        :Băm mật khẩu an toàn (bcrypt, salt = 10);
+        :Tạo bản ghi User mới trong PostgreSQL;
     endif
-  else (Lỗi cú pháp DTO)
-    :Ném lỗi 400 Bad Request;
-    |Khách hàng (Client/UI)|
-    :Hiển thị thông báo lỗi kiểm tra dữ liệu;
-    stop
-  endif
+
 else (Đăng nhập)
-  :Nhập Email và Password;
-  :Nhấn nút "Đăng nhập";
-  |Hệ thống Backend (NestJS)|
-  :ValidationPipe kiểm tra định dạng;
-  :Tìm kiếm người dùng theo Email;
-  if (Tìm thấy người dùng?) then (Có)
-    :So sánh Password với password_hash qua bcrypt.compare();
-    if (Khớp mật khẩu?) then (Đúng)
-      :Ký và tạo mã JWT Token (payload: sub=userId, email);
-      |Khách hàng (Client/UI)|
-      :Nhận JWT Token;
-      :Lưu Token vào LocalStorage/Cookie;
-      :Chuyển trạng thái giao diện đã đăng nhập;
-    else (Sai mật khẩu)
-      :Ném lỗi 401 Unauthorized: "Sai thông tin đăng nhập";
-      |Khách hàng (Client/UI)|
-      :Hiển thị lỗi "Sai tài khoản hoặc mật khẩu";
-      stop
+    :Nhập email và mật khẩu tài khoản;
+    :Gửi request POST /api/v1/auth/login;
+    :Backend ValidationPipe kiểm tra định dạng DTO;
+    :Truy vấn User theo email trong CSDL;
+    
+    if (User tồn tại và đúng mật khẩu?) then (Sai thông tin)
+        :Ném lỗi 401 Unauthorized\n("Email hoặc mật khẩu không chính xác");
+        :Giao diện hiển thị lỗi đăng nhập thất bại;
+        stop
+    else (Hợp lệ)
     endif
-  else (Không tìm thấy)
-    :Ném lỗi 401 Unauthorized: "Sai thông tin đăng nhập";
-    |Khách hàng (Client/UI)|
-    :Hiển thị lỗi "Sai tài khoản hoặc mật khẩu";
-    stop
-  endif
 endif
 
-|Khách hàng (Client/UI)|
-:Người dùng sẵn sàng tiến hành Đặt đơn & Thanh toán;
-stop
+:Backend ký phát hành JSON Web Token (JWT)\n(payload: sub=userId, email, exp=7 ngày);
+:Đóng gói phản hồi HTTP 200/201 kèm accessToken & thông tin User;
+:Frontend lưu Token vào LocalStorage & Zustand useAuthStore;
+:Cập nhật trạng thái đăng nhập trên Navbar (hiển thị họ tên);
+:Điều hướng người dùng về trang trước đó (hoặc /menu);
 
+stop
 @enduml

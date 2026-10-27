@@ -84,10 +84,8 @@ export function useProductDetail(id: string) {
     });
   }, []);
 
-  const changeQuantity = useCallback((delta: number) => {
-    setQuantity((prev) =>
-      Math.min(MAX_QUANTITY, Math.max(MIN_QUANTITY, prev + delta)),
-    );
+  const changeQuantity = useCallback((nextQty: number) => {
+    setQuantity(Math.min(MAX_QUANTITY, Math.max(MIN_QUANTITY, nextQty)));
   }, []);
 
   const canAddToCart =

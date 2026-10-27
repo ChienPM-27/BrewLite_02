@@ -1,19 +1,22 @@
 @startuml sequence-cart
-title Sequence Diagram - Quản Lý Giỏ Hàng (Cart Management)
+title Sơ Đồ Tuần Tự - Quản Lý Giỏ Hàng (Cart Management)
 autonumber
+skinparam maxMessageSize 100
+skinparam ParticipantPadding 4
+skinparam BoxPadding 4
+skinparam defaultFontSize 11
+skinparam NoteFontSize 10
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam roundcorner 6
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
 
-actor "Khách hàng (User)" as User
+actor "Khách hàng" as User
 box "Frontend (Next.js & Zustand)" #F9F9F9
-    participant "Page: CartPage\n(app/cart/page.tsx)" as Page
-    participant "Component: EditCartItemModal\n(components/cart/...)" as Modal
-    participant "Zustand: useCartStore\n(store/useCartStore.ts)" as CartStore
-    participant "Storage: localStorage\n(Key: 'brewlite_cart')" as LocalStorage
-    participant "Router: Next.js App Router\n(next/navigation)" as Router
+    participant "CartPage" as Page
+    participant "EditModal" as Modal
+    participant "useCartStore" as CartStore
+    participant "LocalStorage" as LocalStorage
+    participant "AppRouter" as Router
 end box
 
 == Giai đoạn 1: Khởi tạo & Tải giỏ hàng ==
@@ -29,9 +32,9 @@ CartStore --> Page: State: { items, totalAmount, badgeCount }
 deactivate CartStore
 
 alt Giỏ hàng trống (items.length === 0)
-    Page --> User: Hiển thị giao diện giỏ rỗng, vô hiệu hóa nút đặt hàng kèm link "Khám phá menu"
+    Page --> User: Hiển thị giao diện giỏ rỗng, link "Khám phá menu"
 else Giỏ hàng có sản phẩm
-    Page --> User: Hiển thị danh sách các món đồ uống, số lượng, size, topping và tổng tiền
+    Page --> User: Hiển thị danh sách món, số lượng, size, topping và tổng tiền
 end
 
 == Giai đoạn 2: Thao tác chỉnh sửa giỏ hàng ==
@@ -40,13 +43,13 @@ alt Cập nhật số lượng (Tăng / Giảm số lượng)
     Page -> CartStore: updateQuantity(cartItemId, newQty)
     activate CartStore
     alt newQty <= 0
-        CartStore -> CartStore: Tự động xóa dòng sản phẩm khỏi giỏ (removeItem)
+        CartStore -> CartStore: Tự động xóa dòng sản phẩm (removeItem)
     else newQty > 99
-        CartStore -> CartStore: Giới hạn tối đa MAX_QUANTITY_PER_LINE (99)
+        CartStore -> CartStore: Giới hạn tối đa MAX_QUANTITY (99)
     else 1 <= newQty <= 99
         CartStore -> CartStore: Cập nhật quantity cho dòng sản phẩm
     end
-    CartStore -> CartStore: Tự động tính toán lại totalAmount & badgeCount
+    CartStore -> CartStore: Tính lại totalAmount & badgeCount
     CartStore -> LocalStorage: setItem('brewlite_cart', updatedState)
     CartStore --> Page: State đã cập nhật
     deactivate CartStore
@@ -56,21 +59,21 @@ else Xóa món khỏi giỏ hàng
     User -> Page: Nhấn biểu tượng thùng rác (Xóa món)
     Page -> CartStore: removeItem(cartItemId)
     activate CartStore
-    CartStore -> CartStore: Lọc bỏ item có id tương ứng\nTính toán lại totalAmount & badgeCount
+    CartStore -> CartStore: Lọc bỏ item tương ứng, tính lại tổng tiền
     CartStore -> LocalStorage: setItem('brewlite_cart', updatedState)
     CartStore --> Page: State đã cập nhật
     deactivate CartStore
     Page --> User: Hiển thị Toast "Đã xóa sản phẩm khỏi giỏ"
 
 else Tùy chỉnh lại Size & Topping
-    User -> Page: Nhấn nút "Tùy chỉnh" trên một dòng món
+    User -> Page: Nhấn nút "Tùy chỉnh" trên dòng món
     Page -> Modal: Mở EditCartItemModal(item)
     activate Modal
-    User -> Modal: Thay đổi size / chọn lại toppings và nhấn "Lưu thay đổi"
-    Modal -> CartStore: updateItem(currentCartItemId, { size, toppingIds, estimatedUnitPrice, quantity })
+    User -> Modal: Đổi size / chọn lại toppings và nhấn "Lưu thay đổi"
+    Modal -> CartStore: updateItem(cartItemId, { size, toppingIds, unitPrice, quantity })
     activate CartStore
     CartStore -> CartStore: Sinh id dòng mới: `${productId}-${size}-${toppingIds.sort().join('-')}`
-    alt Dòng mới trùng với một dòng đã có sẵn trong giỏ
+    alt Dòng mới trùng với dòng đã có sẵn trong giỏ
         CartStore -> CartStore: Gộp số lượng (merge quantity) và xóa dòng cũ
     else Không trùng lặp
         CartStore -> CartStore: Cập nhật thông tin dòng tại chỗ
@@ -90,7 +93,7 @@ Page -> Page: handleCheckout()
 alt Giỏ hàng không có sản phẩm
     Page -> Page: Ngăn chặn chuyển trang (return)
 else Giỏ hàng có sản phẩm
-    Page -> Router: router.push('/checkout?promo=...')
+    Page -> Router: router.push('/checkout')
     activate Router
     Router --> User: Điều hướng sang trang Xác nhận đơn hàng (/checkout)
     deactivate Router
