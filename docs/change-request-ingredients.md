@@ -37,7 +37,7 @@
 #### A. Cà phê sữa truyền thống (Cà phê + Sữa đặc)
 - **Size S (Tiêu chuẩn):** 18g hạt cà phê (1 shot espresso ~ 30ml) + 25ml sữa đặc.
 - **Size M (Vừa, +38% cà phê, +40% sữa):** 25g hạt cà phê + 35ml sữa đặc.
-- **Size L (Lớn, 2 shot espresso, +50% so với M):** 36g hạt cà phê + 50ml sữa đặc.
+- **Size L (Lớn, 2 shot espresso, ~+44% cà phê, ~+43% sữa so với M):** 36g hạt cà phê + 50ml sữa đặc.
 
 #### B. Cà phê đen đá (Cà phê + Đường)
 - **Size S:** 18g hạt cà phê + 15g đường cát.

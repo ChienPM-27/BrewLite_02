@@ -6,6 +6,10 @@ skinparam roundcorner 6
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 
+skinparam classFontColor #FFFFFF
+skinparam classStereotypeFontColor #FFFFFF
+skinparam stereotypeFontColor #FFFFFF
+
 skinparam class {
     BackgroundColor #FFFFFF
     BorderColor #2B6CB0

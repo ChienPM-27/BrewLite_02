@@ -11,7 +11,20 @@ skinparam defaultFontSize 11
 skinparam classFontSize 11
 skinparam classAttributeFontSize 10
 
+skinparam classFontColor #FFFFFF
+skinparam enumFontColor #FFFFFF
+skinparam classStereotypeFontColor #FFFFFF
+skinparam enumStereotypeFontColor #FFFFFF
+skinparam stereotypeFontColor #FFFFFF
+
 skinparam class {
+    BackgroundColor #FFFFFF
+    BorderColor #2D6BE4
+    HeaderBackgroundColor #0A0E1A
+    HeaderFontColor #FFFFFF
+}
+
+skinparam enum {
     BackgroundColor #FFFFFF
     BorderColor #2D6BE4
     HeaderBackgroundColor #0A0E1A
