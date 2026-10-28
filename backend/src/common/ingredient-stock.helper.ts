@@ -22,17 +22,19 @@ export interface IngredientUsage {
  *    `UPDATE ingredients SET stock = stock - :qty WHERE id = :id AND stock >= :qty AND is_available = true`
  * 5. Nếu `count === 0` (tồn kho không đủ hoặc nguyên liệu không tồn tại / ngừng kinh doanh):
  *    Truy vấn lấy tên nguyên liệu (hoặc id nếu không tìm thấy) và ném `BadRequestException`.
+ * 6. Trả về danh sách đã gom và trừ kho thành công, dùng để ghi snapshot vào bảng OrderIngredientUsage.
  *
  * @param tx - Prisma Transaction Client
  * @param needs - Danh sách nhu cầu nguyên liệu cần trừ
+ * @returns Promise<IngredientUsage[]> - Danh sách nguyên liệu đã gom và trừ kho thành công, dùng để ghi snapshot vào OrderIngredientUsage
  * @throws BadRequestException khi nguyên liệu không đủ số lượng tồn kho hoặc không tồn tại
  */
 export async function deductIngredients(
   tx: Prisma.TransactionClient,
   needs: Array<IngredientDemand>,
-): Promise<void> {
+): Promise<IngredientUsage[]> {
   if (!needs || needs.length === 0) {
-    return;
+    return [];
   }
 
   // 1. Gom trùng lặp ingredientId và lọc bỏ số lượng <= 0
@@ -45,13 +47,15 @@ export async function deductIngredients(
   }
 
   if (demandMap.size === 0) {
-    return;
+    return [];
   }
 
   // 2. Sắp xếp ingredientId tăng dần để chống Deadlock
   const sortedIngredientIds = Array.from(demandMap.keys()).sort((a, b) =>
     a.localeCompare(b),
   );
+
+  const deductedUsages: IngredientUsage[] = [];
 
   // 3. Thực thi cập nhật có điều kiện từng nguyên liệu
   for (const ingredientId of sortedIngredientIds) {
@@ -80,7 +84,11 @@ export async function deductIngredients(
         `Nguyên liệu "${ingredientName}" không đủ số lượng tồn kho.`,
       );
     }
+
+    deductedUsages.push({ ingredientId, quantity: qty });
   }
+
+  return deductedUsages;
 }
 
 /**

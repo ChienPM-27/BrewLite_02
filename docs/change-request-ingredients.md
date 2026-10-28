@@ -56,7 +56,7 @@
 
 ---
 
-## 3. CÁC QUYẾT ĐỊNH ĐÃ CHỐT (D10 – D14)
+## 3. CÁC QUYẾT ĐỊNH ĐÃ CHỐT (D10 – D15)
 
 - **D10 (Cơ chế trừ kho nguyên liệu):** Trừ kho nguyên liệu bằng cập nhật có điều kiện nguyên tử:
   ```sql
@@ -68,6 +68,8 @@
 - **D12 (Hiển thị Menu):** HOÃN SANG GIAI ĐOẠN 2. Giai đoạn 1 giữ nguyên `GET /products`, không lọc tồn kho nguyên liệu.
 - **D13 (Bảo toàn Schema cũ):** GIỮ NGUYÊN các trường `Product.stock`, `Product.version`, `Topping.stock` trong `schema.prisma`. Đánh dấu chú thích `DEPRECATED` (không còn được dùng để trừ kho hay check overselling). Không xóa cột bằng migration ở giai đoạn này để tránh xung đột ngược; sẽ xóa dứt điểm ở Giai đoạn 2 bằng migration riêng.
 - **D14 (Kiểm tra giỏ hàng khả dụng):** HOÃN SANG GIAI ĐOẠN 2. Frontend giữ nguyên, không validate nguyên liệu tại client giỏ hàng.
+- **D15 (Quy tắc món/size chưa có công thức):** Khi tạo đơn hàng (`POST /orders`), nếu bất kỳ dòng món nào (`OrderItem`) không tìm thấy bản ghi `ProductRecipe` tương ứng với cặp `(productId, size)` thì API phải trả về HTTP `400 Bad Request`, `message`: `Món "<tên món>" (size <S|M|L>) chưa có công thức nguyên liệu.`
+  Tuyệt đối không được coi là "tiêu hao 0" rồi cho phép đặt hàng (vì sẽ gây lỗi bán hàng vô hạn mà không tốn nguyên liệu). Việc kiểm tra này bắt buộc phải diễn ra **TRƯỚC** khi thực hiện trừ kho; nếu phát hiện thiếu công thức, toàn bộ transaction sẽ rollback lập tức: không tạo đơn hàng, không trừ bất kỳ nguyên liệu nào. Yêu cầu `seed.ts` (Lan phụ trách) phải cấu hình đầy đủ công thức nguyên liệu cho mọi (món, size) đang kinh doanh trên hệ thống.
 - **Quy tắc Thanh toán thất bại & Hủy đơn:**
   - Thanh toán thất bại (`PAYMENT_FAILED`): **KHÔNG hoàn nguyên liệu** (khớp thiết kế D1: đơn vẫn ở trạng thái chờ thử lại thanh toán với cùng nguyên liệu đã giữ).
   - Hủy đơn (`POST /orders/:id/cancel` từ `PENDING` hoặc `PAYMENT_FAILED`): Hoàn nguyên liệu dựa trên snapshot bảng `OrderIngredientUsage`, không tính lại theo công thức hiện tại.
@@ -190,59 +192,66 @@ model OrderIngredientUsage {
 ### 5.1. Thuật toán Trừ kho khi Tạo đơn (`POST /orders`)
 ```typescript
 // Trong OrdersService.create, thực hiện bên trong tx ($transaction):
-// 1. Thu thập và cộng dồn nhu cầu nguyên liệu từ ProductRecipe và ToppingRecipe:
-const totalNeeds = new Map<string, number>();
+
+// 1. Kiểm tra công thức nguyên liệu theo Quyết định D15 (TRƯỚC khi trừ kho):
 for (const item of dto.items) {
-  // Lấy recipe của (productId, size)
-  for (const r of productRecipes) {
-    totalNeeds.set(r.ingredientId, (totalNeeds.get(r.ingredientId) ?? 0) + r.quantity * item.quantity);
-  }
-  // Lấy recipe của từng toppingId
-  for (const tr of toppingRecipes) {
-    totalNeeds.set(tr.ingredientId, (totalNeeds.get(tr.ingredientId) ?? 0) + tr.quantity * item.quantity);
-  }
-}
-
-// 2. Chống Deadlock: Sắp xếp ingredientId tăng dần
-const sortedNeeds = Array.from(totalNeeds.entries())
-  .filter(([_, qty]) => qty > 0)
-  .sort(([a], [b]) => a.localeCompare(b));
-
-// 3. Trừ kho nguyên tử bằng helper deductIngredients(tx, sortedNeeds):
-for (const [ingredientId, qty] of sortedNeeds) {
-  const result = await tx.ingredient.updateMany({
-    where: {
-      id: ingredientId,
-      stock: { gte: qty },
-      isAvailable: true,
-    },
-    data: {
-      stock: { decrement: qty },
-    },
+  const recipes = await tx.productRecipe.findMany({
+    where: { productId: item.productId, size: item.size },
   });
-
-  if (result.count === 0) {
-    const ing = await tx.ingredient.findUnique({ where: { id: ingredientId } });
-    const name = ing?.name ?? ingredientId;
-    throw new BadRequestException(`Nguyên liệu "${name}" không đủ số lượng tồn kho.`);
+  if (recipes.length === 0) {
+    const product = await tx.product.findUnique({
+      where: { id: item.productId },
+      select: { name: true },
+    });
+    const productName = product?.name ?? item.productId;
+    throw new BadRequestException(
+      `Món "${productName}" (size ${item.size}) chưa có công thức nguyên liệu.`,
+    );
   }
 }
 
-// 4. Tạo Order trước, sau đó lưu Snapshot vào OrderIngredientUsage với order.id thật
-const order = await tx.order.create({ /* ...data... */ });
+// 2. Thu thập nhu cầu nguyên liệu cần tiêu hao từ ProductRecipe và ToppingRecipe:
+const needs: IngredientDemand[] = [];
+for (const item of dto.items) {
+  // Lấy định mức từ công thức món theo size
+  for (const r of productRecipes) {
+    needs.push({ ingredientId: r.ingredientId, quantity: r.quantity * item.quantity });
+  }
+  // Lấy định mức từ công thức của từng topping
+  for (const tr of toppingRecipes) {
+    needs.push({ ingredientId: tr.ingredientId, quantity: tr.quantity * item.quantity });
+  }
+}
 
-await tx.orderIngredientUsage.createMany({
-  data: sortedNeeds.map(([ingredientId, quantity]) => ({
-    orderId: order.id,
-    ingredientId,
-    quantity,
-  })),
+// 3. Trừ kho nguyên tử qua helper deductIngredients (tự động gom trùng, lọc <=0, sắp xếp id chống Deadlock):
+// deductIngredients trả về danh sách IngredientUsage[] đã gom và trừ kho thành công
+const deductedUsages = await deductIngredients(tx, needs);
+
+// 4. Tạo Order trước với order.id thật:
+const order = await tx.order.create({
+  data: {
+    userId,
+    totalAmount,
+    status: OrderStatus.PENDING,
+    items: { /* tạo orderItems & orderItemToppings */ },
+  },
 });
+
+// 5. Ghi nhận Snapshot OrderIngredientUsage trực tiếp từ danh sách helper trả về (không tự gom lần 2):
+if (deductedUsages.length > 0) {
+  await tx.orderIngredientUsage.createMany({
+    data: deductedUsages.map((usage) => ({
+      orderId: order.id,
+      ingredientId: usage.ingredientId,
+      quantity: usage.quantity,
+    })),
+  });
+}
 ```
 
 ### 5.2. Thuật toán Hoàn kho khi Hủy đơn (`POST /orders/:id/cancel`)
 ```typescript
-// Trong CancelOrderService.cancel:
+// Trong CancelOrderService.cancel (do Vũ Huy phụ trách):
 // 1. Chuyển trạng thái Order sang CANCELLED qua OrderService.transition()
 await this.orderService.transition(tx, order.id, OrderStatus.CANCELLED, {
   changedBy: userId,
@@ -254,32 +263,36 @@ const usages = await tx.orderIngredientUsage.findMany({
   where: { orderId: order.id },
 });
 
-// Tương thích ngược: Đơn cũ tạo trước migration không có snapshot thì không bị lỗi 500
+// 3. Tương thích ngược: Đơn cũ tạo trước migration không có snapshot thì không bị lỗi 500
+// Hoàn trả nguyên liệu an toàn qua helper restoreIngredients
 if (usages.length > 0) {
-  // Sắp xếp ingredientId tăng dần và hoàn trả qua helper restoreIngredients
-  const sortedUsages = [...usages].sort((a, b) => a.ingredientId.localeCompare(b.ingredientId));
-  for (const usage of sortedUsages) {
-    await tx.ingredient.update({
-      where: { id: usage.ingredientId },
-      data: { stock: { increment: usage.quantity } },
-    });
-  }
+  await restoreIngredients(
+    tx,
+    usages.map((u) => ({
+      ingredientId: u.ingredientId,
+      quantity: u.quantity,
+    })),
+  );
 }
 ```
 
 ---
 
-## 6. PHÂN CÔNG CÔNG VIỆC GIAI ĐOẠN 1 (4 THÀNH VIÊN)
+## 6. PHÂN CÔNG CÔNG VIỆC GIAI ĐOẠN 1 (6 THÀNH VIÊN)
 
 | Người phụ trách | Vai trò | Nhiệm vụ cụ thể | Tiêu chí hoàn thành (Done Definition) |
 | :--- | :--- | :--- | :--- |
-| **Chiến** | Leader / Architect | - Viết lại CR doc (`docs/change-request-ingredients.md`).<br>- Cập nhật DB docs & sơ đồ UML (`database-design.md`, `database-erd.puml`, `class-diagram-backend.puml`, `database-uml.puml`).<br>- Sửa `schema.prisma`, tạo 1 migration thêm bảng.<br>- Viết helper dùng chung `ingredient-stock.helper.ts` và unit test.<br>- Review, merge code các nhánh và cập nhật README. | Migration chạy sạch; `prisma validate`, `generate`, `npm run build`, `npm test` đều pass; helper có unit test. |
-| **Lan** | Seed & Catalog | - Viết `docs/seed-recipes.md` thống kê định mức.<br>- Sửa `seed.ts`: Seed danh mục nguyên liệu thực tế (g, ml, piece), seed công thức cho toàn bộ sản phẩm và topping, seed 1 nguyên liệu có tồn kho thấp để test. | `prisma db seed` chạy 2 lần liên tiếp không lỗi; DB có đủ nguyên liệu & công thức. |
-| **Hạnh** | Order Core | - Cập nhật `docs/order/*`.<br>- Sửa `OrdersService.create`: Trừ kho theo nguyên liệu qua helper, ghi snapshot `OrderIngredientUsage`.<br>- Sửa `CancelOrderService.cancel`: Hoàn kho theo snapshot qua helper.<br>- Viết lại test Task 10(c)/(c2) và e2e test hủy đơn. | Test orders pass; đơn thiếu nguyên liệu trả lỗi 400 rõ tên; hủy đơn hoàn trả đúng số lượng nguyên liệu. |
-| **Kiệt** | Payment Core | - Cập nhật `docs/payment` (usecase-payment-spec dòng ~98 + test case kho nguyên liệu không đổi).<br>- Rà soát luồng retry thanh toán: không trừ đúp nguyên liệu.<br>- Chạy lại test Task 10(b) idempotency và file .http. | Test Task 10(b) pass; thanh toán lỗi/retry không làm sai lệch tồn kho nguyên liệu. |
+| **Chiến** | Leader / Architect | - **Docs & Schema:** Viết lại CR doc (`docs/change-request-ingredients.md`), cập nhật DB docs & UML diagrams, tạo migration Prisma, viết helper dùng chung `ingredient-stock.helper.ts`.<br>- **CR-LEADER-02:** Nâng cấp helper `deductIngredients` trả về danh sách đã gom; chốt quy tắc thiếu công thức D15; đồng bộ CR doc và sheet `Quy_tac` trong bảng phân công.<br>- **CR-VERIFY:** Tích hợp code các nhánh, chạy toàn bộ test suites và cập nhật tài liệu/README sau cùng. | Migration chạy sạch; build/test pass; helper trả về đúng danh sách gom; docs và Excel đồng bộ 100%. |
+| **Lan** | Seed & Data | - Viết tài liệu `docs/seed-recipes.md` thống kê định mức F&B thực tế.<br>- Sửa `seed.ts`: Seed danh mục `Ingredient`, `ProductRecipe` cho MỌI (món, size), `ToppingRecipe` cho các topping, 1 nguyên liệu có tồn kho thấp để test.<br>- Giữ `Product.stock > 0` vì `GET /products` vẫn đọc cột deprecated này trong Giai đoạn 1.<br>- **Làm ĐẦU TIÊN** để cung cấp dữ liệu chuẩn cho các nhánh khác. | `prisma db seed` chạy 2 lần liên tiếp không lỗi; DB có đủ nguyên liệu & công thức cho mọi món/size; Product.stock > 0. |
+| **Hạnh** | Order Core | - Sửa `OrdersService.create`: Kiểm tra thiếu công thức theo quy tắc D15; trừ kho theo nguyên liệu qua helper `deductIngredients`; ghi `OrderIngredientUsage` từ danh sách helper trả về.<br>- Viết lại unit test `orders.service.spec.ts` (và `order.service.spec.ts` nếu còn mock stock cũ).<br>- Cập nhật tài liệu `docs/order/**` (kể cả phần hủy đơn) và file `requests/orders.http`. | Test orders pass; đơn thiếu nguyên liệu trả lỗi 400 rõ tên; món/size chưa có công thức trả 400 rõ ràng; snapshot được lưu đầy đủ. |
+| **Vũ Huy** | Cancel Order | - Sửa `CancelOrderService.cancel`: Hoàn nguyên liệu bằng `restoreIngredients` theo snapshot `OrderIngredientUsage` trong cùng transaction với `OrderService.transition()`.<br>- Đơn cũ tạo trước migration không có snapshot thì bỏ qua (tương thích ngược).<br>- Giữ nguyên các rules hiện có: 404 khác chủ, 409 sai trạng thái / hủy 2 lần, không hoàn lần 2.<br>- Cập nhật file `requests/cancel-order.http`. | Hủy đơn hoàn đúng tồn kho theo snapshot; không lỗi với đơn cũ không có snapshot; các ca lỗi 404/409 giữ nguyên hành vi. |
+| **Kiệt** | Payment Core | - Rà soát module payments: Đảm bảo thanh toán thất bại (`PAYMENT_FAILED`), thử lại (retry), replay không làm thay đổi hay hoàn nhầm tồn kho nguyên liệu.<br>- Cập nhật tài liệu `docs/payment/**`.<br>- Chạy lại test Task 10(b) (idempotency thanh toán) và file `requests/payment.http`. | Test Task 10(b) pass; thanh toán lỗi/retry không làm sai lệch tồn kho nguyên liệu. |
+| **Hào** | Concurrency Test | - Viết lại script test đồng thời `backend/test/concurrency.ts` và e2e test `orders-concurrency.e2e-spec.ts` (tiêu chí Task 10(c)/(c2)) theo tồn kho nguyên liệu.<br>- Cập nhật kịch bản test `TS-FR-09-01` trong `docs/test-scenarios`. | Test đồng thời Task 10(c) pass: 10 request đồng thời trừ kho chính xác, không overselling nguyên liệu, không deadlock. |
+
+> **Ghi chú về phân công:** Thành viên **Quang Huy** không thuộc phạm vi thực hiện của Change Request CR-01 (không phân công task trong đợt này).
 
 ### Thứ tự Merge nhánh:
-$$\text{Chiến (Schema + Helper)} \longrightarrow \text{Lan (Seed)} \longrightarrow \text{Hạnh (Order \& Cancel)} \longrightarrow \text{Kiệt (Payment)} \longrightarrow \text{Chiến (Tích hợp \& Verify)}$$
+$$\text{Chiến (CR-LEADER-02)} \longrightarrow \text{Lan (Seed)} \longrightarrow \text{Hạnh (Order)} \longrightarrow \text{Vũ Huy (Cancel)} \longrightarrow \text{Kiệt (Payment)} \longrightarrow \text{Hào (Test Task 10c)} \longrightarrow \text{Chiến (CR-VERIFY)}$$
 
 ---
 
@@ -297,3 +310,4 @@ Các tính năng sau sẽ được chuyển sang Giai đoạn 2 và thực hiệ
 
 ## 8. HẠN CHẾ ĐÃ BIẾT (KNOWN LIMITATIONS - GIAI ĐOẠN 1)
 - **Menu vẫn hiển thị món hết nguyên liệu:** Vì D12 và D14 hoãn sang Giai đoạn 2, các món hết nguyên liệu vẫn xuất hiện trên Menu và trang Chi tiết. Khách hàng chỉ nhận biết khi bấm "Đặt hàng" tại màn Checkout và nhận được thông báo lỗi HTTP 400 nêu rõ nguyên liệu nào đã hết.
+- **Yêu cầu dữ liệu Seed đầy đủ công thức:** Mọi sản phẩm và bậc size (S/M/L) đang bán bắt buộc phải có đầy đủ định mức trong bảng `ProductRecipe` (do Lan seed). Nếu một món thiếu công thức, hệ thống sẽ chặn tạo đơn theo D15 thay vì cho phép đặt với lượng tiêu hao bằng 0.

@@ -27,24 +27,33 @@ describe('IngredientStockHelper', () => {
   });
 
   describe('deductIngredients', () => {
-    it('nên không làm gì khi mảng needs rỗng hoặc null', async () => {
-      await deductIngredients(mockTx as unknown as Prisma.TransactionClient, []);
-      await deductIngredients(
+    it('nên không làm gì và trả về mảng rỗng khi mảng needs rỗng hoặc null', async () => {
+      const res1 = await deductIngredients(
+        mockTx as unknown as Prisma.TransactionClient,
+        [],
+      );
+      const res2 = await deductIngredients(
         mockTx as unknown as Prisma.TransactionClient,
         null as unknown as IngredientDemand[],
       );
       expect(mockTx.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(res1).toEqual([]);
+      expect(res2).toEqual([]);
     });
 
-    it('nên bỏ qua các phần tử có quantity <= 0', async () => {
-      await deductIngredients(mockTx as unknown as Prisma.TransactionClient, [
-        { ingredientId: 'ing-1', quantity: 0 },
-        { ingredientId: 'ing-2', quantity: -5 },
-      ]);
+    it('nên bỏ qua các phần tử có quantity <= 0 và trả về mảng rỗng nếu không còn nguyên liệu hợp lệ', async () => {
+      const result = await deductIngredients(
+        mockTx as unknown as Prisma.TransactionClient,
+        [
+          { ingredientId: 'ing-1', quantity: 0 },
+          { ingredientId: 'ing-2', quantity: -5 },
+        ],
+      );
       expect(mockTx.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
     });
 
-    it('nên gom trùng lặp ingredientId và sắp xếp theo ID tăng dần để chống deadlock', async () => {
+    it('nên gom trùng lặp ingredientId, sắp xếp theo ID tăng dần để chống deadlock và trả về danh sách đã trừ', async () => {
       mockTx.ingredient.updateMany.mockResolvedValue({ count: 1 });
 
       const needs: IngredientDemand[] = [
@@ -55,7 +64,7 @@ describe('IngredientStockHelper', () => {
         { ingredientId: 'ing-banana', quantity: 12 },
       ];
 
-      await deductIngredients(
+      const result = await deductIngredients(
         mockTx as unknown as Prisma.TransactionClient,
         needs,
       );
@@ -77,6 +86,45 @@ describe('IngredientStockHelper', () => {
         where: { id: 'ing-zebra', stock: { gte: 25 }, isAvailable: true },
         data: { stock: { decrement: 25 } },
       });
+
+      // Kiểm tra danh sách trả về đã gom và sắp xếp
+      expect(result).toEqual([
+        { ingredientId: 'ing-apple', quantity: 25 },
+        { ingredientId: 'ing-banana', quantity: 12 },
+        { ingredientId: 'ing-zebra', quantity: 25 },
+      ]);
+    });
+
+    it('khi ném lỗi giữa chừng thì hàm reject promise và không trả về giá trị (không rò rỉ kết quả)', async () => {
+      // Giả lập nguyên liệu thứ nhất thành công, nguyên liệu thứ hai thất bại
+      mockTx.ingredient.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      mockTx.ingredient.findUnique.mockResolvedValue({
+        name: 'Sữa đặc Ngôi Sao',
+      });
+
+      let returnedValue: unknown = 'NOT_SET';
+      let errorThrown: unknown = null;
+
+      try {
+        returnedValue = await deductIngredients(
+          mockTx as unknown as Prisma.TransactionClient,
+          [
+            { ingredientId: 'ing-coffee', quantity: 20 },
+            { ingredientId: 'ing-milk', quantity: 30 },
+          ],
+        );
+      } catch (err) {
+        errorThrown = err;
+      }
+
+      expect(errorThrown).toBeInstanceOf(BadRequestException);
+      expect((errorThrown as BadRequestException).message).toBe(
+        'Nguyên liệu "Sữa đặc Ngôi Sao" không đủ số lượng tồn kho.',
+      );
+      // Đảm bảo không có giá trị trả về bị gán/rò rỉ
+      expect(returnedValue).toBe('NOT_SET');
     });
 
     it('nên ném BadRequestException kèm tên nguyên liệu khi updateMany.count = 0', async () => {
