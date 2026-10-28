@@ -15,6 +15,7 @@ function LoginForm() {
   const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/menu';
 
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const login = useAuthStore((state) => state.login);
 
   const [email, setEmail] = useState('');
@@ -22,12 +23,16 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Nếu đã đăng nhập, chuyển hướng ngay về /menu hoặc next hợp lệ
+  // Nếu đã đăng nhập, chuyển hướng ngay về /admin (với ADMIN) hoặc next hợp lệ
   useEffect(() => {
     if (token) {
-      router.replace(next);
+      if (user?.role === 'ADMIN') {
+        router.replace('/admin');
+      } else {
+        router.replace(next);
+      }
     }
-  }, [token, router, next]);
+  }, [token, user?.role, router, next]);
 
   const handleFillDemo = () => {
     setEmail('demo@brewlite.test');
@@ -48,7 +53,12 @@ function LoginForm() {
     try {
       const res = await loginApi({ email, password });
       login(res.accessToken, res.user);
-      router.replace(next);
+      if (res.user?.role === 'ADMIN') {
+        router.replace('/admin');
+      } else {
+        // TODO: Giai đoạn 2 bổ sung điều hướng cho BARISTA khi có giao diện chuyên dụng
+        router.replace(next);
+      }
     } catch (err: any) {
       if (err instanceof ApiError && err.statusCode === 401) {
         setErrorMessage('Email hoặc mật khẩu không chính xác');

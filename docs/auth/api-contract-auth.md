@@ -252,6 +252,7 @@ Token JWT chứa payload tối giản theo interface `JwtPayload` (`backend/src/
 
 ### 3.5 Thời hạn token (Token Expiration)
 - Được cấu hình linh hoạt thông qua biến môi trường `JWT_EXPIRATION` trong `AuthModule` (mặc định là `'7d'` — 7 ngày nếu không khai báo biến môi trường).
+- **Giới hạn lưu ý:** Do vai trò người dùng (`role`) được mã hóa trực tiếp trong payload của JWT (`{ sub, email, role }`), việc cập nhật vai trò của người dùng trong cơ sở dữ liệu sẽ chỉ có hiệu lực ở phiên đăng nhập kế tiếp khi token mới được tạo. Các token đang lưu hành (hạn 7 ngày) sẽ tiếp tục mang role cũ cho đến khi người dùng đăng nhập lại.
 
 ### 3.6 Xử lý lỗi xác thực
 Nếu client không gửi header `Authorization`, token sai chữ ký, hoặc token đã hết hạn:
@@ -267,3 +268,61 @@ Nếu client không gửi header `Authorization`, token sai chữ ký, hoặc to
 }
 ```
 Client (Next.js Frontend) khi nhận lỗi 401 sẽ tự động điều hướng người dùng về trang `/auth/login?next=<current_path>`.
+
+
+---
+
+## 4. GET /auth/admin-ping — Kiểm tra quyền Quản trị viên (Kỹ thuật)
+
+| Mục | Nội dung |
+|---|---|
+| **Mô tả** | Endpoint kỹ thuật phục vụ kiểm thử phân quyền (`RolesGuard` kết hợp `@Roles(Role.ADMIN)`). Cho phép kiểm tra quyền hạn của tài khoản mà không làm thay đổi trạng thái dữ liệu. Route này được duy trì cho đến khi các API quản trị chính thức được phát triển ở Giai đoạn 2. |
+| **Auth** | **Yêu cầu xác thực & Phân quyền ADMIN** (`@UseGuards(JwtAuthGuard, RolesGuard)`, `@Roles(Role.ADMIN)`). |
+| **Content-Type** | `application/json` |
+| **Endpoint** | `GET /api/v1/auth/admin-ping` |
+
+### 4.1 Request Headers
+```http
+Authorization: Bearer <accessToken>
+Accept: application/json
+```
+
+### 4.2 Request Body
+*Không có (GET request).*
+
+### 4.3 Phản hồi thành công (Success Response — `200 OK`)
+Dành cho tài khoản có vai trò `ADMIN`:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "ok": true
+  },
+  "timestamp": "2026-10-28T14:00:00.000Z"
+}
+```
+
+### 4.4 Phản hồi lỗi (Error Responses)
+* **401 Unauthorized** — Không có token Bearer hoặc token không hợp lệ / hết hạn:
+```json
+{
+  "success": false,
+  "statusCode": 401,
+  "error": "Unauthorized",
+  "message": "Vui lòng đăng nhập để tiếp tục",
+  "timestamp": "2026-10-28T14:00:00.000Z",
+  "path": "/api/v1/auth/admin-ping"
+}
+```
+* **403 Forbidden** — Người dùng đã xác thực nhưng không có vai trò `ADMIN` (ví dụ: `CUSTOMER`, `BARISTA`):
+```json
+{
+  "success": false,
+  "statusCode": 403,
+  "error": "Forbidden",
+  "message": "Forbidden resource",
+  "timestamp": "2026-10-28T14:00:00.000Z",
+  "path": "/api/v1/auth/admin-ping"
+}
+```

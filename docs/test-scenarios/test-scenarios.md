@@ -127,6 +127,8 @@ Theo đặc tả, Task 10 phải có unit/integration test chứng minh các ti�
 | TS-FR-04-07 | Bảo vệ route đặt đơn | Security | Integration | High | Yêu cầu tạo đơn không có JWT hợp lệ bị từ chối. |
 | TS-FR-04-08 | JWT hết hạn hoặc không hợp lệ | Security | Integration | High | Không được cấp quyền truy cập route được bảo vệ. |
 | TS-FR-04-09 | Yêu cầu đăng nhập trước khi thanh toán | Positive | E2E | High | Khách chưa đăng nhập được điều hướng đăng nhập, sau đó tiếp tục luồng đặt hàng. |
+| TS-FR-04-10 | Phân quyền vai trò và JWT chứa role | Positive | Integration | High | POST /auth/login trả `user.role` khớp CSDL và JWT payload chứa trường `role`. |
+| TS-FR-04-11 | Chặn khách thường truy cập route ADMIN | Security | Integration | High | Tài khoản role CUSTOMER gọi route `@Roles(Role.ADMIN)` (`GET /api/v1/auth/admin-ping`) bị RolesGuard từ chối với HTTP 403 Forbidden. |
 
 #### FR-06 — Xác nhận đơn và lịch sử đơn (Order History)
 
@@ -229,7 +231,7 @@ Nội dung băm mật khẩu và JWT được bao phủ bởi TS-FR-04-06, TS-FR
 | FR-01 | Product Catalog | Task 2 — API danh sách sản phẩm; Task 3 — Trang Menu | TS-FR-01-01 → 07 |
 | FR-02 | Product Detail | Task 4 — Chi tiết và tùy chọn sản phẩm | TS-FR-02-01 → 06 |
 | FR-03 | Cart | Task 5 — Giỏ hàng | TS-FR-03-01 → 07 |
-| FR-04 | Auth + hệ thống | Task 7 — Đăng ký / Đăng nhập (JWT) | TS-FR-04-01 → 09 |
+| FR-04 | Auth + hệ thống | Task 7 — Đăng ký / Đăng nhập (JWT) | TS-FR-04-01 → 11 |
 | FR-05 | Order; Payment | US-05; Task 6 — API tạo đơn hàng; Task 8 — Thanh toán không tiền mặt | TS-FR-05-01 → 10 |
 | FR-06 | Order History | Task 9 — Xác nhận, lịch sử đơn và bàn giao | TS-FR-06-01 → 08 |
 | FR-07 | Order | Task 10 — Nghiệp vụ backend (Order State Machine) | TS-FR-07-01 → 09 |

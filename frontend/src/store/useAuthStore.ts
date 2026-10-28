@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type UserRole = 'CUSTOMER' | 'ADMIN' | 'BARISTA';
+
 export interface AuthUser {
   id: string;
   email: string;
   fullName?: string | null;
   loyaltyPoints?: number;
+  role: UserRole;
 }
 
 interface AuthState {
@@ -21,10 +24,14 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       login: (token: string, user: AuthUser) => {
+        const normalizedUser: AuthUser = {
+          ...user,
+          role: user.role || 'CUSTOMER',
+        };
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token);
         }
-        set({ token, user });
+        set({ token, user: normalizedUser });
       },
       logout: () => {
         if (typeof window !== 'undefined') {
@@ -35,6 +42,18 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'brewlite_auth',
+      version: 1,
+      migrate: (persistedState: any) => {
+        if (persistedState && persistedState.user && !persistedState.user.role) {
+          persistedState.user.role = 'CUSTOMER';
+        }
+        return persistedState as AuthState;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.user && !state.user.role) {
+          state.user.role = 'CUSTOMER';
+        }
+      },
     },
   ),
 );
