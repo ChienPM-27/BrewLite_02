@@ -28,6 +28,7 @@ Bảng `users` đóng vai trò là thực thể gốc (parent entity) liên kế
 | Request `email` | `email` | `email` | `String` | Unique (`@unique`), bắt buộc, chuẩn hóa chữ thường |
 | Request `password` | `passwordHash` | `password_hash` | `String` | Bắt buộc, chuỗi băm Bcrypt (`salt rounds = 10`) |
 | Request `fullName` | `fullName` | `full_name` | `String?` | Tùy chọn (Nullable) |
+| Khởi tạo ban đầu | `role` | `role` | `Role` (Enum) | Bắt buộc, mặc định `CUSTOMER` (`Role.CUSTOMER`). Giá trị: `CUSTOMER`, `ADMIN`, `BARISTA` |
 | Khởi tạo ban đầu | `loyaltyPoints` | `loyalty_points` | `Int` | Mặc định `0` (`@default(0)`) |
 | DB gán tự động | `createdAt` | `created_at` | `DateTime` | Thời gian đăng ký tài khoản (`@default(now())`) |
 | DB cập nhật tự động | `updatedAt` | `updated_at` | `DateTime` | Thời gian cập nhật thông tin (`@updatedAt`) |
@@ -60,19 +61,20 @@ Bảng `users` đóng vai trò là thực thể gốc (parent entity) liên kế
      const passwordHash = await bcrypt.hash(dto.password, 10);
      ```
 4. **Tạo bản ghi người dùng mới (User Creation):**
-   - Tạo mới người dùng với điểm thưởng ban đầu bằng 0:
+   - Tạo mới người dùng với điểm thưởng ban đầu bằng 0 và vai trò mặc định CUSTOMER:
      ```typescript
      const user = await this.prisma.user.create({
        data: {
          email: normalizedEmail,
          passwordHash,
          fullName: dto.fullName?.trim() || null,
+         role: Role.CUSTOMER,
          loyaltyPoints: 0,
        },
      });
      ```
 5. **Ký và sinh Access Token:**
-   - Sử dụng `jwtService.signAsync({ sub: user.id, email: user.email })`.
+   - Sử dụng `jwtService.signAsync({ sub: user.id, email: user.email, role: user.role })`.
 
 ---
 

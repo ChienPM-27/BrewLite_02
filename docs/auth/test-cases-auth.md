@@ -12,12 +12,13 @@
    - Kiểm tra chuẩn hóa email (`trim().toLowerCase()`).
    - Kiểm tra chống trùng lặp email (`409 Conflict`).
    - Kiểm tra băm mật khẩu an toàn với bcrypt (10 rounds), không bao giờ lưu hay trả về `passwordHash`.
-   - Cấp phát Access Token JWT và thông tin người dùng an toàn (`id, email, fullName, loyaltyPoints`).
+   - Cấp phát Access Token JWT và thông tin người dùng an toàn (`id, email, fullName, role, loyaltyPoints`), role mặc định `CUSTOMER`.
 2. **Backend API Đăng nhập (`POST /api/v1/auth/login`):**
    - Kiểm tra đối chiếu thông tin đăng nhập với `bcrypt.compare`.
    - Trả về `401 Unauthorized` với thông điệp chung `"Email hoặc mật khẩu không chính xác"` khi sai email hoặc mật khẩu.
-   - Cấp phát JWT Access Token mang payload `{ sub: user.id, email: user.email }`.
-3. **Cơ chế Bảo vệ Route (`JwtAuthGuard`):**
+   - Cấp phát JWT Access Token mang payload `{ sub: user.id, email: user.email, role: user.role }`.
+3. **Cơ chế Bảo vệ Route & Phân quyền (`JwtAuthGuard` & `RolesGuard`):**
+   - Kiểm tra phân quyền `@Roles(...)` kết hợp `RolesGuard`: trả về `403 Forbidden` khi người dùng không đủ quyền truy cập.
    - Kiểm tra bắt buộc header `Authorization: Bearer <token>`.
    - Trả về `401 Unauthorized` với thông điệp `"Vui lòng đăng nhập để tiếp tục"` khi thiếu token, token hết hạn hoặc sai chữ ký.
 4. **Frontend UI & Hook (`/auth/login`, `/auth/register`, `useRequireAuth`):**
@@ -34,14 +35,16 @@
 
 | ID | Tình huống kiểm thử | Tiền điều kiện | Điều kiện / Dữ liệu đầu vào | Kết quả mong đợi | Loại | Use case liên quan | Endpoint liên quan | Trạng thái | Test tự động |
 |---|---|---|---|---|---|---|---|---|---|
-| **TC-AUTH-01** | Đăng ký tài khoản thành công (TS-FR-04-01) | Email chưa tồn tại trong CSDL | Gửi `POST /api/v1/auth/register` với `email: "user@example.com"`, `password: "password123"`, `fullName: "Nguyễn Văn A"` | `201 Created`, CSDL tạo user mới có `passwordHash` (bcrypt 10 rounds), `loyaltyPoints = 0`. API trả về `{ success: true, statusCode: 201, data: { accessToken, user: { id, email, fullName, loyaltyPoints } } }` | Hợp lệ | UC-AUTH-REGISTER | POST /api/v1/auth/register | Chưa chạy | - |
+| **TC-AUTH-01** | Đăng ký tài khoản thành công (TS-FR-04-01) | Email chưa tồn tại trong CSDL | Gửi `POST /api/v1/auth/register` với `email: "user@example.com"`, `password: "password123"`, `fullName: "Nguyễn Văn A"` | `201 Created`, CSDL tạo user mới có `passwordHash` (bcrypt 10 rounds), `role = CUSTOMER`, `loyaltyPoints = 0`. API trả về `{ success: true, statusCode: 201, data: { accessToken, user: { id, email, fullName, role, loyaltyPoints } } }` | Hợp lệ | UC-AUTH-REGISTER | POST /api/v1/auth/register | Chưa chạy | - |
 | **TC-AUTH-02** | Dữ liệu đăng ký không hợp lệ (TS-FR-04-02) | Không có | Gửi `POST /api/v1/auth/register` với email sai format (`"not-email"`), hoặc password ngắn (`"12345"`), hoặc email rỗng | `400 Bad Request`: `ValidationPipe` từ chối kèm thông điệp `"Email không hợp lệ"`, `"Mật khẩu phải có độ dài từ 6 ký tự trở lên"`, hoặc `"Email không được để trống"` | Lỗi | UC-AUTH-REGISTER | POST /api/v1/auth/register | Chưa chạy | - |
 | **TC-AUTH-03** | Đăng ký với email đã tồn tại (TS-FR-04-03) | CSDL đã có tài khoản mang email `"existing@brewlite.test"` | Gửi `POST /api/v1/auth/register` với `email: "existing@brewlite.test"` (kể cả có khoảng trắng hay chữ hoa) | `409 Conflict`: `{ success: false, statusCode: 409, message: "Email này đã được sử dụng" }` | Lỗi | UC-AUTH-REGISTER | POST /api/v1/auth/register | Chưa chạy | - |
-| **TC-AUTH-04** | Đăng nhập thành công và nhận JWT (TS-FR-04-04) | Tài khoản tồn tại (`email: "demo@brewlite.test"`, `password: "Demo@12345"`) | Gửi `POST /api/v1/auth/login` với email và password chính xác | `200 OK`, trả về `{ success: true, statusCode: 200, data: { accessToken, user: { id, email, fullName, loyaltyPoints } } }`. Token JWT mang payload `{ sub: user.id, email: user.email }` | Hợp lệ | UC-AUTH-LOGIN | POST /api/v1/auth/login | Chưa chạy | - |
+| **TC-AUTH-04** | Đăng nhập thành công và nhận JWT (TS-FR-04-04) | Tài khoản tồn tại (`email: "demo@brewlite.test"`, `password: "Demo@12345"`) | Gửi `POST /api/v1/auth/login` với email và password chính xác | `200 OK`, trả về `{ success: true, statusCode: 200, data: { accessToken, user: { id, email, fullName, role, loyaltyPoints } } }`. Token JWT mang payload `{ sub: user.id, email: user.email, role: user.role }` | Hợp lệ | UC-AUTH-LOGIN | POST /api/v1/auth/login | Chưa chạy | - |
 | **TC-AUTH-05** | Đăng nhập sai thông tin (TS-FR-04-05) | Không có | Gửi `POST /api/v1/auth/login` với email không tồn tại hoặc mật khẩu sai | `401 Unauthorized`: `{ success: false, statusCode: 401, message: "Email hoặc mật khẩu không chính xác" }` | Lỗi | UC-AUTH-LOGIN | POST /api/v1/auth/login | Chưa chạy | - |
 | **TC-AUTH-06** | Mật khẩu được băm bằng bcrypt 10 rounds (TS-FR-04-06) | Người dùng mới đăng ký thành công | Truy vấn trực tiếp cột `password_hash` trong bảng `users` | Giá trị là chuỗi băm chuẩn bcrypt (`$2b$10$...`), tuyệt đối không lưu plaintext; `passwordHash` không bao giờ trả về client | Hợp lệ | UC-AUTH-REGISTER | POST /api/v1/auth/register | Chưa chạy | - |
 | **TC-AUTH-07** | Bảo vệ route cần xác thực bằng JwtAuthGuard (TS-FR-04-07) | Client chưa gửi Bearer token | Gửi `POST /api/v1/orders` hoặc `GET /api/v1/orders/me` không có header `Authorization` | `401 Unauthorized`: `{ success: false, statusCode: 401, message: "Vui lòng đăng nhập để tiếp tục" }` | Lỗi | UC-AUTH-GUARD | POST /api/v1/orders | Chưa chạy | - |
 | **TC-AUTH-08** | Token JWT hết hạn hoặc sai chữ ký (TS-FR-04-08) | Client sở hữu token JWT đã hết hạn hoặc bị sửa đổi chữ ký | Gửi request đến route bảo vệ kèm header `Authorization: Bearer <invalid_token>` | `401 Unauthorized`: `JwtAuthGuard` từ chối kèm thông điệp `"Vui lòng đăng nhập để tiếp tục"` | Lỗi | UC-AUTH-GUARD | GET /api/v1/orders/me | Chưa chạy | - |
+| **TC-AUTH-09** | Đăng nhập trả về role đúng (TS-FR-04-10) | Tài khoản tồn tại trong CSDL có role (`CUSTOMER` hoặc `ADMIN`) | Gửi `POST /api/v1/auth/login` với email và password chính xác | `200 OK`, response trả về `user.role` khớp đúng với CSDL; Token JWT mang payload chứa trường `role` tương ứng | Hợp lệ | UC-AUTH-LOGIN | POST /api/v1/auth/login | Chưa chạy | - |
+| **TC-AUTH-10** | Chặn khách thường truy cập route yêu cầu ADMIN qua RolesGuard (TS-FR-04-11) | Đã đăng nhập tài khoản thường (role `CUSTOMER`), sở hữu JWT token hợp lệ | Gửi request đến route bảo vệ bằng `@Roles(Role.ADMIN)` kèm header `Authorization: Bearer <customer_token>` | `403 Forbidden`: `RolesGuard` từ chối truy cập kèm message `"Forbidden resource"` | Lỗi | UC-AUTH-GUARD | Route @Roles(ADMIN) | Chưa chạy | - |
 
 ---
 

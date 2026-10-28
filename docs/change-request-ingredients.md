@@ -56,7 +56,7 @@
 
 ---
 
-## 3. CÁC QUYẾT ĐỊNH ĐÃ CHỐT (D10 – D15)
+## 3. CÁC QUYẾT ĐỊNH ĐÃ CHỐT (D10 – D16)
 
 - **D10 (Cơ chế trừ kho nguyên liệu):** Trừ kho nguyên liệu bằng cập nhật có điều kiện nguyên tử:
   ```sql
@@ -70,6 +70,8 @@
 - **D14 (Kiểm tra giỏ hàng khả dụng):** HOÃN SANG GIAI ĐOẠN 2. Frontend giữ nguyên, không validate nguyên liệu tại client giỏ hàng.
 - **D15 (Quy tắc món/size chưa có công thức):** Khi tạo đơn hàng (`POST /orders`), nếu bất kỳ dòng món nào (`OrderItem`) không tìm thấy bản ghi `ProductRecipe` tương ứng với cặp `(productId, size)` thì API phải trả về HTTP `400 Bad Request`, `message`: `Món "<tên món>" (size <S|M|L>) chưa có công thức nguyên liệu.`
   Tuyệt đối không được coi là "tiêu hao 0" rồi cho phép đặt hàng (vì sẽ gây lỗi bán hàng vô hạn mà không tốn nguyên liệu). Việc kiểm tra này bắt buộc phải diễn ra **TRƯỚC** khi thực hiện trừ kho; nếu phát hiện thiếu công thức, toàn bộ transaction sẽ rollback lập tức: không tạo đơn hàng, không trừ bất kỳ nguyên liệu nào. Yêu cầu `seed.ts` (Lan phụ trách) phải cấu hình đầy đủ công thức nguyên liệu cho mọi (món, size) đang kinh doanh trên hệ thống.
+- **D16 (Phân quyền người dùng - User Role):** Bổ sung thuộc tính `User.role` với enum `Role { CUSTOMER, ADMIN, BARISTA }` (mặc định `CUSTOMER`). Dùng chung trang đăng nhập hiện có. `role` được đưa vào JWT access token payload và `req.user = { sub, email, role }`. Client KHÔNG được gửi `role` khi đăng ký (`RegisterDto` không nhận trường role; `ValidationPipe` với `whitelist` và `forbidNonWhitelisted` sẽ chặn/loại bỏ). Kiểm soát phân quyền ở backend bằng decorator `@Roles(...)` kết hợp `RolesGuard` (chạy sau `JwtAuthGuard`, trả HTTP 403 Forbidden nếu không đủ quyền). Khi đăng nhập, frontend điều hướng theo role (`ADMIN` chuyển tới `/admin`, `CUSTOMER` ở trang khách). Tài khoản quản trị ADMIN được seed sẵn trong `seed.ts` (Lan phụ trách).
+  > **Ghi chú tiến độ:** Tài liệu đã mô tả role trước khi code CR-ROLE hoàn thành; code sẽ khớp ở task CR-ROLE.
 - **Quy tắc Thanh toán thất bại & Hủy đơn:**
   - Thanh toán thất bại (`PAYMENT_FAILED`): **KHÔNG hoàn nguyên liệu** (khớp thiết kế D1: đơn vẫn ở trạng thái chờ thử lại thanh toán với cùng nguyên liệu đã giữ).
   - Hủy đơn (`POST /orders/:id/cancel` từ `PENDING` hoặc `PAYMENT_FAILED`): Hoàn nguyên liệu dựa trên snapshot bảng `OrderIngredientUsage`, không tính lại theo công thức hiện tại.
@@ -183,7 +185,7 @@ model OrderIngredientUsage {
 > [!NOTE]
 > **Bảo toàn khả năng tương thích ngược:**
 > - `Product.stock`, `Product.version`, `Topping.stock` vẫn giữ nguyên kiểu và giá trị mặc định trong `schema.prisma` nhưng được đánh dấu DEPRECATED.
-> - Bảng `User` không thêm cột `role` hay enum `Role` trong giai đoạn này.
+> - Cột `User.role` (enum `Role`) và `RolesGuard` sẽ được bổ sung ngay trong Giai đoạn 1 bởi Chiến (task `CR-ROLE`) để thiết lập nền tảng phân quyền. Giao diện và API chi tiết cho Admin/Barista vẫn thuộc phạm vi Giai đoạn 2.
 
 ---
 
@@ -193,51 +195,143 @@ model OrderIngredientUsage {
 ```typescript
 // Trong OrdersService.create, thực hiện bên trong tx ($transaction):
 
-// 1. Kiểm tra công thức nguyên liệu theo Quyết định D15 (TRƯỚC khi trừ kho):
+// =========================================================================
+// BƯỚC 1: Nạp công thức nguyên liệu bằng truy vấn gộp (Batch query, chống N+1)
+// =========================================================================
+const allProductIds = Array.from(new Set(dto.items.map((i) => i.productId)));
+const allToppingIds = Array.from(
+  new Set(dto.items.flatMap((i) => i.toppingIds ?? [])),
+);
+
+// Truy vấn gộp thông tin sản phẩm (để lấy tên món khi ném lỗi D15)
+const products = await tx.product.findMany({
+  where: { id: { in: allProductIds } },
+  select: { id: true, name: true },
+});
+const productNameMap = new Map(products.map((p) => [p.id, p.name]));
+
+// Truy vấn gộp toàn bộ công thức món của các sản phẩm trong đơn
+const rawProductRecipes = await tx.productRecipe.findMany({
+  where: { productId: { in: allProductIds } },
+});
+// Nhóm công thức món theo key: `${productId}_${size}`
+const productRecipeMap = new Map<string, Array<{ ingredientId: string; quantity: number }>>();
+for (const r of rawProductRecipes) {
+  const key = `${r.productId}_${r.size}`;
+  const list = productRecipeMap.get(key) ?? [];
+  list.push({ ingredientId: r.ingredientId, quantity: r.quantity });
+  productRecipeMap.set(key, list);
+}
+
+// Truy vấn gộp toàn bộ công thức topping xuất hiện trong đơn
+const rawToppingRecipes = allToppingIds.length > 0
+  ? await tx.toppingRecipe.findMany({
+      where: { toppingId: { in: allToppingIds } },
+    })
+  : [];
+// Nhóm công thức topping theo toppingId
+const toppingRecipeMap = new Map<string, Array<{ ingredientId: string; quantity: number }>>();
+for (const tr of rawToppingRecipes) {
+  const list = toppingRecipeMap.get(tr.toppingId) ?? [];
+  list.push({ ingredientId: tr.ingredientId, quantity: tr.quantity });
+  toppingRecipeMap.set(tr.toppingId, list);
+}
+
+// =========================================================================
+// BƯỚC 2 (D15): Kiểm tra công thức từng dòng hàng & ghép danh sách lines
+// =========================================================================
+interface OrderLineRecipe {
+  item: CreateOrderItemDto;
+  productRecipes: Array<{ ingredientId: string; quantity: number }>;
+  toppingRecipes: Array<{ ingredientId: string; quantity: number }>;
+}
+
+const lines: OrderLineRecipe[] = [];
+
 for (const item of dto.items) {
-  const recipes = await tx.productRecipe.findMany({
-    where: { productId: item.productId, size: item.size },
-  });
-  if (recipes.length === 0) {
-    const product = await tx.product.findUnique({
-      where: { id: item.productId },
-      select: { name: true },
-    });
-    const productName = product?.name ?? item.productId;
+  const itemSize = item.size ?? ProductSize.M;
+  const recipeKey = `${item.productId}_${itemSize}`;
+  const pRecipes = productRecipeMap.get(recipeKey) ?? [];
+
+  // Quyết định D15: Nếu dòng hàng chưa có công thức -> 400 Bad Request
+  if (pRecipes.length === 0) {
+    const productName = productNameMap.get(item.productId) ?? item.productId;
     throw new BadRequestException(
-      `Món "${productName}" (size ${item.size}) chưa có công thức nguyên liệu.`,
+      `Món "${productName}" (size ${itemSize}) chưa có công thức nguyên liệu.`,
     );
   }
+
+  // Thu thập công thức của các topping thuộc dòng hàng này
+  const tRecipes: Array<{ ingredientId: string; quantity: number }> = [];
+  for (const toppingId of item.toppingIds ?? []) {
+    const recipesForTopping = toppingRecipeMap.get(toppingId) ?? [];
+    tRecipes.push(...recipesForTopping);
+  }
+
+  lines.push({
+    item,
+    productRecipes: pRecipes,
+    toppingRecipes: tRecipes,
+  });
 }
 
-// 2. Thu thập nhu cầu nguyên liệu cần tiêu hao từ ProductRecipe và ToppingRecipe:
+// =========================================================================
+// BƯỚC 3: Tạo danh sách nhu cầu nguyên liệu cần tiêu hao (needs: IngredientDemand[])
+// =========================================================================
 const needs: IngredientDemand[] = [];
-for (const item of dto.items) {
-  // Lấy định mức từ công thức món theo size
-  for (const r of productRecipes) {
-    needs.push({ ingredientId: r.ingredientId, quantity: r.quantity * item.quantity });
+for (const line of lines) {
+  // 1. Tiêu hao theo công thức món: định mức (g, ml, piece) * số lượng món
+  for (const pr of line.productRecipes) {
+    needs.push({
+      ingredientId: pr.ingredientId,
+      quantity: pr.quantity * line.item.quantity,
+    });
   }
-  // Lấy định mức từ công thức của từng topping
-  for (const tr of toppingRecipes) {
-    needs.push({ ingredientId: tr.ingredientId, quantity: tr.quantity * item.quantity });
+
+  // 2. Tiêu hao theo công thức topping: lấy theo toppingId của từng dòng (không phụ thuộc size) * số lượng món
+  for (const tr of line.toppingRecipes) {
+    needs.push({
+      ingredientId: tr.ingredientId,
+      quantity: tr.quantity * line.item.quantity,
+    });
   }
 }
+// Chú thích: Nếu nhiều dòng hàng hoặc nhiều topping dùng chung một nguyên liệu,
+// helper deductIngredients sẽ tự động gom tổng số lượng và sắp xếp ingredientId tăng dần chống Deadlock.
 
-// 3. Trừ kho nguyên tử qua helper deductIngredients (tự động gom trùng, lọc <=0, sắp xếp id chống Deadlock):
+// =========================================================================
+// BƯỚC 4: Trừ kho nguyên tử bằng helper deductIngredients
+// =========================================================================
 // deductIngredients trả về danh sách IngredientUsage[] đã gom và trừ kho thành công
 const deductedUsages = await deductIngredients(tx, needs);
 
-// 4. Tạo Order trước với order.id thật:
+// =========================================================================
+// BƯỚC 5: Tạo Order và ghi Snapshot OrderIngredientUsage (không gom lần hai)
+// =========================================================================
 const order = await tx.order.create({
   data: {
     userId,
-    totalAmount,
+    totalAmount: finalAmount,
     status: OrderStatus.PENDING,
-    items: { /* tạo orderItems & orderItemToppings */ },
+    items: {
+      create: dto.items.map((item) => ({
+        productId: item.productId,
+        size: item.size ?? ProductSize.M,
+        quantity: item.quantity,
+        unitPrice: 0, // Tính từ PricingService
+        subtotal: 0,  // Tính từ PricingService
+        toppings: {
+          create: (item.toppingIds ?? []).map((toppingId) => ({
+            toppingId,
+            price: 0,   // Tính từ PricingService
+          })),
+        },
+      })),
+    },
   },
 });
 
-// 5. Ghi nhận Snapshot OrderIngredientUsage trực tiếp từ danh sách helper trả về (không tự gom lần 2):
+// Ghi nhận Snapshot tiêu hao thực tế trực tiếp từ danh sách helper đã gom & trừ thành công
 if (deductedUsages.length > 0) {
   await tx.orderIngredientUsage.createMany({
     data: deductedUsages.map((usage) => ({
@@ -248,6 +342,9 @@ if (deductedUsages.length > 0) {
   });
 }
 ```
+
+> [!NOTE]
+> **CHỜ LEADER CHỐT:** Thiết kế hiện tại quản lý tiêu hao topping thông qua bảng quan hệ `ToppingRecipe` (mỗi topping gắn với 1 hoặc nhiều nguyên liệu). Nếu sau này Leader có quyết định thay đổi cách xử lý topping (ví dụ: dùng lại `Topping.stock` trực tiếp hoặc gắn topping trực tiếp vào `Ingredient`), thì hệ thống chỉ cần thay đổi phần nạp `toppingRecipes` ở **Bước 1** và **Bước 3**; toàn bộ các bước còn lại (kiểm tra D15, trừ kho nguyên tử `deductIngredients`, tạo `Order`, và lưu snapshot `OrderIngredientUsage`) giữ nguyên hoàn toàn. Không tự ý thay đổi thiết kế topping khi chưa có phê duyệt từ Leader.
 
 ### 5.2. Thuật toán Hoàn kho khi Hủy đơn (`POST /orders/:id/cancel`)
 ```typescript
@@ -282,8 +379,8 @@ if (usages.length > 0) {
 
 | Người phụ trách | Vai trò | Nhiệm vụ cụ thể | Tiêu chí hoàn thành (Done Definition) |
 | :--- | :--- | :--- | :--- |
-| **Chiến** | Leader / Architect | - **Docs & Schema:** Viết lại CR doc (`docs/change-request-ingredients.md`), cập nhật DB docs & UML diagrams, tạo migration Prisma, viết helper dùng chung `ingredient-stock.helper.ts`.<br>- **CR-LEADER-02:** Nâng cấp helper `deductIngredients` trả về danh sách đã gom; chốt quy tắc thiếu công thức D15; đồng bộ CR doc và sheet `Quy_tac` trong bảng phân công.<br>- **CR-VERIFY:** Tích hợp code các nhánh, chạy toàn bộ test suites và cập nhật tài liệu/README sau cùng. | Migration chạy sạch; build/test pass; helper trả về đúng danh sách gom; docs và Excel đồng bộ 100%. |
-| **Lan** | Seed & Data | - Viết tài liệu `docs/seed-recipes.md` thống kê định mức F&B thực tế.<br>- Sửa `seed.ts`: Seed danh mục `Ingredient`, `ProductRecipe` cho MỌI (món, size), `ToppingRecipe` cho các topping, 1 nguyên liệu có tồn kho thấp để test.<br>- Giữ `Product.stock > 0` vì `GET /products` vẫn đọc cột deprecated này trong Giai đoạn 1.<br>- **Làm ĐẦU TIÊN** để cung cấp dữ liệu chuẩn cho các nhánh khác. | `prisma db seed` chạy 2 lần liên tiếp không lỗi; DB có đủ nguyên liệu & công thức cho mọi món/size; Product.stock > 0. |
+| **Chiến** | Leader / Architect | - **Docs & Schema:** Viết lại CR doc (`docs/change-request-ingredients.md`), cập nhật DB docs & UML diagrams, tạo migration Prisma, viết helper dùng chung `ingredient-stock.helper.ts`.<br>- **CR-LEADER-02:** Nâng cấp helper `deductIngredients` trả về danh sách đã gom; chốt quy tắc thiếu công thức D15; đồng bộ CR doc và sheet `Quy_tac` trong bảng phân công.<br>- **CR-ROLE-DESIGN:** Chuẩn hóa mã mẫu mục 5.1 trong CR (khai báo theo dòng, nạp công thức gộp, topping theo toppingId); thiết kế `User.role` (D16), cập nhật `docs/auth/**`, database diagrams, sheet `Quy_tac` (D4, D16).<br>- **CR-ROLE:** Hiện thực role: enum `Role` + cột `User.role` (migration `add_user_role`); đưa role vào JWT payload và `req.user`; viết decorator `@Roles()` + `RolesGuard`; `RegisterDto` không nhận role; frontend lưu role trong `useAuthStore`, đăng nhập ADMIN chuyển tới `/admin`, `useRequireAuth` nhận tham số role; unit test `RolesGuard`.<br>- **CR-VERIFY:** Tích hợp code các nhánh, chạy toàn bộ test suites và cập nhật tài liệu/README sau cùng. | Migration chạy sạch; build/test pass; helper trả về đúng danh sách gom; docs và Excel đồng bộ 100%. |
+| **Lan** | Seed & Data | - Viết tài liệu `docs/seed-recipes.md` thống kê định mức F&B thực tế.<br>- Sửa `seed.ts`: Seed danh mục `Ingredient`, `ProductRecipe` cho MỌI (món, size), `ToppingRecipe` cho các topping, 1 nguyên liệu có tồn kho thấp để test.<br>- **CR-LAN-ADMIN:** Seed tài khoản `ADMIN` trong `seed.ts` (làm sau khi CR-ROLE merge): upsert theo email, role ADMIN, mật khẩu băm bcrypt cùng số rounds với auth.service; `ADMIN_EMAIL`/`ADMIN_PASSWORD` đọc từ env, fallback dev mặc định; thêm biến mẫu vào `.env.example`; ghi tài khoản demo vào `docs/seed-recipes.md` hoặc README.<br>- Giữ `Product.stock > 0` vì `GET /products` vẫn đọc cột deprecated này trong Giai đoạn 1.<br>- **Làm sau khi CR-ROLE merge** để cung cấp dữ liệu chuẩn cho các nhánh khác. | `prisma db seed` chạy 2 lần liên tiếp không lỗi; DB có đủ nguyên liệu & công thức cho mọi món/size; Product.stock > 0; đăng nhập được bằng tài khoản ADMIN. |
 | **Hạnh** | Order Core | - Sửa `OrdersService.create`: Kiểm tra thiếu công thức theo quy tắc D15; trừ kho theo nguyên liệu qua helper `deductIngredients`; ghi `OrderIngredientUsage` từ danh sách helper trả về.<br>- Viết lại unit test `orders.service.spec.ts` (và `order.service.spec.ts` nếu còn mock stock cũ).<br>- Cập nhật tài liệu `docs/order/**` (kể cả phần hủy đơn) và file `requests/orders.http`. | Test orders pass; đơn thiếu nguyên liệu trả lỗi 400 rõ tên; món/size chưa có công thức trả 400 rõ ràng; snapshot được lưu đầy đủ. |
 | **Vũ Huy** | Cancel Order | - Sửa `CancelOrderService.cancel`: Hoàn nguyên liệu bằng `restoreIngredients` theo snapshot `OrderIngredientUsage` trong cùng transaction với `OrderService.transition()`.<br>- Đơn cũ tạo trước migration không có snapshot thì bỏ qua (tương thích ngược).<br>- Giữ nguyên các rules hiện có: 404 khác chủ, 409 sai trạng thái / hủy 2 lần, không hoàn lần 2.<br>- Cập nhật file `requests/cancel-order.http`. | Hủy đơn hoàn đúng tồn kho theo snapshot; không lỗi với đơn cũ không có snapshot; các ca lỗi 404/409 giữ nguyên hành vi. |
 | **Kiệt** | Payment Core | - Rà soát module payments: Đảm bảo thanh toán thất bại (`PAYMENT_FAILED`), thử lại (retry), replay không làm thay đổi hay hoàn nhầm tồn kho nguyên liệu.<br>- Cập nhật tài liệu `docs/payment/**`.<br>- Chạy lại test Task 10(b) (idempotency thanh toán) và file `requests/payment.http`. | Test Task 10(b) pass; thanh toán lỗi/retry không làm sai lệch tồn kho nguyên liệu. |
@@ -292,7 +389,7 @@ if (usages.length > 0) {
 > **Ghi chú về phân công:** Thành viên **Quang Huy** không thuộc phạm vi thực hiện của Change Request CR-01 (không phân công task trong đợt này).
 
 ### Thứ tự Merge nhánh:
-$$\text{Chiến (CR-LEADER-02)} \longrightarrow \text{Lan (Seed)} \longrightarrow \text{Hạnh (Order)} \longrightarrow \text{Vũ Huy (Cancel)} \longrightarrow \text{Kiệt (Payment)} \longrightarrow \text{Hào (Test Task 10c)} \longrightarrow \text{Chiến (CR-VERIFY)}$$
+$$\text{Chiến (CR-LEADER-02, CR-ROLE)} \longrightarrow \text{Lan (Seed + Admin)} \longrightarrow \text{Hạnh (Order)} \longrightarrow \text{Vũ Huy (Cancel)} \longrightarrow \text{Kiệt (Payment)} \longrightarrow \text{Hào (Test Task 10c)} \longrightarrow \text{Chiến (CR-VERIFY)}$$
 
 ---
 
@@ -300,7 +397,7 @@ $$\text{Chiến (CR-LEADER-02)} \longrightarrow \text{Lan (Seed)} \longrightarro
 Các tính năng sau sẽ được chuyển sang Giai đoạn 2 và thực hiện bằng Change Request riêng:
 1. **Admin Quản lý Kho:** Màn hình `/admin/ingredients`, API `GET /admin/ingredients`, `PATCH /admin/ingredients/:id/stock`.
 2. **Barista KDS:** Màn hình `/barista`, API `GET /barista/orders`, `PATCH /barista/orders/:id/status`.
-3. **Phân quyền người dùng:** Cột `User.role` (CUSTOMER, ADMIN, BARISTA).
+3. **Giao diện & Chức năng Admin/Barista nâng cao:** Màn hình quản lý người dùng, phân quyền động (nền tảng User.role và RolesGuard đã hoàn thành ở Giai đoạn 1).
 4. **AvailabilityService:** Tính toán cờ `isAvailable` động cho Menu và Product Detail dựa trên tồn kho nguyên liệu.
 5. **Giao diện Giỏ hàng & Thực đơn:** Cảnh báo món hết nguyên liệu trên UI trước khi bấm Đặt hàng.
 6. **Dọn dẹp Database:** Migration xóa các cột cũ `Product.stock`, `Product.version`, `Topping.stock`.

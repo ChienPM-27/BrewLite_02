@@ -47,6 +47,7 @@ Accept: application/json
 | `password` | `@MinLength(6)` | `"Mật khẩu phải có độ dài từ 6 ký tự trở lên"` |
 | `fullName` | `@IsOptional()`, `@IsString()` | `"Họ và tên phải là chuỗi ký tự"` |
 | `fullName` | `@Transform(...)` | Tự động `trim()` chuỗi |
+| `role` | *Không cho phép gửi* | Client KHÔNG được gửi trường `role`. Do `ValidationPipe` đã bật `whitelist: true` và `forbidNonWhitelisted: true`, nếu client cố ý gửi trường `role` sẽ bị trả lỗi `400 Bad Request` |
 
 ### 1.5 Phản hồi thành công (Success Response — `201 Created`)
 Bọc qua `TransformInterceptor` chuẩn của hệ thống:
@@ -60,6 +61,7 @@ Bọc qua `TransformInterceptor` chuẩn của hệ thống:
       "id": "cmv19usr000194rc6vgebmp1",
       "email": "khachhang@example.com",
       "fullName": "Nguyễn Văn A",
+      "role": "CUSTOMER",
       "loyaltyPoints": 0
     }
   },
@@ -146,6 +148,7 @@ Bọc qua `TransformInterceptor`:
       "id": "cmv19usr000194rc6vgebmp1",
       "email": "khachhang@example.com",
       "fullName": "Nguyễn Văn A",
+      "role": "CUSTOMER",
       "loyaltyPoints": 0
     }
   },
@@ -206,20 +209,46 @@ Token JWT chứa payload tối giản theo interface `JwtPayload` (`backend/src/
 {
   "sub": "cmv19usr000194rc6vgebmp1",
   "email": "khachhang@example.com",
+  "role": "CUSTOMER",
   "iat": 1729843200,
   "exp": 1730448000
 }
 ```
 * **`sub`**: Mã định danh duy nhất của người dùng (`User.id` - CUID).
 * **`email`**: Email của người dùng.
+* **`role`**: Vai trò người dùng (`CUSTOMER`, `ADMIN`, `BARISTA`).
 
-### 3.4 Quy tắc trích xuất danh tính (Quyết định thiết kế D4)
+### 3.4 Quy tắc trích xuất danh tính (Quyết định thiết kế D4 & D16)
 - Controller nhận request đã xác thực qua `req.user`:
   ```typescript
   const userId = req.user.sub;
   const email = req.user.email;
+  const role = req.user.role; // CUSTOMER | ADMIN | BARISTA
   ```
-- **Bảo mật tuyệt đối:** Backend trích xuất danh tính khách hàng trực tiếp từ `req.user.sub`. Tuyệt đối không chấp nhận `userId` được gửi qua request body hay query params để chống giả mạo danh tính người dùng khác.
+- **Bảo mật tuyệt đối (D4):** Backend trích xuất danh tính khách hàng trực tiếp từ `req.user.sub` và `req.user.role`. Tuyệt đối không chấp nhận `userId` hay `role` được gửi qua request body hay query params để chống giả mạo danh tính người dùng khác.
+
+### 3.5 Cơ chế Phân quyền Role-based Access Control (`@Roles()` & `RolesGuard`)
+- Các endpoint nhạy cảm (như quản lý admin) được bảo vệ bằng kết hợp:
+  ```typescript
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  ```
+- `RolesGuard` chạy sau `JwtAuthGuard`, trích xuất `req.user.role` và so sánh với metadata quyền từ `@Roles(...)`.
+- Nếu người dùng không có quyền (ví dụ: tài khoản `CUSTOMER` truy cập route `@Roles(Role.ADMIN)`):
+  * Backend trả HTTP `403 Forbidden`:
+  ```json
+  {
+    "success": false,
+    "statusCode": 403,
+    "error": "Forbidden",
+    "message": "Forbidden resource",
+    "timestamp": "2026-10-25T08:00:00.000Z",
+    "path": "/api/v1/admin/ingredients"
+  }
+  ```
+- **Frontend điều hướng theo role (D16):**
+  * Đăng nhập tài khoản `ADMIN`: Frontend tự động điều hướng sang `/admin`.
+  * Đăng nhập tài khoản `CUSTOMER`: Frontend điều hướng sang trang trước đó (`next`) hoặc `/`.
 
 ### 3.5 Thời hạn token (Token Expiration)
 - Được cấu hình linh hoạt thông qua biến môi trường `JWT_EXPIRATION` trong `AuthModule` (mặc định là `'7d'` — 7 ngày nếu không khai báo biến môi trường).

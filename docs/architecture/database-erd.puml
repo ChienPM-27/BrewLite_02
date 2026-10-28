@@ -64,11 +64,18 @@ enum LoyaltyTransactionType <<enumeration>> {
   REFUNDED
 }
 
+enum Role <<enumeration>> {
+  CUSTOMER
+  ADMIN
+  BARISTA
+}
+
 class "User (users)" as User {
   + id : String [PK] <<cuid>>
   + email : String [UK]
   + password_hash : String
   + full_name : String?
+  + role : Role = CUSTOMER
   + loyalty_points : Int = 0
   + created_at : DateTime
   + updated_at : DateTime
@@ -259,6 +266,7 @@ ProductRecipe ..> ProductSize : uses
 
 
 ' Enum dependencies
+User ..> Role : uses
 Order ..> OrderStatus : uses
 OrderStatusHistory ..> OrderStatus : uses
 Payment ..> PaymentMethod : uses
@@ -273,5 +281,6 @@ OrderStatus -[hidden]down-> PaymentMethod
 PaymentMethod -[hidden]down-> PaymentStatus
 PaymentStatus -[hidden]down-> ProductSize
 ProductSize -[hidden]down-> LoyaltyTransactionType
+LoyaltyTransactionType -[hidden]down-> Role
 
 @enduml

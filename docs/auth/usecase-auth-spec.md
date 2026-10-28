@@ -39,8 +39,8 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
    - *Kết quả:* Email chưa từng tồn tại.
 7. Backend thực hiện băm mật khẩu bằng thư viện `bcrypt` với `saltRounds = 10`.
 8. Backend lưu bản ghi mới vào bảng `users` (gán `loyaltyPoints = 0`).
-9. Backend ký mã JWT Access Token chứa payload `{ sub: user.id, email: user.email }` với thời hạn 7 ngày.
-10. Backend trả về phản hồi `201 Created` kèm token và thông tin người dùng.
+9. Backend ký mã JWT Access Token chứa payload `{ sub: user.id, email: user.email, role: user.role }` với thời hạn 7 ngày.
+10. Backend trả về phản hồi `201 Created` kèm token và thông tin người dùng (`user: { id, email, fullName, role, loyaltyPoints }`).
 11. Frontend lưu Access Token vào `localStorage`, cập nhật trạng thái Header hiển thị tên khách hàng và đóng form đăng ký.
 
 #### Các luồng thay thế & ngoại lệ (Alternative & Exception Flows):
@@ -73,7 +73,7 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
 6. Backend so khớp mật khẩu người dùng nhập với `password_hash` trong DB bằng hàm `bcrypt.compare()`.
    - *Kết quả:* Mật khẩu hoàn toàn trùng khớp.
 7. Backend ký JWT Token bằng `JWT_SECRET` bí mật.
-8. Backend trả về `200 OK` chứa `{ accessToken, user: { id, email, fullName, loyaltyPoints } }`.
+8. Backend trả về `200 OK` chứa `{ accessToken, user: { id, email, fullName, role, loyaltyPoints } }` (dựa vào role, frontend điều hướng ADMIN tới `/admin`, CUSTOMER tới trang trước đó hoặc `/`).
 9. Frontend lưu `accessToken` và đồng bộ state người dùng trên toàn ứng dụng.
 
 #### Các luồng ngoại lệ (Exception Flows):
@@ -96,8 +96,9 @@ Phân hệ Xác thực (Authentication) chịu trách nhiệm nhận diện khá
 1. Client gửi request kèm Header: `Authorization: Bearer <accessToken>`.
 2. NestJS `JwtAuthGuard` chặn request trước khi vào Controller.
 3. Guard giải mã Token, kiểm tra chữ ký HMAC-SHA256 và kiểm tra ngày hết hạn (`exp`).
-4. Nếu hợp lệ, Guard gắn thông tin user vào request object: `req.user = { sub, email }` (theo Quyết định D4, trích xuất từ payload của Token).
-5. Nếu Token không tồn tại, hết hạn hoặc sai chữ ký $\rightarrow$ Trả về `401 Unauthorized: "Vui lòng đăng nhập để tiếp tục"`.
+4. Nếu hợp lệ, Guard gắn thông tin user vào request object: `req.user = { sub, email, role }` (theo Quyết định D4 & D16, trích xuất từ payload của Token).
+5. Nếu route yêu cầu phân quyền (`@Roles(...)`), `RolesGuard` đối chiếu `req.user.role`; nếu không đủ quyền $\rightarrow$ Trả về `403 Forbidden: "Forbidden resource"`.
+6. Nếu Token không tồn tại, hết hạn hoặc sai chữ ký $\rightarrow$ Trả về `401 Unauthorized: "Vui lòng đăng nhập để tiếp tục"`.
 
 ---
 
