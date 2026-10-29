@@ -11,6 +11,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { HistoryModule } from './modules/orders/history/history.module';
+import { AdminOrdersModule } from './modules/admin-orders/admin-orders.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { HistoryModule } from './modules/orders/history/history.module';
     PromotionsModule,
     LoyaltyModule,
     HistoryModule,
+    AdminOrdersModule,
   ],
   controllers: [AppController],
 })
