@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   ConflictException,
@@ -12,6 +13,17 @@ import { OrderService } from '../orders/order.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { MockGatewayService } from './mock-gateway.service';
+
+type PaymentResponseSource = {
+  id: string;
+  orderId: string;
+  amount: Prisma.Decimal;
+  method: Prisma.PaymentGetPayload<{}>['method'];
+  status: PaymentStatus;
+  transactionRef: string | null;
+  failureReason: string | null;
+  createdAt: Date;
+};
 
 @Injectable()
 export class PaymentsService {
@@ -47,19 +59,22 @@ export class PaymentsService {
       )
       .digest('hex');
 
-    // 1. Cùng key đã tồn tại: trả lại kết quả cũ.
+    // Cùng key và cùng nội dung: trả lại kết quả đã lưu.
     const existingPayment = await this.prisma.payment.findUnique({
       where: { idempotencyKey: normalizedKey },
       include: { order: true },
     });
 
     if (existingPayment) {
-      return this.replayExistingPayment(existingPayment, userId, requestHash);
+      return this.replayExistingPayment(
+        existingPayment,
+        userId,
+        requestHash,
+      );
     }
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // 2. Kiểm tra đơn hàng và quyền sở hữu.
         const order = await tx.order.findUnique({
           where: { id: body.orderId },
         });
@@ -68,7 +83,6 @@ export class PaymentsService {
           throw new NotFoundException('Không tìm thấy đơn hàng');
         }
 
-        // 3. Chỉ cho phép thanh toán trạng thái hợp lệ.
         if (
           order.status !== OrderStatus.PENDING &&
           order.status !== OrderStatus.PAYMENT_FAILED
@@ -78,8 +92,8 @@ export class PaymentsService {
           );
         }
 
-        // 4. Nếu là đơn hàng thử lại thanh toán sau khi thất bại,
-        // chuyển trạng thái PAYMENT_FAILED -> PENDING theo đúng State Machine (D1, TC-PAY-13)
+        // Retry: chỉ chuyển trạng thái đơn hàng.
+        // Không trừ hoặc hoàn nguyên tồn kho nguyên liệu tại Payment.
         if (order.status === OrderStatus.PAYMENT_FAILED) {
           await this.orderService.transition(
             tx,
@@ -92,7 +106,6 @@ export class PaymentsService {
           );
         }
 
-        // 5. Xác định kết quả mock trước khi tạo Payment.
         const outcome = this.mockGateway.processPayment(mockOutcome);
 
         const payment = await tx.payment.create({
@@ -106,21 +119,19 @@ export class PaymentsService {
           },
         });
 
-        // 6. Thanh toán thành công.
         if (outcome === 'SUCCESS') {
           await this.orderService.transition(tx, order.id, OrderStatus.PAID, {
             changedBy: userId,
             reason: 'Thanh toán thành công',
           });
 
-          // Giữ lời gọi theo đúng contract Payment hiện tại.
           await this.loyaltyService.award(tx, {
             id: order.id,
             userId: order.userId,
             finalAmount: Number(order.finalAmount),
           });
 
-          const updated = await tx.payment.update({
+          const updatedPayment = await tx.payment.update({
             where: { id: payment.id },
             data: {
               status: PaymentStatus.SUCCESS,
@@ -128,10 +139,11 @@ export class PaymentsService {
             },
           });
 
-          return this.toPaymentResponse(updated);
+          return this.toPaymentResponse(updatedPayment);
         }
 
-        // 7. Thanh toán thất bại.
+        // Thanh toán thất bại: cập nhật trạng thái,
+        // không gọi xử lý tồn kho nguyên liệu.
         await this.orderService.transition(
           tx,
           order.id,
@@ -142,7 +154,7 @@ export class PaymentsService {
           },
         );
 
-        const updated = await tx.payment.update({
+        const updatedPayment = await tx.payment.update({
           where: { id: payment.id },
           data: {
             status: PaymentStatus.FAILED,
@@ -150,11 +162,11 @@ export class PaymentsService {
           },
         });
 
-        return this.toPaymentResponse(updated);
+        return this.toPaymentResponse(updatedPayment);
       });
     } catch (error) {
-      // 8. Hai request cùng key có thể chạy đồng thời.
-      // Nếu request còn lại đã tạo Payment, trả lại kết quả đó.
+      // Hai request cùng key có thể chạy đồng thời.
+      // Nếu request còn lại đã tạo Payment, kiểm tra và replay kết quả.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
@@ -194,19 +206,12 @@ export class PaymentsService {
       );
     }
 
+    // Replay chỉ trả kết quả đã lưu; không chạy lại thanh toán,
+    // không thay đổi trạng thái đơn hàng hoặc tồn kho nguyên liệu.
     return this.toPaymentResponse(payment);
   }
 
-  private toPaymentResponse(payment: {
-    id: string;
-    orderId: string;
-    amount: any;
-    method: any;
-    status: any;
-    transactionRef: string | null;
-    failureReason: string | null;
-    createdAt: Date;
-  }) {
+  private toPaymentResponse(payment: PaymentResponseSource) {
     return {
       id: payment.id,
       orderId: payment.orderId,

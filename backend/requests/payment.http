@@ -1,24 +1,21 @@
+
 @baseUrl = http://localhost:4000/api/v1
 @token = YOUR_JWT_TOKEN
 @orderId = YOUR_PENDING_ORDER_ID
 
-### 1. Thanh toán thành công
+### ==================================================
+### TEST 1: Thanh toán thất bại
+### Điều kiện: Order đang ở trạng thái PENDING.
+### Kỳ vọng:
+### - HTTP thành công, Payment có status FAILED.
+### - Order chuyển sang PAYMENT_FAILED.
+### - Không trừ hoặc hoàn tồn kho nguyên liệu từ luồng Payment.
+### ==================================================
+
 POST {{baseUrl}}/payments
 Authorization: Bearer {{token}}
 Content-Type: application/json
-Idempotency-Key: payment-demo-001
-X-Mock-Outcome: SUCCESS
-
-{
-  "orderId": "{{orderId}}",
-  "method": "E_WALLET"
-}
-
-### 2. Gửi lại cùng key và cùng nội dung
-POST {{baseUrl}}/payments
-Authorization: Bearer {{token}}
-Content-Type: application/json
-Idempotency-Key: payment-demo-001
+Idempotency-Key: payment-inventory-fail-001
 X-Mock-Outcome: FAILED
 
 {
@@ -26,36 +23,84 @@ X-Mock-Outcome: FAILED
   "method": "E_WALLET"
 }
 
-### 3. Thanh toán thất bại bằng key mới
+### ==================================================
+### TEST 2: Replay cùng key và cùng nội dung
+### Kỳ vọng:
+### - Trả lại Payment FAILED của TEST 1.
+### - Không tạo Payment mới.
+### - Không xử lý thanh toán lần nữa.
+### - Không thay đổi tồn kho nguyên liệu.
+### - X-Mock-Outcome: SUCCESS bị bỏ qua.
+### ==================================================
+
 POST {{baseUrl}}/payments
 Authorization: Bearer {{token}}
 Content-Type: application/json
-Idempotency-Key: payment-demo-002
+Idempotency-Key: payment-inventory-fail-001
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### ==================================================
+### TEST 3: Cùng key nhưng khác nội dung
+### Kỳ vọng:
+### - HTTP 409 Conflict.
+### - Không tạo Payment mới.
+### - Không xử lý thanh toán.
+### - Không thay đổi tồn kho nguyên liệu.
+### ==================================================
+
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-inventory-fail-001
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "BANK_CARD"
+}
+
+### ==================================================
+### TEST 4: Retry sau khi thanh toán thất bại
+### Điều kiện: Order đang ở trạng thái PAYMENT_FAILED
+### do TEST 1.
+### Dùng Idempotency-Key mới.
+### Kỳ vọng:
+### - Payment có status SUCCESS.
+### - Order chuyển về PENDING rồi sang PAID.
+### - Không thay đổi tồn kho nguyên liệu trong luồng Payment.
+### ==================================================
+
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-inventory-retry-002
+X-Mock-Outcome: SUCCESS
+
+{
+  "orderId": "{{orderId}}",
+  "method": "E_WALLET"
+}
+
+### ==================================================
+### TEST 5: Replay request retry với cùng key và nội dung
+### Kỳ vọng:
+### - Trả lại Payment SUCCESS của TEST 4.
+### - Không tạo Payment mới.
+### - Không xử lý thanh toán lần nữa.
+### - Không thay đổi tồn kho nguyên liệu.
+### - X-Mock-Outcome: FAILED bị bỏ qua.
+### ==================================================
+
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: payment-inventory-retry-002
 X-Mock-Outcome: FAILED
-
-{
-  "orderId": "{{orderId}}",
-  "method": "BANK_CARD"
-}
-
-### 4. Cùng key nhưng khác nội dung
-POST {{baseUrl}}/payments
-Authorization: Bearer {{token}}
-Content-Type: application/json
-Idempotency-Key: payment-demo-001
-X-Mock-Outcome: SUCCESS
-
-{
-  "orderId": "{{orderId}}",
-  "method": "BANK_CARD"
-}
-
-### 5. Thử lại thanh toán sau khi thất bại bằng key mới (Retry PAYMENT_FAILED -> SUCCESS)
-POST {{baseUrl}}/payments
-Authorization: Bearer {{token}}
-Content-Type: application/json
-Idempotency-Key: payment-demo-003
-X-Mock-Outcome: SUCCESS
 
 {
   "orderId": "{{orderId}}",
