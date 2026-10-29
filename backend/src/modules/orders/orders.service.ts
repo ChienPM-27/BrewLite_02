@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import {
+  deductIngredients,
+  IngredientDemand,
+} from '../../common/ingredient-stock.helper';
+
 import { ProductSize, OrderStatus } from '@prisma/client';
 import { PricingService } from '../pricing/pricing.service';
 import { PromotionsService } from '../promotions/promotions.service';
@@ -121,8 +126,6 @@ export class OrdersService {
         select: {
           id: true,
           name: true,
-          stock: true,
-          version: true,
         },
       });
 
@@ -130,9 +133,6 @@ export class OrdersService {
         throw new BadRequestException('One or more products are unavailable.');
       }
 
-      const productById = new Map(
-        products.map((product) => [product.id, product]),
-      );
 
       const toppingIds = [...toppingQuantities.keys()];
 
@@ -153,56 +153,119 @@ export class OrdersService {
         toppings.map((topping) => [topping.id, topping]),
       );
 
-      // Product: optimistic locking theo version và tồn kho.
-      for (const [productId, quantity] of productQuantities) {
-        const product = productById.get(productId);
+      const toppingNameMap = new Map(
+        toppings.map((topping) => [topping.id, topping.name]),
+      );
 
-        if (!product) {
-          throw new BadRequestException(`Product ${productId} is unavailable.`);
-        }
+      // 4. Nạp công thức nguyên liệu của các sản phẩm trong đơn.
+      const rawProductRecipes = await tx.productRecipe.findMany({
+        where: {
+          productId: { in: productIds },
+        },
+      });
 
-        const result = await tx.product.updateMany({
-          where: {
-            id: productId,
-            isAvailable: true,
-            version: product.version,
-            stock: { gte: quantity },
-          },
-          data: {
-            stock: { decrement: quantity },
-            version: { increment: 1 },
-          },
+      const productRecipeMap = new Map<
+        string,
+        Array<{ ingredientId: string; quantity: number }>
+      >();
+
+      for (const recipe of rawProductRecipes) {
+        const key = `${recipe.productId}_${recipe.size}`;
+        const recipes = productRecipeMap.get(key) ?? [];
+
+        recipes.push({
+          ingredientId: recipe.ingredientId,
+          quantity: recipe.quantity,
         });
 
-        if (result.count !== 1) {
+        productRecipeMap.set(key, recipes);
+      }
+
+      // 5. Nạp công thức nguyên liệu của các topping được chọn.
+      const rawToppingRecipes = toppingIds.length
+        ? await tx.toppingRecipe.findMany({
+            where: {
+              toppingId: { in: toppingIds },
+            },
+          })
+        : [];
+
+      const toppingRecipeMap = new Map<
+        string,
+        Array<{ ingredientId: string; quantity: number }>
+      >();
+
+      for (const recipe of rawToppingRecipes) {
+        const recipes = toppingRecipeMap.get(recipe.toppingId) ?? [];
+
+        recipes.push({
+          ingredientId: recipe.ingredientId,
+          quantity: recipe.quantity,
+        });
+
+        toppingRecipeMap.set(recipe.toppingId, recipes);
+      }
+
+      // 6. Kiểm tra công thức và tính nhu cầu nguyên liệu cho toàn bộ đơn.
+      const productNameMap = new Map(
+        products.map((product) => [product.id, product.name]),
+      );
+
+      const needs: IngredientDemand[] = [];
+
+      for (const item of dto.items) {
+        const itemSize = item.size ?? ProductSize.M;
+        const recipeKey = `${item.productId}_${itemSize}`;
+
+        const productRecipes = productRecipeMap.get(recipeKey) ?? [];
+
+        // D15: thiếu công thức món/size thì không được tạo đơn.
+        if (productRecipes.length === 0) {
+          const productName =
+            productNameMap.get(item.productId) ?? item.productId;
+
           throw new BadRequestException(
-            `Insufficient stock or concurrent update for product ${productId}.`,
+            `Món "${productName}" (size ${itemSize}) chưa có công thức nguyên liệu.`,
           );
+        }
+
+        // Nguyên liệu của món chính.
+        for (const recipe of productRecipes) {
+          needs.push({
+            ingredientId: recipe.ingredientId,
+            quantity: recipe.quantity * item.quantity,
+          });
+        }
+
+        // Nguyên liệu của các topping thuộc dòng hàng này.
+        for (const toppingId of item.toppingIds ?? []) {
+          const toppingRecipes = toppingRecipeMap.get(toppingId) ?? [];
+
+          // Không cho phép bán topping chưa có công thức nguyên liệu.
+          if (toppingRecipes.length === 0) {
+            const toppingName =
+              toppingNameMap.get(toppingId) ?? toppingId;
+
+            throw new BadRequestException(
+              `Topping "${toppingName}" chưa có công thức nguyên liệu.`,
+            );
+          }
+
+          for (const recipe of toppingRecipes) {
+            needs.push({
+              ingredientId: recipe.ingredientId,
+              quantity: recipe.quantity * item.quantity,
+            });
+          }
         }
       }
 
-      // Topping: cập nhật có điều kiện, không dùng version.
-      for (const [toppingId, quantity] of toppingQuantities) {
-        const result = await tx.topping.updateMany({
-          where: {
-            id: toppingId,
-            isAvailable: true,
-            stock: { gte: quantity },
-          },
-          data: {
-            stock: { decrement: quantity },
-          },
-        });
+      // 7. Trừ kho nguyên liệu nguyên tử.
+      // Helper tự gom ingredientId trùng nhau và sắp xếp tăng dần.
+      const deductedUsages = await deductIngredients(tx, needs);
 
-        if (result.count !== 1) {
-          throw new BadRequestException(
-            `Insufficient stock for topping ${toppingId}.`,
-          );
-        }
-      }
-
-      // 5. Tạo Order, các dòng hàng và lịch sử trạng thái đầu tiên.
-      return tx.order.create({
+      // 8. Tạo Order, các dòng hàng và lịch sử trạng thái đầu tiên.
+      const order = await tx.order.create({
         data: {
           user: {
             connect: { id: userId },
@@ -281,6 +344,19 @@ export class OrdersService {
           statusHistory: true,
         },
       });
+
+      // 9. Lưu snapshot nguyên liệu đã trừ thành công.
+      if (deductedUsages.length > 0) {
+        await tx.orderIngredientUsage.createMany({
+          data: deductedUsages.map((usage) => ({
+            orderId: order.id,
+            ingredientId: usage.ingredientId,
+            quantity: usage.quantity,
+          })),
+        });
+      }
+
+      return order;
     });
   }
 }
