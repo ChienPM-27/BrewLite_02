@@ -1,7 +1,14 @@
 @base = http://localhost:4000/api/v1
 
-# Yêu cầu: seed DB, POST /orders đã chạy được, OrderService.transition đã implement,
-# và CancelOrderModule đã được import trong AppModule.
+# ==============================================================================
+# Task CR-VUHUY: Hủy đơn hoàn nguyên liệu theo Snapshot (Change Request CR-01)
+# 
+# Các điểm cải tiến chính:
+# - Gỡ bỏ hoàn kho cũ (Product.stock, Topping.stock).
+# - Hoàn nguyên liệu theo snapshot từ bảng `order_ingredient_usages` bằng helper `restoreIngredients`.
+# - Tương thích ngược: Đơn cũ tạo trước migration không có snapshot vẫn hủy thành công (HTTP 200), không ném 500.
+# - Giữ nguyên rules: 404 khác chủ, 409 sai trạng thái / hủy lần 2 (ngăn double-refund).
+# ==============================================================================
 
 ### 0a. Login user A (chủ đơn)
 # @name loginA
@@ -10,7 +17,7 @@ Content-Type: application/json
 
 { "email": "demo@brewlite.test", "password": "Demo@12345" }
 
-### 0b. Đăng ký user B (người lạ) — nếu đã tồn tại thì dùng login
+### 0b. Đăng ký / Đăng nhập user B (người lạ)
 # @name registerB
 POST {{base}}/auth/register
 Content-Type: application/json
@@ -22,7 +29,8 @@ Content-Type: application/json
 @productId = PASTE_PRODUCT_ID_HERE
 @toppingId = PASTE_TOPPING_ID_HERE
 
-### 1. Tạo đơn PENDING (user A) — ghi nhớ stock Product/Topping trước & sau
+### 1. Tạo đơn PENDING (user A)
+# Đơn hàng mới sẽ trừ kho nguyên liệu và ghi snapshot vào bảng `order_ingredient_usages`.
 # @name createOrder
 POST {{base}}/orders
 Authorization: Bearer {{tokenA}}
@@ -32,35 +40,50 @@ Content-Type: application/json
 
 @orderId = {{createOrder.response.body.data.id}}
 
-### 2. [404] User B hủy đơn của A (không lộ sự tồn tại đơn)
+### 2. [404] User B hủy đơn của A (không lộ sự tồn tại của đơn hàng)
 POST {{base}}/orders/{{orderId}}/cancel
 Authorization: Bearer {{tokenB}}
 
-### 3. [404] ID đơn không tồn tại
+### 3. [404] ID đơn hàng không tồn tại
 POST {{base}}/orders/clnotexist000000000000000/cancel
 Authorization: Bearer {{tokenA}}
 
-### 4. [401] Không có token
+### 4. [401] Không có Access Token
 POST {{base}}/orders/{{orderId}}/cancel
 
-### 5. [Success 200] A hủy đơn PENDING -> { id, orderNumber, status: "CANCELLED" }
-# Kiểm tra DB: products.stock +2, products.version +1, toppings.stock +2
+### 5. [Success 200] User A hủy đơn PENDING thành công
+# - Chuyển trạng thái sang CANCELLED.
+# - Hoàn kho nguyên liệu tương ứng trong bảng `ingredients` theo snapshot `order_ingredient_usages`.
+# - KHÔNG tăng `products.stock` hay `toppings.stock`.
+# Kiểm tra DB SQL:
+#   SELECT * FROM order_ingredient_usages WHERE order_id = '{{orderId}}';
+#   SELECT id, name, stock FROM ingredients;
 POST {{base}}/orders/{{orderId}}/cancel
 Authorization: Bearer {{tokenA}}
 
-### 6. [409 Idempotent] Hủy lần 2 trên đơn đã CANCELLED (kho KHÔNG được hoàn thêm)
+### 6. [409 Conflict] Hủy lần 2 trên đơn đã CANCELLED (Tránh double-refund hoàn kho lần 2)
+# Kết quả mong đợi: 409 Conflict. Tồn kho nguyên liệu trong DB không bị cộng thêm lần nữa.
 POST {{base}}/orders/{{orderId}}/cancel
 Authorization: Bearer {{tokenA}}
 
-### 7. [409] Đơn ở trạng thái khác PENDING/PAYMENT_FAILED (ví dụ PAID)
-# Tạo đơn mới, thanh toán thành công (POST /payments, X-Mock-Outcome: SUCCESS) rồi hủy.
-# Hoặc đặt tạm: UPDATE orders SET status = 'PAID' WHERE id = '<orderId2>';
+### 7. [Success 200] Tương thích ngược: Hủy đơn cũ không có snapshot
+# Giả lập đơn cũ: Tạo đơn hoặc dùng đơn đã có nhưng xóa snapshot:
+#   DELETE FROM order_ingredient_usages WHERE order_id = '{{legacyOrderId}}';
+# Kết quả mong đợi: Trả về HTTP 200 OK, status CANCELLED, KHÔNG ném lỗi HTTP 500.
+@legacyOrderId = PASTE_LEGACY_ORDER_ID_HERE
+POST {{base}}/orders/{{legacyOrderId}}/cancel
+Authorization: Bearer {{tokenA}}
+
+### 8. [409 Conflict] Đơn ở trạng thái không thể hủy (ví dụ: PAID)
+# Tạo đơn mới, thanh toán thành công (POST /payments, X-Mock-Outcome: SUCCESS) rồi thử hủy.
+# Hoặc cập nhật tạm: UPDATE orders SET status = 'PAID' WHERE id = '{{orderIdPaid}}';
 @orderIdPaid = PASTE_PAID_ORDER_ID_HERE
 POST {{base}}/orders/{{orderIdPaid}}/cancel
 Authorization: Bearer {{tokenA}}
 
-### 8. [Success 200] Hủy đơn PAYMENT_FAILED
-# Tạo đơn, thanh toán với X-Mock-Outcome: FAIL để đơn sang PAYMENT_FAILED, rồi hủy.
+### 9. [Success 200] Hủy đơn PAYMENT_FAILED
+# Tạo đơn, thanh toán thất bại với Header `X-Mock-Outcome: FAIL` -> đơn sang PAYMENT_FAILED.
+# User A tiến hành hủy đơn -> thành công 200 và hoàn nguyên liệu theo snapshot.
 @orderIdFailed = PASTE_PAYMENT_FAILED_ORDER_ID_HERE
 POST {{base}}/orders/{{orderIdFailed}}/cancel
 Authorization: Bearer {{tokenA}}
