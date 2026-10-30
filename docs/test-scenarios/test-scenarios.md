@@ -83,9 +83,8 @@ Theo đặc tả, Task 10 phải có unit/integration test chứng minh các ti�
 
 | Mã | Kịch bản | Loại | Mức | Ưu tiên | Kết quả mong đợi |
 |---|---|---|---|---|---|
-| TS-FR-09-01 | Đặt đồng thời sản phẩm sắp hết | Concurrency | Integration | High | Transaction và optimistic locking đảm bảo tổng số lượng bán không vượt `stock`. |
-| TS-FR-09-03 | Xung đột version tồn kho | Concurrency | Integration | High | Xung đột optimistic locking không gây sai lệch dữ liệu đơn hoặc tồn kho (Product dùng version, Topping dùng cập nhật có điều kiện stock >= qty - Quyết định D3). |
-| TS-FR-09-04 | Nhất quán khi cập nhật tồn kho | Positive | Integration | High | Đặt hàng thành công commit đồng thời thay đổi tồn kho và dữ liệu đơn. |
+| TS-FR-09-01 | Đặt đồng thời sản phẩm sắp hết | Concurrency | Integration | High | Backend xử lý không lỗi 500, trả về đúng k đơn thành công (201) và N-k đơn từ chối (400). Tồn kho nguyên liệu cuối cùng >= 0. |
+| TS-FR-09-02 | Nhiều món khác nhau dùng chung 1 nguyên liệu | Concurrency | Integration | High | Tổng số đơn thành công của cả 2 món đúng bằng k (201), các đơn còn lại từ chối (400). Kho nguyên liệu chung không bị âm (không deadlock) và trừ đúng định lượng. |
 
 #### FR-10 — Khuyến mãi và điểm thưởng (loyalty)
 
