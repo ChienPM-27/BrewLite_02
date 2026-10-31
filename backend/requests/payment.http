@@ -2,6 +2,7 @@
 @baseUrl = http://localhost:4000/api/v1
 @token = YOUR_JWT_TOKEN
 @orderId = YOUR_PENDING_ORDER_ID
+@vnpayOrderId = YOUR_PENDING_ORDER_ID_FOR_VNPAY
 
 ### ==================================================
 ### TEST 1: Thanh toán thất bại
@@ -105,4 +106,24 @@ X-Mock-Outcome: FAILED
 {
   "orderId": "{{orderId}}",
   "method": "E_WALLET"
+}
+
+### ==================================================
+### TEST 6: Create VNPay Payment
+# Expected:
+# - Payment được tạo với status PENDING.
+# - gateway là VNPAY.
+# - Response có paymentUrl.
+# - Order vẫn giữ trạng thái PENDING, chưa chuyển sang PAID.
+# - Chưa cộng Loyalty Points.
+### ==================================================
+
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Idempotency-Key: payment-vnpay-001
+Content-Type: application/json
+
+{
+  "orderId": "{{vnpayOrderId}}",
+  "method": "BANK_CARD"
 }
