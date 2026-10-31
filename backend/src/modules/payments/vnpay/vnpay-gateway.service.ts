@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   Injectable,
@@ -49,7 +50,13 @@ export class VnpayGatewayService {
 
     this.hashSecret =
       this.configService.get<string>('VNPAY_HASH_SECRET') ?? '';
+  }
 
+  // ==========================================
+  // KIỂM TRA CẤU HÌNH VNPAY
+  // ==========================================
+
+  private validateConfig(): void {
     if (
       !this.tmnCode ||
       !this.hashSecret ||
@@ -68,6 +75,9 @@ export class VnpayGatewayService {
   createPaymentUrl(
     params: CreateVnpayPaymentParams,
   ): string {
+    // Chỉ kiểm tra cấu hình khi thực sự sử dụng VNPay
+    this.validateConfig();
+
     if (
       !params.transactionRef ||
       !params.orderInfo ||
@@ -152,6 +162,9 @@ export class VnpayGatewayService {
   verifyIpnSignature(
     params: VnpayIpnQuery,
   ): boolean {
+    // Chỉ kiểm tra cấu hình khi thực sự xác minh IPN
+    this.validateConfig();
+
     const secureHash = params['vnp_SecureHash'];
 
     // Kiểm tra chữ ký có đúng định dạng không

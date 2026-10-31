@@ -2,7 +2,7 @@
 
 ## 1. Phạm vi
 
-Kiểm thử API `POST /api/v1/payments`, hai phương thức `E_WALLET` và `BANK_CARD`, kết quả từ Mock Payment Gateway, quy tắc `Idempotency-Key`, quy trình retry/replay và yêu cầu bảo toàn tồn kho nguyên liệu.
+Kiểm thử API `POST /api/v1/payments`, hai phương thức `E_WALLET` và `BANK_CARD`, kết quả từ Mock Payment Gateway, VNPay Gateway, quy tắc `Idempotency-Key`, quy trình retry/replay, VNPay URL generation, VNPay IPN và yêu cầu bảo toàn tồn kho nguyên liệu.
 
 Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các trường `Product.stock` và `Topping.stock` đã deprecated không được sử dụng làm căn cứ nghiệm thu yêu cầu này.
 
@@ -39,6 +39,19 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 | TC-PAY-25 | Cùng key nhưng payload khác | Trả `409 Conflict`; không xử lý thanh toán lại và `Ingredient.stock` giữ nguyên. |
 | TC-PAY-26 | Xác nhận Payment không cập nhật tồn kho trực tiếp | Unit test xác nhận luồng Payment không gọi các phương thức cập nhật `Ingredient.stock`. Cần kiểm thử database trước/sau để xác nhận tồn kho thực tế. |
 | TC-PAY-27 | Nhiều lần retry không làm thay đổi tồn kho | Thực hiện nhiều lần thất bại và retry theo state machine; `Ingredient.stock` không thay đổi do các request Payment. |
+| TC-PAY-28 | Tạo VNPay payment URL thành công | Backend tạo Payment với gateway `VNPAY`, trạng thái `PENDING`; gọi VNPay Gateway với mã tham chiếu, số tiền và thông tin đơn hàng chính xác; lưu URL vào `paymentUrl`. |
+| TC-PAY-29 | Tạo VNPay payment URL với số tiền lấy từ Order | Backend sử dụng `Order.finalAmount` để tạo yêu cầu VNPay; không sử dụng số tiền do Frontend tự gửi. |
+| TC-PAY-30 | Tạo VNPay payment URL và kiểm tra trạng thái Order | Sau khi tạo URL thành công, Payment và Order vẫn ở `PENDING`; chưa cộng Loyalty và chưa xác nhận thanh toán thành công. |
+| TC-PAY-31 | VNPay IPN có chữ ký không hợp lệ | Backend trả `RspCode: "97"`; không cập nhật Payment, Order hoặc Loyalty. |
+| TC-PAY-32 | VNPay IPN thiếu dữ liệu bắt buộc | Backend trả `RspCode: "99"`; không cập nhật trạng thái giao dịch. |
+| TC-PAY-33 | VNPay IPN không tìm thấy mã tham chiếu giao dịch | Backend trả `RspCode: "01"`; không cập nhật Payment hoặc Order. |
+| TC-PAY-34 | VNPay IPN có số tiền không khớp Payment | Backend trả `RspCode: "04"`; không cập nhật trạng thái Payment hoặc Order. |
+| TC-PAY-35 | VNPay IPN gửi lại giao dịch đã được xử lý | Backend trả `RspCode: "02"`; không cập nhật Payment lần nữa và không cộng Loyalty trùng. |
+| TC-PAY-36 | VNPay IPN xác nhận giao dịch thành công | Backend xác thực chữ ký, mã tham chiếu và số tiền; Payment chuyển `SUCCESS`, Order chuyển `PAID`, Loyalty được xử lý đúng một lần; response `RspCode: "00"`. |
+| TC-PAY-37 | VNPay IPN xác nhận giao dịch thất bại | Backend xác thực dữ liệu giao dịch; Payment chuyển `FAILED`, Order chuyển `PAYMENT_FAILED`, không cộng Loyalty; response `RspCode: "00"` khi kết quả thất bại đã được ghi nhận thành công. |
+| TC-PAY-38 | Hai request VNPay IPN đồng thời cho cùng giao dịch | Chỉ một request cập nhật được Payment từ `PENDING`; request còn lại không xử lý giao dịch lần hai và trả `RspCode: "02"`. |
+| TC-PAY-39 | VNPay IPN gửi mã giao dịch của gateway khác | Backend không tìm thấy Payment hợp lệ thuộc gateway `VNPAY`; không cập nhật giao dịch thuộc gateway khác. |
+| TC-PAY-40 | VNPay IPN có `vnp_Amount` không đúng định dạng hoặc không phải số nguyên hợp lệ | Backend từ chối dữ liệu và trả mã phản hồi theo quy tắc dữ liệu không hợp lệ; không cập nhật Payment hoặc Order. |
 
 ## 3. Điều kiện nghiệm thu
 
@@ -51,6 +64,11 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 - Với các luồng thất bại, retry và replay, giá trị `Ingredient.stock` trước và sau phải bằng nhau khi không có nghiệp vụ độc lập khác tác động đến tồn kho trong khoảng kiểm thử.
 - Unit test kiểm tra mock không được dùng làm bằng chứng duy nhất cho tồn kho thực tế; cần kiểm thử database trước/sau.
 - Kiểm thử đồng thời phải xác nhận không tạo Payment trùng và phản hồi tuân theo API contract.
+- VNPay URL generation phải sử dụng số tiền và mã tham chiếu giao dịch đúng với dữ liệu Payment trong database.
+- VNPay IPN phải xác thực chữ ký trước khi cập nhật Payment hoặc Order.
+- VNPay IPN phải đối chiếu mã tham chiếu, gateway và số tiền giao dịch.
+- IPN gửi lại không được xử lý giao dịch hoặc cộng Loyalty lần thứ hai.
+- Response IPN phải tuân theo định dạng JSON gồm `RspCode` và `Message`.
 - Chỉ ghi nhận `Pass` hoặc `Fail` sau khi có kết quả kiểm thử thực tế. Test chưa chạy phải được ghi nhận là chưa xác minh.
 - Các trường hợp timeout và production chỉ được nghiệm thu sau khi hành vi được thống nhất, triển khai và kiểm thử.
 
@@ -64,6 +82,10 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 6. `Payment.orderId` cho phép nhiều Payment thuộc cùng một Order để lưu các lần thử khác nhau; `idempotencyKey` phải bảo đảm tính duy nhất.
 7. Không thay đổi logic của `ingredient-stock.helper.ts` hoặc `order.service.ts` trong phạm vi công việc Payment nếu không có yêu cầu phối hợp riêng.
 8. Không đánh dấu test là `Pass` chỉ vì đã viết code hoặc test case.
+9. VNPay URL generation và VNPay IPN là hai giai đoạn riêng biệt. Tạo URL thành công không đồng nghĩa giao dịch đã thanh toán thành công.
+10. Kiểm thử IPN cần kiểm tra cả response JSON và side effect trên Payment, Order, Loyalty.
+11. Đối với IPN đồng thời, cần kiểm tra cơ chế cập nhật có điều kiện theo trạng thái `PENDING` để ngăn xử lý trùng.
+12. Các mã `RspCode` và nội dung `Message` phải được đối chiếu với implementation thực tế của `PaymentsService.handleVnpayIpn()`.
 
 ## 5. Lịch sử thay đổi
 
@@ -72,3 +94,4 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 - v1.2 (2026-10-26): Thống nhất quy tắc HTTP status khi replay Idempotency.
 - v1.3 (2026-10-29): Bổ sung TC-PAY-20 đến TC-PAY-27 về bảo toàn tồn kho nguyên liệu trong các luồng thất bại, retry và replay.
 - v1.4 (2026-10-29): Làm rõ nguyên tắc bảo toàn `Ingredient.stock`, điều kiện nghiệm thu trước/sau, xử lý timeout chưa được xác minh và phạm vi thay đổi của Payment.
+- v1.5 (2026-10-31): Bổ sung TC-PAY-28 đến TC-PAY-40 về VNPay URL generation, VNPay IPN, xác thực chữ ký, kiểm tra dữ liệu giao dịch, response codes và xử lý IPN trùng.
