@@ -120,8 +120,8 @@ Dữ liệu mẫu chuẩn hóa 100% theo `backend/prisma/seed.ts` và `backend/p
     },
     {
       "id": "cmv19kpzz000m94rcy5xv6qr4",
-      "name": "Trà đào cam sả",
-      "basePrice": 39000,
+      "name": "Trà đào",
+      "basePrice": 30000,
       "imageUrl": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600",
       "isAvailable": true,
       "categoryName": "Trà & Trái cây",

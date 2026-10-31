@@ -44,7 +44,7 @@
 - **Size M:** 25g hạt cà phê + 20g đường cát.
 - **Size L:** 36g hạt cà phê + 30g đường cát.
 
-#### C. Trà đào cam sả (Trà đen + Siro đào + Đào miếng)
+#### C. Trà đào (Trà đen + Siro đào + Đào miếng)
 - **Size S:** 10g búp trà đen + 20ml siro đào + 1 miếng đào ngâm.
 - **Size M:** 15g búp trà đen + 30ml siro đào + 2 miếng đào ngâm.
 - **Size L:** 20g búp trà đen + 45ml siro đào + 3 miếng đào ngâm.
