@@ -147,8 +147,11 @@ Response mẫu bọc tự động qua `TransformInterceptor` (Ví dụ: Cà phê
 3. Kiểm tra trạng thái đơn hàng: Chỉ cho phép hủy khi trạng thái hiện tại là `PENDING` hoặc `PAYMENT_FAILED`. Nếu đơn ở trạng thái khác (`PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`): ném lỗi `409 Conflict`.
 4. Thực thi trong transaction:
    - Chuyển trạng thái sang `CANCELLED` qua `OrderService.transition`.
-   - Hoàn trả số lượng tồn kho cho các sản phẩm: tăng `Product.stock` theo `quantity`, tăng `Product.version`.
-   - Hoàn trả số lượng tồn kho cho các toppings tương ứng (`Topping.stock = Topping.stock + quantity`).
+   - Đọc snapshot nguyên liệu đã tiêu hao từ `OrderIngredientUsage` theo `orderId`.
+   - Nếu có snapshot, hoàn trả nguyên liệu bằng helper `restoreIngredients(tx, usages)`.
+   - Nếu đơn được tạo trước migration và không có snapshot, bỏ qua việc hoàn kho để bảo đảm tương thích ngược.
+   - Việc chuyển trạng thái sang `CANCELLED`, hoàn trả nguyên liệu và ghi `OrderStatusHistory` phải nằm trong cùng transaction.
+   - Không hoàn kho lần hai nếu đơn đã bị hủy.
    - Ghi nhận bản ghi `OrderStatusHistory` với `toStatus = CANCELLED`, `reason = "Customer cancelled"`.
 
 **Response 200 OK:**
@@ -199,8 +202,10 @@ Response mẫu bọc tự động qua `TransformInterceptor` (Ví dụ: Cà phê
 
 | Nguồn | Thao tác | Ghi chú |
 |---|---|---|
-| `Product.stock` & `Product.version` | Giảm tồn kho sản phẩm bằng Optimistic Lock | `updateMany({ where: { id, version: currentVersion, stock: { gte: qty } }, data: { stock: { decrement: qty }, version: { increment: 1 } } })`. Nếu 0 dòng cập nhật → rollback & ném `400 Bad Request` (hết hàng/xung đột). |
-| `Topping.stock` | Giảm tồn kho topping bằng Conditional Update | `updateMany({ where: { id: toppingId, stock: { gte: qty } }, data: { stock: { decrement: qty } } })`. Nếu 0 dòng cập nhật → rollback & ném `400 Bad Request` (hết topping). Topping không có cột `version`. |
+| `ProductRecipe` | Đọc công thức theo `productId + size` | Nếu thiếu công thức món/size, trả HTTP 400 theo D15; không được coi là tiêu hao 0. |
+| `ToppingRecipe` | Đọc công thức của các topping được chọn | Topping thiếu công thức bị từ chối bằng HTTP 400 theo quy tắc CR-01 đã thống nhất. |
+| `Ingredient.stock` | Trừ kho bằng `deductIngredients(tx, needs)` | Gom nhu cầu theo `ingredientId`, sắp xếp ID tăng dần, cập nhật có điều kiện `stock >= qty` và `isAvailable = true`. Nếu không đủ tồn kho, rollback và trả HTTP 400. |
+| `OrderIngredientUsage` | Lưu snapshot lượng nguyên liệu đã trừ | Ghi theo `orderId`, `ingredientId` và `quantity` trong cùng transaction tạo đơn. |
 | Lỗi trong quá trình tạo đơn | Rollback transaction | Prisma `$transaction` tự động rollback toàn bộ nếu bất kỳ bước nào thất bại. |
 
 ---

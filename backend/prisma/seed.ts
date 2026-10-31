@@ -29,20 +29,8 @@ async function main() {
   await prisma.toppingRecipe.deleteMany();
   await prisma.ingredient.deleteMany();
 
-  // 2. Tạo User Demo
-  // const passwordHash = await bcrypt.hash('Demo@12345', 10);
-  // const demoUser = await prisma.user.create({
-  //   data: {
-  //     email: 'demo@brewlite.test',
-  //     passwordHash,
-  //     fullName: 'Khách hàng Demo',
-  //     loyaltyPoints: 120, // Có sẵn 120 điểm loyalty
-  //   },
-  // });
-  // console.log(`Đã tạo user demo: ${demoUser.email} / Mật khẩu: Demo@12345`);
-
   // 2. SEED ADMIN & USER DEMO
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@brewlite.com';
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@brewlite.com').trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
   const adminFullName = process.env.ADMIN_FULL_NAME || 'BrewLite Admin';
   const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
@@ -90,7 +78,7 @@ async function main() {
     { name: 'Trân châu trắng', unit: 'g', stock: 5000, minThreshold: 500 },
     { name: 'Bột Creamer Cheese', unit: 'g', stock: 2000, minThreshold: 200 },
     // Nguyên liệu stock cực thấp để test hết hàng
-    { name: 'Đào miếng hộp', unit: 'g', stock: 10, minThreshold: 200 },
+    { name: 'Đào miếng hộp', unit: 'g', stock: 40, minThreshold: 200 },
   ];
 
   for (const ingredient of ingredientsData) {
@@ -145,6 +133,7 @@ async function main() {
       basePrice: 35000,
       imageUrl:
         'https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+        stock:50,
     },
      {
       categoryId: catCoffee.id,
@@ -152,6 +141,7 @@ async function main() {
       basePrice: 35000,
       imageUrl:
         'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=687&auto=format&fit=crop',
+      stock: 50,
     },
     {
       categoryId: catCoffee.id,
@@ -159,6 +149,7 @@ async function main() {
       basePrice: 40000,
       imageUrl:
         'https://images.unsplash.com/photo-1531835207745-506a1bc035d8?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 50,  
     },
     {
       categoryId: catCoffee.id,
@@ -166,6 +157,7 @@ async function main() {
       basePrice: 45000,
       imageUrl:
         'https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 50,
     },
     {
       categoryId: catCoffee.id,
@@ -173,6 +165,7 @@ async function main() {
       basePrice: 45000,
       imageUrl:
         'https://plus.unsplash.com/premium_photo-1674327105074-46dd8319164b?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 50,
     },
     {
       categoryId: catCoffee.id,
@@ -180,6 +173,7 @@ async function main() {
       basePrice: 30000,
       imageUrl:
         'https://plus.unsplash.com/premium_photo-1675435644687-562e8042b9db?q=80&w=749&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+      stock: 50,
     },
     {
       categoryId: catTea.id,
@@ -187,6 +181,7 @@ async function main() {
       basePrice: 30000,
       imageUrl:
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNmLos33YzXpBtOEDQ95sne-4FQ_YTBqFqqSqNyJePfQ&s=10',
+      stock: 50,
     },
     {
       categoryId: catTea.id,
@@ -194,6 +189,7 @@ async function main() {
       basePrice: 30000,
       imageUrl:
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcdWloQy8_LDIfV0ct6XhVmd_qTEvTorZgLLlf6BxjdQ&s=10',
+      stock: 50,
     },
     {
       categoryId: catTea.id,
@@ -201,6 +197,7 @@ async function main() {
       basePrice: 30000,
       imageUrl:
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShzDIxjAlMS0tjL1hutOob8JLVCLeE8C6zCg2OlGniKQ&s=10',
+      stock: 50,
     },
     {
       categoryId: catTea.id,
@@ -208,6 +205,7 @@ async function main() {
       basePrice: 40000,
       imageUrl:
         'https://images.unsplash.com/photo-1558857563-b371033873b8?q=80&w=687&auto=format&fit=crop',
+      stock: 50,
     },
   ];
 

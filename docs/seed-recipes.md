@@ -20,7 +20,7 @@ Tài liệu này tổng hợp danh mục nguyên liệu, định mức tiêu hao
 | Mứt Đào / Dâu / Quýt | g | 2,000 | 200 | Mứt trái cây |
 | Trân châu trắng | g | 5,000 | 500 | Topping |
 | Bột Creamer Cheese | g | 2,000 | 200 | Topping |
-| Đào miếng hộp | g | 10 | 200 | **Tồn kho cực thấp dùng cho test hết hàng** |
+| Đào miếng hộp | g | 40 | 200 | **Tồn kho thấp dùng cho test hết hàng** |
 
 ---
 
