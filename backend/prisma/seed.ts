@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient, ProductSize } from '@prisma/client';
+import { PrismaClient, ProductSize, Role} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -24,18 +24,82 @@ async function main() {
   await prisma.topping.deleteMany();
   await prisma.promotion.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.orderIngredientUsage.deleteMany();
+  await prisma.productRecipe.deleteMany();
+  await prisma.toppingRecipe.deleteMany();
+  await prisma.ingredient.deleteMany();
 
   // 2. Tạo User Demo
-  const passwordHash = await bcrypt.hash('Demo@12345', 10);
+  // const passwordHash = await bcrypt.hash('Demo@12345', 10);
+  // const demoUser = await prisma.user.create({
+  //   data: {
+  //     email: 'demo@brewlite.test',
+  //     passwordHash,
+  //     fullName: 'Khách hàng Demo',
+  //     loyaltyPoints: 120, // Có sẵn 120 điểm loyalty
+  //   },
+  // });
+  // console.log(`Đã tạo user demo: ${demoUser.email} / Mật khẩu: Demo@12345`);
+
+  // 2. SEED ADMIN & USER DEMO
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@brewlite.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+  const adminFullName = process.env.ADMIN_FULL_NAME || 'BrewLite Admin';
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+
+  const adminUser = await prisma.user.create({
+    data: {
+      email: adminEmail,
+      passwordHash: adminPasswordHash,
+      fullName: adminFullName,
+      role: Role.ADMIN,
+    },
+  });
+  console.log(`✅ Đã tạo tài khoản ADMIN: ${adminUser.email}`);
+
+  // Seed Customer Demo
+  const demoPasswordHash = await bcrypt.hash('Demo@12345', 10);
   const demoUser = await prisma.user.create({
     data: {
       email: 'demo@brewlite.test',
-      passwordHash,
+      passwordHash: demoPasswordHash,
       fullName: 'Khách hàng Demo',
-      loyaltyPoints: 120, // Có sẵn 120 điểm loyalty
+      loyaltyPoints: 120,
+      role: Role.CUSTOMER,
     },
   });
-  console.log(`Đã tạo user demo: ${demoUser.email} / Mật khẩu: Demo@12345`);
+  console.log(`✅ Đã tạo user demo: ${demoUser.email}`);
+
+  // SEED INGREDIENTS
+  const ingredientsData = [
+    { name: 'Nước lọc',unit: 'ml',stock: 20000,minThreshold: 2000,},
+    { name: 'Hạt cà phê Robusta', unit: 'g', stock: 10000, minThreshold: 1000 },
+    { name: 'Hạt cà phê Arabica', unit: 'g', stock: 5000, minThreshold: 500 },
+    { name: 'Sữa đặc', unit: 'ml', stock: 8000, minThreshold: 1000 },
+    { name: 'Sữa tươi', unit: 'ml', stock: 10000, minThreshold: 2000 },
+    { name: 'Đường nước', unit: 'ml', stock: 5000, minThreshold: 500 },
+    { name: 'Hồng trà', unit: 'g', stock: 3000, minThreshold: 300 },
+    { name: 'Lục trà', unit: 'g', stock: 3000, minThreshold: 300 },
+    { name: 'Siro Đào', unit: 'ml', stock: 2000, minThreshold: 200 },
+    { name: 'Siro Nhãn', unit: 'ml', stock: 2000, minThreshold: 200 },
+    { name: 'Siro Dâu', unit: 'ml', stock: 2000, minThreshold: 200 },
+    { name: 'Siro Quýt', unit: 'ml', stock: 2000, minThreshold: 200 },
+    { name: 'Mứt Đào', unit: 'g', stock: 2000, minThreshold: 200 },
+    { name: 'Mứt Dâu', unit: 'g', stock: 2000, minThreshold: 200 },
+    { name: 'Mứt Quýt', unit: 'g', stock: 2000, minThreshold: 200 },
+    { name: 'Trân châu trắng', unit: 'g', stock: 5000, minThreshold: 500 },
+    { name: 'Bột Creamer Cheese', unit: 'g', stock: 2000, minThreshold: 200 },
+    // Nguyên liệu stock cực thấp để test hết hàng
+    { name: 'Đào miếng hộp', unit: 'g', stock: 10, minThreshold: 200 },
+  ];
+
+  for (const ingredient of ingredientsData) {
+  await prisma.ingredient.create({
+    data: {
+      ...ingredient,
+      isAvailable: true,
+    },
+  })};
 
   // 3. Tạo Categories
   const catCoffee = await prisma.category.create({
@@ -72,6 +136,7 @@ async function main() {
 
   console.log('Đã tạo 3 topping.');
 
+
   const productsData = [
     // Có hình ảnh cho từng sản phẩm và ít nhất một sản phẩm tồn kho thấp.
     {
@@ -80,7 +145,13 @@ async function main() {
       basePrice: 35000,
       imageUrl:
         'https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
-      stock: 100,
+    },
+     {
+      categoryId: catCoffee.id,
+      name: 'Bạc xỉu',
+      basePrice: 35000,
+      imageUrl:
+        'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=687&auto=format&fit=crop',
     },
     {
       categoryId: catCoffee.id,
@@ -88,7 +159,6 @@ async function main() {
       basePrice: 40000,
       imageUrl:
         'https://images.unsplash.com/photo-1531835207745-506a1bc035d8?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
-      stock: 80,
     },
     {
       categoryId: catCoffee.id,
@@ -96,7 +166,6 @@ async function main() {
       basePrice: 45000,
       imageUrl:
         'https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
-      stock: 60,
     },
     {
       categoryId: catCoffee.id,
@@ -104,7 +173,6 @@ async function main() {
       basePrice: 45000,
       imageUrl:
         'https://plus.unsplash.com/premium_photo-1674327105074-46dd8319164b?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
-      stock: 50,
     },
     {
       categoryId: catCoffee.id,
@@ -112,39 +180,27 @@ async function main() {
       basePrice: 30000,
       imageUrl:
         'https://plus.unsplash.com/premium_photo-1675435644687-562e8042b9db?q=80&w=749&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
-      stock: 40,
-    },
-    {
-      categoryId: catCoffee.id,
-      name: 'Bạc xỉu',
-      basePrice: 35000,
-      imageUrl:
-        'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=687&auto=format&fit=crop',
-      stock: 5, // Sản phẩm tồn kho thấp.
     },
     {
       categoryId: catTea.id,
-      name: 'Trà đào cam sả',
-      basePrice: 39000,
-      imageUrl:
-        'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=764&auto=format&fit=crop',
-      stock: 75,
-    },
-    {
-      categoryId: catTea.id,
-      name: 'Trà chanh',
+      name: 'Trà đào',
       basePrice: 30000,
       imageUrl:
-        'https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=687&auto=format&fit=crop',
-      stock: 70,
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNmLos33YzXpBtOEDQ95sne-4FQ_YTBqFqqSqNyJePfQ&s=10',
     },
     {
       categoryId: catTea.id,
-      name: 'Trà vải',
-      basePrice: 39000,
+      name: 'Trà nhãn',
+      basePrice: 30000,
       imageUrl:
-        'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?q=80&w=687&auto=format&fit=crop',
-      stock: 45,
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcdWloQy8_LDIfV0ct6XhVmd_qTEvTorZgLLlf6BxjdQ&s=10',
+    },
+    {
+      categoryId: catTea.id,
+      name: 'Trà quýt',
+      basePrice: 30000,
+      imageUrl:
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShzDIxjAlMS0tjL1hutOob8JLVCLeE8C6zCg2OlGniKQ&s=10',
     },
     {
       categoryId: catTea.id,
@@ -152,7 +208,6 @@ async function main() {
       basePrice: 40000,
       imageUrl:
         'https://images.unsplash.com/photo-1558857563-b371033873b8?q=80&w=687&auto=format&fit=crop',
-      stock: 35,
     },
   ];
 
@@ -180,8 +235,151 @@ async function main() {
       });
     }
 
-    console.log(`Đã tạo ${product.name} - Tồn kho: ${item.stock}`);
+    console.log(`Đã tạo ${product.name}`);
   }
+
+  
+  // SEED RECIPES
+  const baseRecipes = [
+    {
+      productName: 'Cà phê sữa đá',
+      ingredients: [
+        { name: 'Hạt cà phê Robusta', quantity: 25 },
+        { name: 'Sữa đặc', quantity: 30 },
+      ]
+    },
+    {
+      productName: 'Bạc xỉu',
+      ingredients: [
+        { name: 'Hạt cà phê Robusta', quantity: 25 },
+        { name: 'Sữa đặc', quantity: 35 },
+        { name: 'Sữa tươi', quantity: 60 },
+      ]
+    },
+    {
+      productName: 'Americano',
+      ingredients: [
+        { name: 'Hạt cà phê Arabica', quantity: 18 },
+        { name: 'Nước lọc', quantity: 100 },
+      ]
+    },
+    {
+      productName: 'Cappuccino',
+      ingredients: [
+        { name: 'Hạt cà phê Arabica', quantity: 18 },
+        { name: 'Sữa tươi', quantity: 110 },
+      ]
+    },
+    {
+      productName: 'Latte',
+      ingredients: [
+        { name: 'Hạt cà phê Arabica', quantity: 18 },
+        { name: 'Sữa tươi', quantity: 140 },
+      ]
+    },
+    {
+      productName: 'Espresso',
+      ingredients: [
+        { name: 'Hạt cà phê Arabica', quantity: 18 },
+      ]
+    },
+    { productName: 'Trà đào',
+      ingredients: [
+        { name: 'Hồng trà', quantity: 3 },
+        { name: 'Siro Đào', quantity: 30 },
+        {name: 'Mứt Đào', quantity: 20 },
+        {name: 'Đường nước', quantity: 20 }
+      ]},
+      { productName: 'Trà nhãn',
+      ingredients: [
+        { name: 'Lục trà', quantity: 3 },
+        { name: 'Siro Nhãn', quantity: 50 },
+        {name: 'Đường nước', quantity: 40 }]},
+      { productName: 'Trà quýt',
+      ingredients: [
+        { name: 'Lục trà', quantity: 3 },
+        { name: 'Siro Quýt', quantity: 30 },
+        {name: 'Mứt Quýt', quantity: 20 },
+        {name: 'Đường nước', quantity: 30 }
+      ]},
+    { productName: 'Trà dâu',
+      ingredients: [
+        { name: 'Lục trà', quantity: 3 },
+        { name: 'Siro Dâu', quantity: 30 },
+        {name: 'Mứt Dâu', quantity: 20 },
+        {name: 'Đường nước', quantity: 30 }]},
+  ];
+
+  const sizes = [
+  { size: 'S', factor: 0.8 },
+  { size: 'M', factor: 1 },
+  { size: 'L', factor: 1.2 },
+];
+
+// Công thức định lượng cho từng sản phẩm
+for (const recipe of baseRecipes) {
+  const product = await prisma.product.findFirst({
+    where: { name: recipe.productName },
+  });
+
+  if (!product) {
+    throw new Error(`Không tìm thấy sản phẩm: ${recipe.productName}`);
+  }
+
+  for (const itemSize of sizes) {
+    const size = itemSize.size;
+    const factor = itemSize.factor;
+
+    for (const item of recipe.ingredients) {
+      const ingredient = await prisma.ingredient.findUnique({
+        where: { name: item.name },
+      });
+
+      if (!ingredient) {
+        throw new Error(`Không tìm thấy nguyên liệu: ${item.name}`);
+      }
+
+      await prisma.productRecipe.create({
+        data: {
+          productId: product.id,
+          size: size as ProductSize,
+          ingredientId: ingredient.id,
+          quantity: Math.round(item.quantity * factor),
+        },
+      });
+    }
+  }
+}
+
+  const toppingRecipes = [
+    { topping: 'Trân châu trắng', ingredient:'Trân châu trắng', quantity: 30  },
+    { topping: 'Kem Cheese', ingredient: 'Bột Creamer Cheese', quantity: 20 },
+    { topping: 'Đào miếng', ingredient: 'Đào miếng hộp', quantity: 30 },
+  ]
+
+  for (const recipe of toppingRecipes) {
+  const topping = await prisma.topping.findUnique({
+    where: { name: recipe.topping },
+  });
+
+  const ingredient = await prisma.ingredient.findUnique({
+    where: { name: recipe.ingredient },
+  });
+
+  if (!topping || !ingredient) {
+    throw new Error(
+      `Không tìm thấy topping hoặc nguyên liệu của ${recipe.topping}`,
+    );
+  }
+
+  await prisma.toppingRecipe.create({
+    data: {
+      toppingId: topping.id,
+      ingredientId: ingredient.id,
+      quantity: recipe.quantity,
+    },
+  });
+}
 
   // 6. Tạo Promotions (Vouchers)
   await prisma.promotion.createMany({
@@ -215,3 +413,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
