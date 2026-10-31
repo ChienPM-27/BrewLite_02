@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
+import { restoreIngredients } from '../../../common/ingredient-stock.helper';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { OrderService } from '../order.service';
 
@@ -19,9 +20,10 @@ export interface CancelOrderResult {
 }
 
 /**
- * POST /orders/:id/cancel (D6).
+ * POST /orders/:id/cancel (D6, CR-01).
  * - Không ghi `Order.status` trực tiếp: luôn đi qua `OrderService.transition()`.
- * - Đổi trạng thái + hoàn kho Product/Topping nằm trong CÙNG một $transaction.
+ * - Đổi trạng thái + hoàn kho nguyên liệu theo snapshot nằm trong CÙNG một $transaction.
+ * - Tương thích ngược: Đơn cũ không có snapshot thì bỏ qua bước hoàn kho, không ném 500.
  */
 @Injectable()
 export class CancelOrderService {
@@ -34,7 +36,6 @@ export class CancelOrderService {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
-        include: { items: { include: { toppings: true } } },
       });
 
       // Không tồn tại hoặc không phải chủ đơn -> 404 (không lộ sự tồn tại của đơn).
@@ -59,23 +60,20 @@ export class CancelOrderService {
         { changedBy: userId, reason: 'Customer cancelled' },
       );
 
-      // Hoàn kho cho Product (tăng version để vô hiệu hóa optimistic lock đang chạy).
-      for (const item of order.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: { increment: item.quantity },
-            version: { increment: 1 },
-          },
-        });
+      // 2. Lấy snapshot nguyên liệu đã dùng của đơn hàng từ bảng OrderIngredientUsage
+      const usages = await tx.orderIngredientUsage.findMany({
+        where: { orderId },
+      });
 
-        // Hoàn kho cho Topping (mỗi topping của dòng bị trừ `quantity` lúc đặt).
-        for (const itemTopping of item.toppings) {
-          await tx.topping.update({
-            where: { id: itemTopping.toppingId },
-            data: { stock: { increment: item.quantity } },
-          });
-        }
+      // 3. Tương thích ngược: Đơn cũ tạo trước migration không có snapshot thì bỏ qua, không ném 500
+      if (usages && usages.length > 0) {
+        await restoreIngredients(
+          tx,
+          usages.map((u) => ({
+            ingredientId: u.ingredientId,
+            quantity: Number(u.quantity),
+          })),
+        );
       }
 
       return {
