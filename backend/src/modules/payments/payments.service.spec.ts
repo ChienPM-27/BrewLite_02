@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   ConflictException,
@@ -10,6 +11,7 @@ import {
   PaymentStatus,
   Prisma,
 } from '@prisma/client';
+import { createHash } from 'crypto';
 
 import { PaymentsService } from './payments.service';
 import { MockGatewayService } from './mock-gateway.service';
@@ -30,6 +32,11 @@ describe('PaymentsService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    // Payment không được trực tiếp cập nhật tồn kho nguyên liệu.
+    ingredient: {
+      updateMany: jest.fn(),
+      update: jest.fn(),
+    },
   };
 
   const prismaMock = {
@@ -47,6 +54,26 @@ describe('PaymentsService', () => {
     award: jest.fn(),
   };
 
+  const validDto = {
+    orderId: 'order-1',
+    method: PaymentMethod.E_WALLET,
+  };
+
+  // Phải giống cách PaymentsService tạo requestHash.
+  const validRequestHash = createHash('sha256')
+    .update(
+      JSON.stringify({
+        orderId: validDto.orderId,
+        method: validDto.method,
+      }),
+    )
+    .digest('hex');
+
+  function expectIngredientStockUnchanged() {
+    expect(tx.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(tx.ingredient.update).not.toHaveBeenCalled();
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -61,14 +88,10 @@ describe('PaymentsService', () => {
     );
 
     prismaMock.$transaction.mockImplementation(
-      async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      async (callback: (client: typeof tx) => Promise<unknown>) =>
+        callback(tx),
     );
   });
-
-  const validDto = {
-    orderId: 'order-1',
-    method: PaymentMethod.E_WALLET,
-  };
 
   it('creates payment successfully and transitions PENDING -> PAID, awarding loyalty points', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
@@ -117,9 +140,10 @@ describe('PaymentsService', () => {
     );
 
     expect(result.status).toBe(PaymentStatus.SUCCESS);
+    expectIngredientStockUnchanged();
   });
 
-  it('creates failed payment and transitions PENDING -> PAYMENT_FAILED without awarding loyalty', async () => {
+  it('creates failed payment and transitions PENDING -> PAYMENT_FAILED without awarding loyalty or changing ingredient stock', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
 
     tx.order.findUnique.mockResolvedValue({
@@ -158,9 +182,10 @@ describe('PaymentsService', () => {
 
     expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
     expect(result.status).toBe(PaymentStatus.FAILED);
+    expectIngredientStockUnchanged();
   });
 
-  it('retries failed payment with new key: transitions PAYMENT_FAILED -> PENDING -> PAID', async () => {
+  it('retries failed payment with new key: PAYMENT_FAILED -> PENDING -> PAID without changing ingredient stock', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
 
     tx.order.findUnique.mockResolvedValue({
@@ -207,9 +232,10 @@ describe('PaymentsService', () => {
     );
 
     expect(result.status).toBe(PaymentStatus.SUCCESS);
+    expectIngredientStockUnchanged();
   });
 
-  it('retries failed payment with new key and fails again: transitions PAYMENT_FAILED -> PENDING -> PAYMENT_FAILED', async () => {
+  it('retries failed payment with new key and fails again without changing ingredient stock', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
 
     tx.order.findUnique.mockResolvedValue({
@@ -256,15 +282,20 @@ describe('PaymentsService', () => {
     );
 
     expect(result.status).toBe(PaymentStatus.FAILED);
+    expectIngredientStockUnchanged();
   });
 
-  it('replays existing payment when same idempotency key and payload are submitted without order relation', async () => {
+  it('replays existing payment for the same key and payload without changing ingredient stock', async () => {
     const existing = {
       id: 'pay-1',
       orderId: 'order-1',
-      requestHash:
-        '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.E_WALLET,
       status: PaymentStatus.SUCCESS,
+      transactionRef: 'MOCK-pay-1',
+      failureReason: null,
+      createdAt: new Date('2026-10-22T00:00:00.000Z'),
+      requestHash: validRequestHash,
       order: {
         userId: 'user-1',
       },
@@ -280,11 +311,14 @@ describe('PaymentsService', () => {
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
     expect(orderServiceMock.transition).not.toHaveBeenCalled();
+    expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
     expect(result.id).toBe('pay-1');
+    expect(result.status).toBe(PaymentStatus.SUCCESS);
     expect(result).not.toHaveProperty('order');
+    expectIngredientStockUnchanged();
   });
 
-  it('handles concurrency race condition P2002 by replaying existing payment', async () => {
+  it('replays existing payment after a P2002 race without changing ingredient stock', async () => {
     prismaMock.payment.findUnique.mockResolvedValueOnce(null);
 
     const p2002Error = new Prisma.PrismaClientKnownRequestError(
@@ -300,9 +334,13 @@ describe('PaymentsService', () => {
     const racePayment = {
       id: 'pay-race',
       orderId: 'order-1',
-      requestHash:
-        '92ef20fbae9591ea2f3ac018d1ced42c9bc774534bbe06f64f4689dc435143c9',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.E_WALLET,
       status: PaymentStatus.SUCCESS,
+      transactionRef: 'MOCK-pay-race',
+      failureReason: null,
+      createdAt: new Date('2026-10-22T00:00:00.000Z'),
+      requestHash: validRequestHash,
       order: {
         userId: 'user-1',
       },
@@ -317,10 +355,12 @@ describe('PaymentsService', () => {
     );
 
     expect(result.id).toBe('pay-race');
+    expect(result.status).toBe(PaymentStatus.SUCCESS);
     expect(result).not.toHaveProperty('order');
+    expectIngredientStockUnchanged();
   });
 
-  it('throws ConflictException when same idempotency key is submitted with different payload', async () => {
+  it('throws ConflictException when the same idempotency key is submitted with a different payload', async () => {
     const existing = {
       id: 'pay-1',
       orderId: 'order-1',
@@ -336,9 +376,40 @@ describe('PaymentsService', () => {
     await expect(
       service.createPayment('user-1', 'idem-key-1', validDto),
     ).rejects.toThrow(ConflictException);
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expectIngredientStockUnchanged();
   });
 
-  it('allows payment in production environment and defaults to SUCCESS', async () => {
+  it('returns NotFoundException when the payment belongs to another user', async () => {
+    prismaMock.payment.findUnique.mockResolvedValue({
+      id: 'pay-1',
+      orderId: 'order-1',
+      requestHash: validRequestHash,
+      status: PaymentStatus.SUCCESS,
+      order: {
+        userId: 'another-user',
+      },
+    });
+
+    await expect(
+      service.createPayment('user-1', 'idem-key-1', validDto),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expectIngredientStockUnchanged();
+  });
+
+  it('rejects a missing idempotency key without changing ingredient stock', async () => {
+    await expect(
+      service.createPayment('user-1', '   ', validDto),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expectIngredientStockUnchanged();
+  });
+
+  it('allows payment in production and defaults to SUCCESS when no outcome is provided', async () => {
     const prodConfig = new ConfigService({ NODE_ENV: 'production' });
     const prodGateway = new MockGatewayService(prodConfig);
     const prodService = new PaymentsService(
@@ -374,7 +445,7 @@ describe('PaymentsService', () => {
       'user-1',
       'idem-prod-1',
       validDto,
-      'FAILED', // In production, this header should be ignored and outcome should still be SUCCESS
+      'FAILED',
     );
 
     expect(orderServiceMock.transition).toHaveBeenCalledWith(
@@ -385,9 +456,10 @@ describe('PaymentsService', () => {
     );
 
     expect(result.status).toBe(PaymentStatus.SUCCESS);
+    expectIngredientStockUnchanged();
   });
 
-  it('returns lean payment response without internal fields (idempotencyKey, requestHash, order)', async () => {
+  it('returns a lean payment response without internal fields', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
 
     tx.order.findUnique.mockResolvedValue({
@@ -404,6 +476,7 @@ describe('PaymentsService', () => {
     });
 
     const createdAt = new Date('2026-10-22T00:00:00.000Z');
+
     tx.payment.update.mockResolvedValue({
       id: 'pay-1',
       orderId: 'order-1',
@@ -435,8 +508,10 @@ describe('PaymentsService', () => {
       failureReason: null,
       createdAt,
     });
+
     expect(result).not.toHaveProperty('idempotencyKey');
     expect(result).not.toHaveProperty('requestHash');
     expect(result).not.toHaveProperty('order');
+    expectIngredientStockUnchanged();
   });
 });
