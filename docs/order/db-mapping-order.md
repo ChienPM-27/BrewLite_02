@@ -88,19 +88,32 @@ Module Order tương tác trực tiếp với 4 bảng dữ liệu cốt lõi tr
    $$\text{finalAmount} = \max(0, \text{totalAmount} - \text{discountAmount})$$
 
 3. **Transaction Boundary (Prisma `$transaction`):**
-   - **Tạo đơn hàng:**
-     + Trừ tồn kho `Product.stock` bằng Optimistic Locking (`version: currentVersion, stock: { gte: quantity }`).
-     + Trừ tồn kho `Topping.stock` có điều kiện (`stock: { gte: item.quantity }`).
-     + `Order.create` kèm các dòng `OrderItem`, `OrderItemTopping` và bản ghi khởi tạo `OrderStatusHistory`.
-     + Rollback toàn bộ nếu bất kỳ bước nào thất bại.
-   - **Hủy đơn hàng (`POST /orders/:id/cancel` - D6):**
-     + Chỉ cho phép khi đơn ở `PENDING` hoặc `PAYMENT_FAILED`.
-     + Hoàn tồn kho `Product.stock` (+quantity, +1 version) và `Topping.stock` (+1) trong cùng transaction.
-     + Cập nhật `Order.status = CANCELLED` và tạo `OrderStatusHistory`.
-   - **Cộng điểm thưởng Loyalty (D9):**
-     + Khi chuyển đơn sang `PAID`: tính `points = Math.floor(finalAmount / 1000)`.
-     + Cập nhật `Order.pointsEarned`, tăng `User.loyaltyPoints` và tạo bản ghi `LoyaltyTransaction` loại `EARNED` trong cùng transaction với transition sang `PAID`.
 
+  - **Tạo đơn hàng (CR-01):**
+    + Kiểm tra người dùng, sản phẩm và topping hợp lệ.
+    + Đọc `ProductRecipe` theo cặp `productId + size` của từng dòng hàng.
+    + Đọc `ToppingRecipe` cho các topping được chọn.
+    + Nếu thiếu công thức món/size, trả HTTP 400 theo quy tắc D15; không coi là tiêu hao 0.
+    + Nếu thiếu công thức topping, từ chối tạo đơn bằng HTTP 400 theo quy tắc CR-01 đã thống nhất.
+    + Tính lượng tiêu hao theo định mức công thức nhân với số lượng đặt.
+    + Gom nhu cầu theo `ingredientId` và sắp xếp ID tăng dần để giảm nguy cơ deadlock.
+    + Gọi `deductIngredients(tx, needs)` để trừ `Ingredient.stock` bằng cập nhật có điều kiện `stock >= qty` và `isAvailable = true`.
+    + Tạo `Order`, các dòng `OrderItem`, `OrderItemTopping` và bản ghi khởi tạo `OrderStatusHistory`.
+    + Lưu `OrderIngredientUsage` từ danh sách helper trả về, ghi nhận tổng lượng nguyên liệu đã trừ theo từng nguyên liệu.
+    + Tất cả thao tác trừ kho, tạo đơn và lưu snapshot nằm trong cùng transaction. Rollback toàn bộ nếu bất kỳ bước nào thất bại.
+
+  - **Hủy đơn hàng (`POST /orders/:id/cancel` - D6):**
+    + Chỉ cho phép khi đơn ở trạng thái `PENDING` hoặc `PAYMENT_FAILED`.
+    + Đọc snapshot `OrderIngredientUsage` theo `orderId`.
+    + Nếu có snapshot, gọi `restoreIngredients(tx, usages)` để hoàn trả nguyên liệu đã trừ.
+    + Nếu đơn được tạo trước migration và không có snapshot, bỏ qua việc hoàn kho để bảo đảm tương thích ngược.
+    + Cập nhật trạng thái sang `CANCELLED` qua `OrderService.transition()` và ghi `OrderStatusHistory`.
+    + Việc chuyển trạng thái và hoàn trả nguyên liệu phải nằm trong cùng transaction.
+    + Không hoàn kho lần hai nếu đơn đã bị hủy.
+
+  - **Cộng điểm thưởng Loyalty (D9):**
+    + Khi chuyển đơn sang `PAID`: tính `points = Math.floor(finalAmount / 1000)`.
+    + Cập nhật `Order.pointsEarned`, tăng `User.loyaltyPoints` và tạo bản ghi `LoyaltyTransaction` loại `EARNED` trong cùng transaction với transition sang `PAID`.
 ---
 
 ## 4. Điểm cần xử lý (Open Item)
