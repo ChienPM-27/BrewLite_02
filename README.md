@@ -26,8 +26,9 @@ cp .env.example .env
 
 #### 2. Khởi động toàn bộ hệ thống (Postgres, Backend, Frontend, Cloudflare Tunnel):
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
+*(Lưu ý: Dùng cờ `--build` để đảm bảo Docker luôn biên dịch phiên bản code mới nhất của Frontend và Backend)*.
 
 #### 3. Nạp dữ liệu mẫu ban đầu (Sản phẩm, Topping, Voucher, Tài khoản):
 ```bash
@@ -104,7 +105,7 @@ Hệ thống hỗ trợ 2 cơ chế thanh toán:
 
 ### Lựa chọn A: Mock Payment Gateway (Mặc định – Không cần Internet/Tunnel)
 Hệ thống tích hợp sẵn giao diện giả lập Cổng thanh toán trực quan dành cho báo cáo và chấm điểm:
-1. Khi đến bước thanh toán đơn hàng, chọn **Ví điện tử (MoMo / VietQR)** hoặc **Thẻ ngân hàng**.
+1. Khi đến bước thanh toán đơn hàng, chọn **Cổng Mock (Thử nghiệm)** và chọn **Ví điện tử (MoMo / VietQR)** hoặc **Thẻ ngân hàng**.
 2. Nhấn nút mở cổng thanh toán giả lập.
 3. Sử dụng các nút mô phỏng trên giao diện:
    - **Mô phỏng: Quét mã thành công / Xác thực OTP**: Đơn chuyển sang `PAID`, cộng điểm tích lũy ngay lập tức.
@@ -119,12 +120,12 @@ Dành cho kiểm thử giao dịch thật qua cổng Sandbox của VNPay:
    VNPAY_TMN_CODE=JVDDQS32
    VNPAY_HASH_SECRET=IEKIESWSBCDHHJICGKDSRFDBMPKNYJXI
    ```
-   Khởi động lại backend hoặc chạy `docker compose up -d`.
+   Khởi động lại backend hoặc chạy `docker compose up --build -d`.
 
 2. **Lấy Public URL từ Cloudflare Tunnel:**
    Dự án đã tích hợp sẵn container `tunnel` (Cloudflare Quick Tunnel) tự động mở cổng public ra Internet mà không cần cài phần mềm ngoài hay tạo tài khoản:
    ```bash
-   docker compose logs -f tunnel
+   docker compose logs tunnel
    ```
    Tìm dòng có dạng:
    ```text
@@ -142,12 +143,16 @@ Dành cho kiểm thử giao dịch thật qua cổng Sandbox của VNPay:
      *(⚠️ Lưu ý: Tuyệt đối không để dấu `#` ở đầu và bắt buộc phải có đuôi `/api/v1/payments/vnpay/ipn`)*.
    - *Lưu ý về Cloudflare Quick Tunnel:* Domain `*.trycloudflare.com` là miễn phí và ngẫu nhiên. Mỗi lần bạn restart lại container `tunnel`, hãy xem log để cập nhật lại IPN URL nếu domain thay đổi.
 
-4. **Thông tin thẻ ATM test của VNPay:**
-   - **Ngân hàng:** `NCB`
-   - **Số thẻ:** `9704198526191432198`
-   - **Tên chủ thẻ:** `NGUYEN VAN A`
-   - **Ngày phát hành:** `07/15`
-   - **Mã OTP xác thực:** `123456`
+4. **Thanh toán trên giao diện:**
+   - Tại trang thanh toán (`/checkout/payment`), chọn **Cổng VNPay** ➔ Bấm **Xác nhận thanh toán**.
+   - Hệ thống sẽ chuyển hướng sang trang thanh toán của VNPay Sandbox (`https://sandbox.vnpayment.vn/...`).
+   - Nhập thông tin thẻ ATM test của VNPay:
+     - **Ngân hàng:** `NCB`
+     - **Số thẻ:** `9704198526191432198`
+     - **Tên chủ thẻ:** `NGUYEN VAN A`
+     - **Ngày phát hành:** `07/15`
+     - **Mã OTP xác thực:** `123456`
+   - Sau khi thanh toán xong, VNPay tự động chuyển hướng về lại trang xác nhận thanh toán của BrewLite và VNPay Server bắn thông báo IPN ngầm qua Cloudflare Tunnel để cập nhật đơn hàng thành `PAID`.
 
 ---
 
