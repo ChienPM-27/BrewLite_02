@@ -15,6 +15,7 @@ import {
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useCartStore } from '@/store/useCartStore';
 import { getPayment, PaymentResponse } from '@/services/payment.service';
+import { fetchApi } from '@/lib/api-client';
 import { formatVND } from '@/lib/format-currency';
 
 const MAX_POLL_ATTEMPTS = 10;
@@ -41,6 +42,15 @@ function VnpayReturnContent() {
     }
 
     try {
+      // Nếu có query từ VNPay, gửi xác thực với backend trước (fallback khi IPN webhook bị chậm)
+      if (searchParams.has('vnp_SecureHash')) {
+        try {
+          await fetchApi(`/payments/vnpay/ipn?${searchParams.toString()}`);
+        } catch {
+          // Bỏ qua lỗi phụ nếu backend đã xử lý IPN ngầm
+        }
+      }
+
       const data = await getPayment(txnRef);
       setPayment(data);
       setError(null);
@@ -53,7 +63,7 @@ function VnpayReturnContent() {
     } finally {
       setLoading(false);
     }
-  }, [txnRef, clearCart]);
+  }, [txnRef, searchParams, clearCart]);
 
   // Lần đầu tải trang
   useEffect(() => {
