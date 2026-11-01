@@ -4,6 +4,10 @@
 @toppingId = REPLACE_WITH_EXISTING_TOPPING_ID
 @promotionCode = REPLACE_WITH_VALID_PROMOTION_CODE
 
+@productWithoutRecipeId = REPLACE_WITH_PRODUCT_WITHOUT_RECIPE_ID
+@toppingWithoutRecipeId = REPLACE_WITH_TOPPING_WITHOUT_RECIPE_ID
+@lowStockProductId = REPLACE_WITH_LOW_STOCK_PRODUCT_ID
+
 ### GD1-09: Tạo đơn hàng không dùng topping và khuyến mãi
 POST {{baseUrl}}/orders
 Authorization: Bearer {{token}}
@@ -35,4 +39,57 @@ Content-Type: application/json
     }
   ],
   "promotionCode": "{{promotionCode}}"
+}
+
+### CR-01: Món không có công thức theo size - kỳ vọng HTTP 400
+# Cần dùng productId tồn tại, đang được bán nhưng không có ProductRecipe size M.
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{productWithoutRecipeId}}",
+      "size": "M",
+      "quantity": 1,
+      "toppingIds": []
+    }
+  ]
+}
+
+
+### CR-01: Topping không có công thức - kỳ vọng HTTP 400
+# Sản phẩm chính phải có công thức hợp lệ; topping phải tồn tại nhưng không có ToppingRecipe.
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "size": "M",
+      "quantity": 1,
+      "toppingIds": ["{{toppingWithoutRecipeId}}"]
+    }
+  ]
+}
+
+
+### CR-01: Nguyên liệu không đủ tồn kho - kỳ vọng HTTP 400
+# Dùng sản phẩm có công thức hợp lệ nhưng nguyên liệu không đủ cho 99 đơn vị.
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{lowStockProductId}}",
+      "size": "M",
+      "quantity": 99,
+      "toppingIds": []
+    }
+  ]
 }

@@ -16,14 +16,25 @@ describe('OrdersService.create', () => {
     },
     product: {
       findMany: jest.fn(),
-      updateMany: jest.fn(),
     },
     topping: {
       findMany: jest.fn(),
+    },
+    productRecipe: {
+      findMany: jest.fn(),
+    },
+    toppingRecipe: {
+      findMany: jest.fn(),
+    },
+    ingredient: {
       updateMany: jest.fn(),
+      findUnique: jest.fn(),
     },
     order: {
       create: jest.fn(),
+    },
+    orderIngredientUsage: {
+      createMany: jest.fn(),
     },
   };
 
@@ -54,40 +65,69 @@ describe('OrdersService.create', () => {
     jest.clearAllMocks();
 
     prismaMock.$transaction.mockImplementation(
-      (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
+      (callback: (transaction: typeof tx) => Promise<unknown>) =>
+        callback(tx),
     );
 
     tx.user.findUnique.mockResolvedValue({
       id: 'user-1',
     });
 
+    // Sản phẩm: không còn mock stock/version cũ.
     tx.product.findMany.mockResolvedValue([
       {
         id: 'product-1',
         name: 'Coffee',
-        stock: 10,
-        version: 2,
       },
     ]);
 
+    // Topping: vẫn cần tên và giá để tạo OrderItemTopping.
     tx.topping.findMany.mockResolvedValue([
       {
         id: 'topping-1',
         name: 'Cheese',
         price: 10000,
-        stock: 20,
         isAvailable: true,
       },
     ]);
 
-    tx.product.updateMany.mockResolvedValue({ count: 1 });
-    tx.topping.updateMany.mockResolvedValue({ count: 1 });
+    // Công thức nguyên liệu của sản phẩm theo size.
+    tx.productRecipe.findMany.mockResolvedValue([
+      {
+        productId: 'product-1',
+        size: ProductSize.M,
+        ingredientId: 'ing-coffee',
+        quantity: 25,
+      },
+    ]);
+
+    // Công thức nguyên liệu của topping.
+    tx.toppingRecipe.findMany.mockResolvedValue([
+      {
+        toppingId: 'topping-1',
+        ingredientId: 'ing-cheese',
+        quantity: 40,
+      },
+    ]);
+
+    // Helper trừ kho nguyên liệu.
+    tx.ingredient.updateMany.mockResolvedValue({ count: 1 });
+
+    tx.ingredient.findUnique.mockResolvedValue({
+      name: 'Hạt cà phê Robusta',
+    });
+
+    // Lưu snapshot nguyên liệu sau khi tạo đơn.
+    tx.orderIngredientUsage.createMany.mockResolvedValue({
+      count: 2,
+    });
 
     tx.order.create.mockResolvedValue({
       id: 'order-1',
       status: OrderStatus.PENDING,
     });
 
+    // Giữ nguyên mock PricingService.
     pricingMock.calculate.mockResolvedValue({
       lines: [
         {
@@ -117,19 +157,48 @@ describe('OrdersService.create', () => {
     });
 
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
-
     expect(pricingMock.calculate).toHaveBeenCalledTimes(1);
     expect(promotionsMock.validate).not.toHaveBeenCalled();
-    expect(tx.product.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'product-1',
-          version: 2,
-          stock: { gte: 2 },
-        }),
-      }),
-    );
 
+    // Xác nhận đã đọc công thức của món và topping.
+    expect(tx.productRecipe.findMany).toHaveBeenCalledWith({
+      where: {
+        productId: { in: ['product-1'] },
+      },
+    });
+
+    expect(tx.toppingRecipe.findMany).toHaveBeenCalledWith({
+      where: {
+        toppingId: { in: ['topping-1'] },
+      },
+    });
+
+    // Hai nguyên liệu được trừ theo thứ tự ingredientId tăng dần.
+    expect(tx.ingredient.updateMany).toHaveBeenCalledTimes(2);
+
+    expect(tx.ingredient.updateMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 'ing-cheese',
+        stock: { gte: 80 },
+        isAvailable: true,
+      },
+      data: {
+        stock: { decrement: 80 },
+      },
+    });
+
+    expect(tx.ingredient.updateMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: 'ing-coffee',
+        stock: { gte: 50 },
+        isAvailable: true,
+      },
+      data: {
+        stock: { decrement: 50 },
+      },
+    });
+
+    // Đơn vẫn phải được tạo với trạng thái và giá tiền đúng.
     expect(tx.order.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -148,6 +217,22 @@ describe('OrdersService.create', () => {
         }),
       }),
     );
+
+    // Snapshot phải ghi đúng lượng nguyên liệu đã trừ.
+    expect(tx.orderIngredientUsage.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          orderId: 'order-1',
+          ingredientId: 'ing-cheese',
+          quantity: 80,
+        },
+        {
+          orderId: 'order-1',
+          ingredientId: 'ing-coffee',
+          quantity: 50,
+        },
+      ],
+    });
   });
 
   it('rejects when the user does not exist', async () => {
@@ -173,13 +258,93 @@ describe('OrdersService.create', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('rejects when product stock cannot be reserved', async () => {
-    tx.product.updateMany.mockResolvedValue({ count: 0 });
+  it('rejects when ingredient stock is insufficient', async () => {
+    // Helper sắp xếp ID nên ing-cheese được xử lý đầu tiên.
+    tx.ingredient.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    tx.ingredient.findUnique.mockResolvedValueOnce({
+      name: 'Kem Cheese',
+    });
 
     await expect(service.create('user-1', dto)).rejects.toThrow(
       BadRequestException,
     );
 
+    expect(tx.ingredient.updateMany).toHaveBeenCalledTimes(1);
     expect(tx.order.create).not.toHaveBeenCalled();
+    expect(tx.orderIngredientUsage.createMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects when product recipe is missing for the requested size', async () => {
+    tx.productRecipe.findMany.mockResolvedValue([]);
+
+    await expect(service.create('user-1', dto)).rejects.toThrow(
+      'Món "Coffee" (size M) chưa có công thức nguyên liệu.',
+    );
+
+    expect(tx.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(tx.order.create).not.toHaveBeenCalled();
+    expect(tx.orderIngredientUsage.createMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects when topping recipe is missing', async () => {
+    tx.toppingRecipe.findMany.mockResolvedValue([]);
+
+    await expect(service.create('user-1', dto)).rejects.toThrow(
+      'Topping "Cheese" chưa có công thức nguyên liệu.',
+    );
+
+    expect(tx.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(tx.order.create).not.toHaveBeenCalled();
+    expect(tx.orderIngredientUsage.createMany).not.toHaveBeenCalled();
+  });
+
+  it('aggregates product and topping demand for the same ingredient', async () => {
+    tx.productRecipe.findMany.mockResolvedValue([
+      {
+        productId: 'product-1',
+        size: ProductSize.M,
+        ingredientId: 'ing-shared',
+        quantity: 25,
+      },
+    ]);
+
+    tx.toppingRecipe.findMany.mockResolvedValue([
+      {
+        toppingId: 'topping-1',
+        ingredientId: 'ing-shared',
+        quantity: 40,
+      },
+    ]);
+
+    tx.ingredient.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.create('user-1', dto);
+
+    // Món chính: 25 * 2 = 50
+    // Topping:   40 * 2 = 80
+    // Tổng cộng: 130
+    expect(tx.ingredient.updateMany).toHaveBeenCalledTimes(1);
+
+    expect(tx.ingredient.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'ing-shared',
+        stock: { gte: 130 },
+        isAvailable: true,
+      },
+      data: {
+        stock: { decrement: 130 },
+      },
+    });
+
+    expect(tx.orderIngredientUsage.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          orderId: 'order-1',
+          ingredientId: 'ing-shared',
+          quantity: 130,
+        },
+      ],
+    });
   });
 });

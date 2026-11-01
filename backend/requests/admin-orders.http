@@ -1,0 +1,151 @@
+@base = http://localhost:4000/api/v1
+
+# Admin xử lý đơn hàng (CR-QHUY) — docs/admin-orders/api-contract.md.
+# Yêu cầu: đã seed (CR-LAN: admin@brewlite.com / Admin@123456, demo@brewlite.test / Demo@12345).
+# Chạy lần lượt từ trên xuống. Món dùng: Americano + Trân châu trắng (đủ nguyên liệu,
+# tránh "Đào miếng hộp" tồn kho thấp).
+
+### Login ADMIN
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@brewlite.com", "password": "Admin@123456" }
+
+### Login CUSTOMER
+# @name loginCustomer
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "demo@brewlite.test", "password": "Demo@12345" }
+
+@adminToken = {{loginAdmin.response.body.data.accessToken}}
+@customerToken = {{loginCustomer.response.body.data.accessToken}}
+
+### Chuẩn bị: lấy món (Americano — xếp đầu theo tên)
+# @name products
+GET {{base}}/products
+
+@productId = {{products.response.body.data.0.id}}
+
+### Chuẩn bị: lấy topping (Trân châu trắng — tạo đầu tiên)
+# @name productDetail
+GET {{base}}/products/{{productId}}
+
+@toppingId = {{productDetail.response.body.data.toppings.0.id}}
+
+### Chuẩn bị: CUSTOMER tạo đơn
+# @name createOrder
+POST {{base}}/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "items": [{ "productId": "{{productId}}", "size": "M", "quantity": 2, "toppingIds": ["{{toppingId}}"] }] }
+
+@orderId = {{createOrder.response.body.data.id}}
+
+### Chuẩn bị: CUSTOMER thanh toán MOCK thành công -> PAID
+POST {{base}}/payments
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+Idempotency-Key: admin-orders-{{orderId}}
+X-Mock-Outcome: SUCCESS
+
+{ "orderId": "{{orderId}}", "method": "E_WALLET" }
+
+### 1. [200] ADMIN xem danh sách — có đơn vừa trả, đủ tên khách + món + topping, không có giá/email
+GET {{base}}/admin/orders
+Authorization: Bearer {{adminToken}}
+
+### 2. [403] CUSTOMER gọi API admin
+GET {{base}}/admin/orders
+Authorization: Bearer {{customerToken}}
+
+### 3. [401] Không có token
+GET {{base}}/admin/orders
+
+### 4. [200] PAID -> PREPARING ("Bắt đầu pha")
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PAID" }
+
+### 5. [409] Bấm trùng: gửi lại request 4 -> đơn vẫn PREPARING, không nhảy sang READY
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PAID" }
+
+### 6a. [200] PREPARING -> READY ("Pha xong")
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PREPARING" }
+
+### 6b. [200] READY -> COMPLETED ("Đã giao khách")
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "READY" }
+
+### 6c. [200] Đơn COMPLETED đã biến mất khỏi danh sách
+GET {{base}}/admin/orders
+Authorization: Bearer {{adminToken}}
+
+### 7a. Chuẩn bị: CUSTOMER tạo đơn mới, không thanh toán -> PENDING
+# @name pendingOrder
+POST {{base}}/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "items": [{ "productId": "{{productId}}", "size": "S", "quantity": 1 }] }
+
+@pendingId = {{pendingOrder.response.body.data.id}}
+
+### 7b. [409] advance đơn PENDING
+PATCH {{base}}/admin/orders/{{pendingId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PAID" }
+
+### 7c. Chuẩn bị: CUSTOMER hủy đơn -> CANCELLED (CR-VUHUY hoàn lại nguyên liệu)
+POST {{base}}/orders/{{pendingId}}/cancel
+Authorization: Bearer {{customerToken}}
+
+### 7d. [409] advance đơn CANCELLED
+PATCH {{base}}/admin/orders/{{pendingId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PAID" }
+
+### 8. [404] Id không tồn tại
+PATCH {{base}}/admin/orders/clnotexist000000000000000/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "PAID" }
+
+### 9a. [400] Thiếu expectedStatus
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}
+
+### 9b. [400] expectedStatus sai giá trị
+PATCH {{base}}/admin/orders/{{orderId}}/advance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "expectedStatus": "COMPLETED" }
+
+### 10. CUSTOMER xem đơn -> COMPLETED
+# Kiểm tra DB: order_status_history có 3 dòng mới changed_by = 'admin' cho đơn này.
+GET {{base}}/orders/{{orderId}}
+Authorization: Bearer {{customerToken}}

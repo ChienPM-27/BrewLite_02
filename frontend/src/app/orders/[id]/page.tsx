@@ -18,8 +18,16 @@ import {
 } from 'lucide-react';
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { cancelOrder, getOrderById, OrderDetail } from '@/services/order.service';
+import {
+  cancelOrder,
+  getOrderById,
+  OrderDetail,
+  OrderStatus,
+} from '@/services/order.service';
 import { formatSurcharge, formatVND } from '@/lib/format-currency';
+
+const POLL_INTERVAL_MS = 10_000;
+const POLLING_STATUSES: OrderStatus[] = ['PAID', 'PREPARING', 'READY'];
 
 function formatOrderDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -47,25 +55,46 @@ function OrderDetailContent() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadOrder = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getOrderById(id);
-      setOrder(data);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải thông tin đơn hàng');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  /** `silent`: lần polling nền — không hiện skeleton, lỗi tạm thời thì giữ dữ liệu cũ. */
+  const loadOrder = useCallback(
+    async (silent = false) => {
+      if (!id) return;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const data = await getOrderById(id);
+        setOrder(data);
+      } catch (err: any) {
+        if (!silent) setError(err?.message || 'Không thể tải thông tin đơn hàng');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
     if (hydrated && isAuthed) {
       loadOrder();
     }
   }, [hydrated, isAuthed, loadOrder]);
+
+  // Đơn đang được quán xử lý: tự làm mới để khách thấy trạng thái đổi trong ≤10 giây.
+  const shouldPoll = !!order && POLLING_STATUSES.includes(order.status);
+  useEffect(() => {
+    if (!shouldPoll) return;
+    let polling = false;
+    const timer = setInterval(async () => {
+      // Bỏ qua khi tab đang ẩn hoặc lần trước chưa xong (mạng chậm).
+      if (document.hidden || polling) return;
+      polling = true;
+      await loadOrder(true);
+      polling = false;
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [shouldPoll, loadOrder]);
 
   const handleCancel = async () => {
     if (!order || isCancelling) return;
@@ -98,7 +127,7 @@ function OrderDetailContent() {
           <div className="mt-6 flex justify-center gap-3">
             <button
               type="button"
-              onClick={loadOrder}
+              onClick={() => loadOrder()}
               className="inline-flex items-center gap-2 rounded-full bg-danger px-6 py-2.5 text-xs font-bold text-white shadow-cta hover:opacity-90"
             >
               <RefreshCw className="h-4 w-4" />

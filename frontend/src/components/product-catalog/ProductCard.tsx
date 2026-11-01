@@ -33,17 +33,16 @@ export default function ProductCard({ product, onQuickAdd }: ProductCardProps) {
     'Cà phê sữa đá': 'Robusta Đắk Lắk đậm đà hòa quyện sữa đặc béo ngọt truyền thống.',
     'Bạc xỉu': 'Phần lớp sữa tươi thơm lừng, sữa đặc mịn ngọt và cà phê Arabica nhẹ nhàng.',
     'Bạc xỉu 3 tầng': 'Phần lớp sữa tươi thơm lừng, sữa đặc mịn ngọt và cà phê Arabica nhẹ nhàng.',
-    'Trà đào cam sả': 'Trà đen ủ lạnh kết hợp đào miếng giòn sần sật, nước cốt cam tươi và sả thanh thơm.',
+    'Trà đào': 'Trà đen ủ lạnh kết hợp siro đào thơm ngọt và đào miếng giòn mát.',
+    'Trà nhãn': 'Hương trà thanh dịu hòa cùng vị nhãn ngọt mát, uống là mê.',
+    'Trà quýt': 'Trà thanh nhẹ với quýt tươi chua ngọt, giải nhiệt sảng khoái.',
     'Cappuccino': 'Bọt sữa tơ mịn đánh chuẩn barista kết hợp espresso Arabica Cầu Đất nguyên chất.',
     'Cappuccino Nghệ thuật': 'Bọt sữa tơ mịn đánh chuẩn barista kết hợp espresso Arabica Cầu Đất nguyên chất.',
     'Americano': 'Vị cà phê thanh nhẹ, hậu vị êm mượt thích hợp cho phiên làm việc tập trung dài.',
     'Americano Đá': 'Vị cà phê thanh nhẹ, hậu vị êm mượt thích hợp cho phiên làm việc tập trung dài.',
-    'Trà vải': 'Hương hoa lài thanh khiết ủ cùng quả vải mọng nước ngọt thanh dịu.',
-    'Trà vải lài thơm': 'Hương hoa lài thanh khiết ủ cùng quả vải mọng nước ngọt thanh dịu.',
     'Espresso': 'Chiết xuất chuẩn áp suất, lớp crema vàng óng sánh đặc tràn ngập năng lượng.',
     'Espresso Đậm đà': 'Chiết xuất chuẩn áp suất, lớp crema vàng óng sánh đặc tràn ngập năng lượng.',
     'Trà dâu': 'Dâu tây Đà Lạt tươi giầm cùng trà hoa cúc thanh mát (hết nguyên liệu vụ sáng).',
-    'Trà dâu tây tươi': 'Dâu tây Đà Lạt tươi giầm cùng trà hoa cúc thanh mát (hết nguyên liệu vụ sáng).',
   };
 
   const subtitle = subtitleMap[product.name] || 'Đồ uống tươi mới được pha chế thủ công theo công thức độc quyền.';

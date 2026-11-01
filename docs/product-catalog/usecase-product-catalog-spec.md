@@ -131,7 +131,7 @@ Phân hệ Danh mục sản phẩm (Product Catalog) chịu trách nhiệm cung 
 * **Điều kiện:** Danh sách sản phẩm đã được tải về giao diện.
 * **Hành động:** Khách hàng gõ từ khóa vào ô tìm kiếm (ví dụ gõ "tra dao" hoặc "Trà Đào").
 * **Kết quả mong đợi:**
-  * Hiển thị sản phẩm "Trà đào cam sả".
+  * Hiển thị sản phẩm "Trà đào".
   * Không phân biệt hoa/thường, không phân biệt dấu tiếng Việt.
   * Khoảng trắng thừa ở đầu/cuối từ khóa tự động được loại bỏ.
 
