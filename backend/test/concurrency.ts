@@ -1,19 +1,9 @@
 import { PrismaClient, ProductSize, OrderStatus, PaymentMethod } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  INestApplication,
-  NotFoundException,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from '../src/common/filters/http-exception.filter';
-import { OrdersService } from '../src/modules/orders/orders.service';
-import {
-  deductIngredients,
-  IngredientDemand,
-} from '../src/common/ingredient-stock.helper';
 
 let BASE_URL = process.env.API_BASE_URL || 'http://localhost:4000/api/v1';
 const prisma = new PrismaClient();
@@ -25,270 +15,6 @@ const cleanupFixture = {
   ingredientIds: [] as string[],
   orderIds: [] as string[],
 };
-
-function applyOrdersServicePatch() {
-  OrdersService.prototype.create = async function (
-    this: any,
-    userId: string,
-    dto: any,
-  ) {
-    if (!userId) {
-      throw new BadRequestException('Missing user identity.');
-    }
-
-    if (!dto.items?.length) {
-      throw new BadRequestException('An order must contain at least one item.');
-    }
-
-    // 1. Tính giá theo contract của PricingService
-    const pricingInput = dto.items.map((item: any) => ({
-      productId: item.productId,
-      size: item.size ?? ProductSize.M,
-      toppingIds: item.toppingIds ?? [],
-      quantity: item.quantity,
-    }));
-
-    const pricing = await this.pricingService.calculate(pricingInput);
-
-    // 2. Kiểm tra khuyến mãi (nếu có)
-    const promotionCode = dto.promotionCode?.trim();
-    const promotion = promotionCode
-      ? await this.promotionsService.validate(promotionCode, pricing.subtotal)
-      : null;
-
-    if (promotionCode && !promotion) {
-      throw new BadRequestException(
-        'Promotion code is invalid or not applicable.',
-      );
-    }
-
-    const discountAmount = Math.max(
-      0,
-      Math.min(pricing.subtotal, promotion?.discountAmount ?? 0),
-    );
-    const finalAmount = Math.max(0, pricing.subtotal - discountAmount);
-
-    // 3. Gom số lượng sản phẩm và topping
-    const productQuantities = new Map<string, number>();
-    const toppingQuantities = new Map<string, number>();
-
-    for (const item of dto.items) {
-      productQuantities.set(
-        item.productId,
-        (productQuantities.get(item.productId) ?? 0) + item.quantity,
-      );
-
-      for (const toppingId of item.toppingIds ?? []) {
-        toppingQuantities.set(
-          toppingId,
-          (toppingQuantities.get(toppingId) ?? 0) + item.quantity,
-        );
-      }
-    }
-
-    // 4. Trừ kho nguyên liệu nguyên tử và tạo đơn trong transaction
-    return this.prisma.$transaction(async (tx: any) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        throw new NotFoundException('User not found.');
-      }
-
-      const productIds = [...productQuantities.keys()];
-      const products = await tx.product.findMany({
-        where: {
-          id: { in: productIds },
-          isAvailable: true,
-        },
-        select: {
-          id: true,
-          name: true,
-        },
-      });
-
-      if (products.length !== productIds.length) {
-        throw new BadRequestException('One or more products are unavailable.');
-      }
-
-      const productNameMap = new Map(
-        products.map((product: any) => [product.id, product.name]),
-      );
-
-      const toppingIds = [...toppingQuantities.keys()];
-      const toppings = toppingIds.length
-        ? await tx.topping.findMany({
-            where: {
-              id: { in: toppingIds },
-              isAvailable: true,
-            },
-          })
-        : [];
-
-      if (toppings.length !== toppingIds.length) {
-        throw new BadRequestException('One or more toppings are unavailable.');
-      }
-
-      const toppingById = new Map<string, any>(
-        toppings.map((topping: any) => [topping.id, topping]),
-      );
-      const toppingNameMap = new Map(
-        toppings.map((topping: any) => [topping.id, topping.name]),
-      );
-
-      // Nạp công thức nguyên liệu của các sản phẩm
-      const rawProductRecipes = await tx.productRecipe.findMany({
-        where: {
-          productId: { in: productIds },
-        },
-      });
-
-      const productRecipeMap = new Map<
-        string,
-        Array<{ ingredientId: string; quantity: number }>
-      >();
-
-      for (const recipe of rawProductRecipes) {
-        const key = `${recipe.productId}_${recipe.size}`;
-        const recipes = productRecipeMap.get(key) ?? [];
-        recipes.push({
-          ingredientId: recipe.ingredientId,
-          quantity: recipe.quantity,
-        });
-        productRecipeMap.set(key, recipes);
-      }
-
-      // Nạp công thức nguyên liệu của các topping
-      const rawToppingRecipes = toppingIds.length
-        ? await tx.toppingRecipe.findMany({
-            where: {
-              toppingId: { in: toppingIds },
-            },
-          })
-        : [];
-
-      const toppingRecipeMap = new Map<
-        string,
-        Array<{ ingredientId: string; quantity: number }>
-      >();
-
-      for (const recipe of rawToppingRecipes) {
-        const recipes = toppingRecipeMap.get(recipe.toppingId) ?? [];
-        recipes.push({
-          ingredientId: recipe.ingredientId,
-          quantity: recipe.quantity,
-        });
-        toppingRecipeMap.set(recipe.toppingId, recipes);
-      }
-
-      // Kiểm tra công thức D15 và tính nhu cầu nguyên liệu cho toàn bộ đơn
-      const needs: IngredientDemand[] = [];
-
-      for (const item of dto.items) {
-        const itemSize = item.size ?? ProductSize.M;
-        const recipeKey = `${item.productId}_${itemSize}`;
-        const productRecipes = productRecipeMap.get(recipeKey) ?? [];
-
-        // D15: Thiếu công thức món/size -> throw 400
-        if (productRecipes.length === 0) {
-          const productName =
-            productNameMap.get(item.productId) ?? item.productId;
-          throw new BadRequestException(
-            `Món "${productName}" (size ${itemSize}) chưa có công thức nguyên liệu.`,
-          );
-        }
-
-        for (const recipe of productRecipes) {
-          needs.push({
-            ingredientId: recipe.ingredientId,
-            quantity: recipe.quantity * item.quantity,
-          });
-        }
-
-        for (const toppingId of item.toppingIds ?? []) {
-          const toppingRecipes = toppingRecipeMap.get(toppingId) ?? [];
-          if (toppingRecipes.length === 0) {
-            const toppingName = toppingNameMap.get(toppingId) ?? toppingId;
-            throw new BadRequestException(
-              `Topping "${toppingName}" chưa có công thức nguyên liệu.`,
-            );
-          }
-          for (const recipe of toppingRecipes) {
-            needs.push({
-              ingredientId: recipe.ingredientId,
-              quantity: recipe.quantity * item.quantity,
-            });
-          }
-        }
-      }
-
-      // Trừ kho nguyên liệu nguyên tử (Helper tự gom và sort chống deadlock)
-      const deductedUsages = await deductIngredients(tx, needs);
-
-      // Tạo Order
-      const order = await tx.order.create({
-        data: {
-          user: { connect: { id: userId } },
-          status: OrderStatus.PENDING,
-          totalAmount: pricing.subtotal,
-          discountAmount,
-          finalAmount,
-          promotion:
-            promotionCode && promotion
-              ? { connect: { code: promotionCode } }
-              : undefined,
-          items: {
-            create: dto.items.map((item: any, idx: number) => {
-              const line = pricing.lines[idx];
-              return {
-                product: { connect: { id: item.productId } },
-                size: item.size ?? ProductSize.M,
-                quantity: item.quantity,
-                unitPrice: line.unitPrice,
-                lineTotal: line.lineTotal,
-                toppings: item.toppingIds?.length
-                  ? {
-                      create: item.toppingIds.map((tId: string) => ({
-                        topping: { connect: { id: tId } },
-                        price: toppingById.get(tId)!.price,
-                      })),
-                    }
-                  : undefined,
-              };
-            }),
-          },
-          statusHistory: {
-            create: {
-              fromStatus: null,
-              toStatus: OrderStatus.PENDING,
-              changedBy: 'system',
-              reason: 'Order created',
-            },
-          },
-        },
-        include: {
-          items: { include: { toppings: true } },
-          statusHistory: true,
-        },
-      });
-
-      // Lưu snapshot nguyên liệu đã trừ thành công
-      if (deductedUsages.length > 0) {
-        await tx.orderIngredientUsage.createMany({
-          data: deductedUsages.map((usage: any) => ({
-            orderId: order.id,
-            ingredientId: usage.ingredientId,
-            quantity: usage.quantity,
-          })),
-        });
-      }
-
-      return order;
-    });
-  };
-}
 
 interface LoginResponse {
   success: boolean;
@@ -801,6 +527,9 @@ async function testPaymentConcurrency(token: string) {
 async function cleanupTestData() {
   try {
     if (cleanupFixture.orderIds.length > 0) {
+      await prisma.loyaltyTransaction.deleteMany({
+        where: { orderId: { in: cleanupFixture.orderIds } },
+      });
       await prisma.orderIngredientUsage.deleteMany({
         where: { orderId: { in: cleanupFixture.orderIds } },
       });
@@ -858,35 +587,43 @@ async function main() {
   let embeddedApp: INestApplication | null = null;
 
   try {
-    // 1. Áp dụng patch cho OrdersService theo Change Request CR-01
-    applyOrdersServicePatch();
-
-    // 2. Nếu người dùng không truyền cứng API_BASE_URL, tự động khởi động test server riêng
+    // 1. Kiểm tra API server (ưu tiên server đang chạy ở port 4000)
     if (!process.env.API_BASE_URL) {
-      console.log(
-        'Đang khởi động NestJS test server độc lập (CR-01 Concurrency)...',
-      );
+      const isLocalServerRunning = await fetch(
+        'http://localhost:4000/api/v1/health',
+      )
+        .then((res) => res.ok)
+        .catch(() => false);
 
-      const moduleFixture: TestingModule = await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
+      if (isLocalServerRunning) {
+        BASE_URL = 'http://localhost:4000/api/v1';
+        console.log(`Đã phát hiện API server đang chạy tại ${BASE_URL}`);
+      } else {
+        console.log(
+          'Không phát hiện server tại port 4000. Đang khởi động NestJS test server độc lập trên port 4002...',
+        );
 
-      embeddedApp = moduleFixture.createNestApplication();
-      embeddedApp.setGlobalPrefix('api/v1');
-      embeddedApp.useGlobalPipes(
-        new ValidationPipe({
-          whitelist: true,
-          forbidNonWhitelisted: true,
-          transform: true,
-        }),
-      );
-      embeddedApp.useGlobalInterceptors(new TransformInterceptor());
-      embeddedApp.useGlobalFilters(new AllExceptionsFilter());
+        const moduleFixture: TestingModule = await Test.createTestingModule({
+          imports: [AppModule],
+        }).compile();
 
-      const TEST_PORT = 4002;
-      await embeddedApp.listen(TEST_PORT);
-      BASE_URL = `http://localhost:${TEST_PORT}/api/v1`;
-      console.log(`Đã khởi động NestJS test instance tại ${BASE_URL}`);
+        embeddedApp = moduleFixture.createNestApplication();
+        embeddedApp.setGlobalPrefix('api/v1');
+        embeddedApp.useGlobalPipes(
+          new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+          }),
+        );
+        embeddedApp.useGlobalInterceptors(new TransformInterceptor());
+        embeddedApp.useGlobalFilters(new AllExceptionsFilter());
+
+        const TEST_PORT = 4002;
+        await embeddedApp.listen(TEST_PORT);
+        BASE_URL = `http://localhost:${TEST_PORT}/api/v1`;
+        console.log(`Đã khởi động NestJS test instance tại ${BASE_URL}`);
+      }
     } else {
       console.log(`Sử dụng API server được chỉ định tại ${BASE_URL}`);
     }
