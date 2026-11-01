@@ -52,6 +52,12 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 | TC-PAY-38 | Hai request VNPay IPN đồng thời cho cùng giao dịch | Chỉ một request cập nhật được Payment từ `PENDING`; request còn lại không xử lý giao dịch lần hai và trả `RspCode: "02"`. |
 | TC-PAY-39 | VNPay IPN gửi mã giao dịch của gateway khác | Backend không tìm thấy Payment hợp lệ thuộc gateway `VNPAY`; không cập nhật giao dịch thuộc gateway khác. |
 | TC-PAY-40 | VNPay IPN có `vnp_Amount` không đúng định dạng hoặc không phải số nguyên hợp lệ | Backend từ chối dữ liệu và trả mã phản hồi theo quy tắc dữ liệu không hợp lệ; không cập nhật Payment hoặc Order. |
+| TC-PAY-41 | Tạo VNPay payment khi Order đã có Payment VNPay `PENDING` còn hạn | Trả lại Payment cũ cùng `paymentUrl`, không tạo Payment mới (kể cả `Idempotency-Key` khác); `Ingredient.stock` giữ nguyên. |
+| TC-PAY-42 | Tạo VNPay payment khi Payment `PENDING` đã quá 15 phút | Payment cũ chuyển `FAILED` ("Hết hạn thanh toán VNPay (15 phút)"); tạo Payment mới `PENDING`; `Ingredient.stock` giữ nguyên. |
+| TC-PAY-43 | VNPay IPN thành công khi Order đã `CANCELLED` | Payment `SUCCESS` với `failureReason` "Cần hoàn tiền thủ công"; Order giữ `CANCELLED`; không cộng Loyalty; `Ingredient.stock` không đổi; response `RspCode: "00"`. |
+| TC-PAY-44 | VNPay IPN thành công khi Order đã `PAID` (thanh toán trùng) | Payment thứ hai `SUCCESS` kèm ghi chú hoàn tiền thủ công; Order giữ `PAID`; không cộng Loyalty lần hai; response `RspCode: "00"`. |
+| TC-PAY-45 | VNPay IPN thất bại khi Order không `PENDING` | Payment `FAILED`; Order không đổi trạng thái; response `RspCode: "00"`. |
+| TC-PAY-46 | Trang `/payment/vnpay-return` | Hiển thị trạng thái từ `GET /payments/:id`; poll khi `PENDING`; không tự coi là thành công dựa trên query của URL. |
 
 ## 3. Điều kiện nghiệm thu
 
@@ -95,3 +101,4 @@ Tồn kho nguyên liệu được xác định bằng `Ingredient.stock`. Các t
 - v1.3 (2026-10-29): Bổ sung TC-PAY-20 đến TC-PAY-27 về bảo toàn tồn kho nguyên liệu trong các luồng thất bại, retry và replay.
 - v1.4 (2026-10-29): Làm rõ nguyên tắc bảo toàn `Ingredient.stock`, điều kiện nghiệm thu trước/sau, xử lý timeout chưa được xác minh và phạm vi thay đổi của Payment.
 - v1.5 (2026-10-31): Bổ sung TC-PAY-28 đến TC-PAY-40 về VNPay URL generation, VNPay IPN, xác thực chữ ký, kiểm tra dữ liệu giao dịch, response codes và xử lý IPN trùng.
+- v1.6 (2026-11-01): Bổ sung TC-PAY-41 đến TC-PAY-46 về tái sử dụng/hết hạn Payment VNPay, IPN khi Order không `PENDING` và trang return.

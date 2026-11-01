@@ -3,6 +3,14 @@
 @token = YOUR_JWT_TOKEN
 @orderId = YOUR_PENDING_ORDER_ID
 @vnpayOrderId = YOUR_PENDING_ORDER_ID_FOR_VNPAY
+# paymentId = field "id" trả về ở TEST 6 (chính là vnp_TxnRef)
+@paymentId = YOUR_VNPAY_PAYMENT_ID
+# Chạy: node backend/requests/sign-vnpay-ipn.js <paymentId> <finalAmountVND> [success|failed|badsig|badamount]
+# rồi dán kết quả vào các biến dưới đây (mỗi kịch bản một dòng).
+@ipnSuccess = PASTE_OUTPUT_OF_success
+@ipnFailed = PASTE_OUTPUT_OF_failed
+@ipnBadSig = PASTE_OUTPUT_OF_badsig
+@ipnBadAmount = PASTE_OUTPUT_OF_badamount
 
 ### ==================================================
 ### TEST 1: Thanh toán thất bại
@@ -128,3 +136,74 @@ Content-Type: application/json
   "method": "BANK_CARD",
   "gateway": "VNPAY"
 }
+
+### ==================================================
+### TEST 7: Gọi lại TEST 6 với Idempotency-Key KHÁC
+# Expected:
+# - Trả lại đúng Payment PENDING và paymentUrl của TEST 6 (id không đổi).
+# - Không tạo Payment mới; Ingredient.stock không đổi.
+### ==================================================
+
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Idempotency-Key: payment-vnpay-002
+Content-Type: application/json
+
+{
+  "orderId": "{{vnpayOrderId}}",
+  "method": "BANK_CARD",
+  "gateway": "VNPAY"
+}
+
+### ==================================================
+### TEST 8: VNPay IPN - chữ ký sai
+# Expected: HTTP 200, {"RspCode":"97","Message":"Invalid signature"}; Payment/Order không đổi.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnBadSig}}
+
+### ==================================================
+### TEST 9: VNPay IPN - số tiền sai
+# Expected: {"RspCode":"04","Message":"Invalid amount"}; Payment/Order không đổi.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnBadAmount}}
+
+### ==================================================
+### TEST 10: VNPay IPN - thanh toán thành công
+# Expected:
+# - {"RspCode":"00","Message":"Confirm Success"}.
+# - Payment SUCCESS, Order PAID, Loyalty cộng đúng một lần.
+# - Ingredient.stock không đổi do luồng Payment.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnSuccess}}
+
+### ==================================================
+### TEST 11: VNPay IPN - gọi lặp cùng giao dịch
+# Expected: {"RspCode":"02","Message":"Order already confirmed"}; không cộng Loyalty lần nữa.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnSuccess}}
+
+### ==================================================
+### TEST 12: VNPay IPN - giao dịch thất bại
+# Điều kiện: dùng một Payment VNPay PENDING khác (đơn mới, tạo lại TEST 6).
+# Expected:
+# - {"RspCode":"00","Message":"Confirm Success"}.
+# - Payment FAILED, Order PAYMENT_FAILED, không cộng Loyalty.
+# - Ingredient.stock không đổi.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnFailed}}
+
+### ==================================================
+### TEST 13: VNPay IPN thành công nhưng đơn đã CANCELLED
+# Điều kiện: tạo Payment VNPay (TEST 6), gọi POST /orders/:id/cancel, rồi ký IPN success cho Payment đó.
+# Expected:
+# - {"RspCode":"00","Message":"Confirm Success"} (không 409/500).
+# - Payment SUCCESS với failureReason "Cần hoàn tiền thủ công: ...CANCELLED".
+# - Order giữ CANCELLED; không cộng Loyalty; Ingredient.stock không đổi so với sau khi hủy.
+### ==================================================
+
+GET {{baseUrl}}/payments/vnpay/ipn?{{ipnSuccess}}

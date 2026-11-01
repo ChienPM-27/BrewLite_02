@@ -82,12 +82,14 @@ Khi gateway trả về kết quả thất bại được xác nhận:
 
 ### 4.4. Quy tắc retry
 
-- Khách hàng có thể thử lại theo state machine và các quy tắc nghiệp vụ đã thống nhất; không áp dụng giới hạn ba lần, thời hạn 15 phút hoặc khóa vĩnh viễn ở `PAYMENT_FAILED` nếu các giới hạn này đã được loại bỏ khỏi thiết kế.
+- Khách hàng có thể thử lại theo state machine và các quy tắc nghiệp vụ đã thống nhất; không áp dụng giới hạn ba lần hoặc khóa vĩnh viễn ở `PAYMENT_FAILED`. Với VNPay, Payment `PENDING` quá 15 phút được chuyển `FAILED` (`failureReason = "Hết hạn thanh toán VNPay (15 phút)"`) khi khách tạo lại thanh toán.
 - Khi retry, Order chuyển `PAYMENT_FAILED → PENDING` thông qua `OrderService.transition()`.
 - Mỗi lần thử mới tạo một bản ghi Payment mới với `idempotencyKey` mới.
 - Nếu lần thử tiếp theo thất bại, Order chuyển về `PAYMENT_FAILED`. Nếu thành công, Order chuyển sang `PAID`.
 - Retry không trực tiếp thay đổi `Ingredient.stock`.
 - Đối với VNPay, mỗi lần thử thanh toán mới cần có mã tham chiếu giao dịch tương ứng để đối chiếu kết quả IPN.
+- Với VNPay, Order chỉ có tối đa một Payment `PENDING` còn hạn; yêu cầu mới trong thời hạn trả lại Payment cũ thay vì tạo bản ghi mới.
+- `Payment.failureReason` cho VNPay có thể là: `VNPay response: <code>, transaction status: <status>` (giao dịch thất bại), `Hết hạn thanh toán VNPay (15 phút)`, hoặc `Cần hoàn tiền thủ công: đơn đang ở trạng thái <status>` (IPN thành công nhưng Order không còn `PENDING`; Payment ở `SUCCESS`, cần hoàn tiền ngoài hệ thống).
 
 ### 4.5. Timeout và kết quả chưa xác định
 

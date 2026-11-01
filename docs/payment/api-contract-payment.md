@@ -120,8 +120,15 @@ Khi xảy ra lỗi (Status code 400, 401, 403, 404, 409, 500), response được
 - **Retry sau thất bại:** Khi giao dịch thất bại (`FAILED`), khách hàng bấm "Thử lại":
   1. Frontend chuyển đơn hàng `PAYMENT_FAILED → PENDING` qua `OrderService.transition`.
   2. Frontend bắt buộc phải sinh một `Idempotency-Key` mới.
-  3. Hệ thống cho phép thử lại không giới hạn số lần (đã gỡ bỏ giới hạn 3 lần và thời hạn 15 phút).
+  3. Hệ thống cho phép thử lại không giới hạn số lần (đã gỡ bỏ giới hạn 3 lần và scheduler tự động hết hạn đơn 15 phút ở D6). Riêng link thanh toán VNPay có thời hạn 15 phút, xem mục 5.1.
 - **Giỏ hàng:** Frontend KHÔNG xóa giỏ hàng khi tạo đơn hoặc khi thanh toán lỗi. Chỉ xóa giỏ hàng (`clearCart()` và xóa `pendingOrderId`) khi thanh toán `SUCCESS` (đơn hàng đạt trạng thái `PAID`).
+
+### 5.1. Quy tắc riêng cho thanh toán VNPay (gateway `VNPAY`)
+
+- **Thời hạn link:** URL thanh toán chứa `vnp_ExpireDate` = thời điểm tạo + 15 phút. Đây là thời hạn của *link thanh toán*, không phải thời hạn của Order (không có scheduler hủy đơn, theo D6).
+- **Tái sử dụng payment đang chờ:** Khi `POST /payments` với `gateway = VNPAY` mà Order đã có Payment VNPay `PENDING` còn trong 15 phút (và có `paymentUrl`), Backend trả lại Payment đó, **không tạo Payment mới**, kể cả khi `Idempotency-Key` khác. Mục đích: tránh khách bị trừ tiền hai lần.
+- **Payment hết hạn:** Nếu Payment VNPay `PENDING` đã quá 15 phút, Backend chuyển Payment đó sang `FAILED` với `failureReason = "Hết hạn thanh toán VNPay (15 phút)"` rồi tạo Payment mới.
+- Tạo URL không chuyển Order sang `PAID`; kết quả chỉ được xác nhận qua IPN (mục 8).
 
 ## 6. Hợp đồng Mock Payment Gateway (Mock Gateway Contract)
 
@@ -296,8 +303,28 @@ Các giá trị `RspCode` và `Message` cần thống nhất với implementatio
 - Không cộng Loyalty hai lần cho cùng một giao dịch.
 - Không thực hiện thay đổi tồn kho nguyên liệu trong riêng luồng xác nhận Payment.
 
+### 8.7. IPN khi Order không còn ở trạng thái `PENDING`
+
+Khách có thể hủy đơn, hoặc một Payment khác đã làm Order thành `PAID`, trong lúc vẫn đang ở trang VNPay. Khi IPN hợp lệ đến mà `Order.status != PENDING` (ví dụ `CANCELLED`, `PAID`, `PAYMENT_FAILED`):
+
+- Payment vẫn được cập nhật theo kết quả VNPay (`SUCCESS` hoặc `FAILED`), có điều kiện `status = PENDING`.
+- Nếu VNPay báo thành công, `failureReason` ghi `"Cần hoàn tiền thủ công: đơn đang ở trạng thái <status>"` để quản trị viên hoàn tiền.
+- Backend **không** gọi `OrderService.transition()`, **không** cộng Loyalty và **không** thay đổi `Ingredient.stock` (tồn kho đã được hoàn khi hủy đơn).
+- Backend ghi log cảnh báo và trả `{ "RspCode": "00", "Message": "Confirm Success" }` để VNPay ngừng gửi lại IPN.
+
+### 8.8. Endpoint hỗ trợ sandbox
+
+- `GET /api/v1/payments/vnpay/tunnel-info` (không cần đăng nhập): trả `tunnelUrl` (nếu tunnel đang chạy) và thông tin sandbox công khai (`tmnCode`, `paymentUrl`, `returnUrl`) để hiển thị hướng dẫn cấu hình IPN. Không bao giờ trả `vnp_HashSecret`.
+
+### 8.9. Trang return và cơ chế dự phòng
+
+- `VNPAY_RETURN_URL` trỏ tới `/payment/vnpay-return` của Frontend. Trang này lấy `vnp_TxnRef` (= `Payment.id`) và đọc trạng thái bằng `GET /payments/:id`, poll tối đa 10 lần khi còn `PENDING`.
+- Nếu URL có `vnp_SecureHash`, trang return gọi thêm `GET /payments/vnpay/ipn` với đúng query đó làm dự phòng khi IPN chưa tới (ví dụ chạy local không có tunnel). Backend vẫn xác thực chữ ký và xử lý idempotent, nên gọi trùng với IPN thật là an toàn.
+- Frontend không tự quyết định thanh toán thành công dựa trên `vnp_ResponseCode`; chỉ hiển thị trạng thái do Backend trả về.
+
 ## 9. Lịch sử thay đổi
 
 - v1.0 (2026-10-11): Khởi tạo tài liệu hợp đồng API Payment.
 - v1.1 (2026-10-16): Áp dụng quyết định D1, D2, D8.
 - v1.2 (2026-10-31): Bổ sung đặc tả endpoint VNPay IPN, query parameters, cơ chế xác thực chữ ký HMAC SHA512, response JSON `RspCode`/`Message` và quy tắc chống xử lý IPN trùng.
+- v1.3 (2026-11-01): Bổ sung mục 5.1 (TTL 15 phút của link VNPay, tái sử dụng payment `PENDING`), 8.7 (IPN khi Order không `PENDING`), 8.8 (tunnel-info), 8.9 (trang return và fallback).

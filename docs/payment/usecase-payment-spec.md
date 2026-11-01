@@ -118,10 +118,12 @@ HTTP status khi replay phải thống nhất với API contract và code thực 
 | **BR-PAY-03** | Điều kiện trạng thái đơn hàng | `POST /api/v1/payments` chỉ chấp nhận Order ở `PENDING` hoặc `PAYMENT_FAILED`. Các trạng thái không hợp lệ bị từ chối với `409 Conflict`. |
 | **BR-PAY-04** | Thanh toán thành công | Khi gateway xác nhận thành công, Payment chuyển sang `SUCCESS`, lưu `transactionRef`; Order chuyển sang `PAID` qua `OrderService.transition()`; lịch sử trạng thái và loyalty được xử lý theo thiết kế. Frontend làm rỗng giỏ hàng sau khi xác nhận thành công. |
 | **BR-PAY-05** | Thanh toán thất bại | Khi gateway trả kết quả thất bại đã được xác nhận, Payment chuyển sang `FAILED`, lưu `failureReason`; Order chuyển sang `PAYMENT_FAILED` qua `OrderService.transition()`. Giỏ hàng được giữ nguyên. Luồng Payment không trực tiếp thay đổi `Ingredient.stock`. |
-| **BR-PAY-06** | Retry | Retry sau thất bại chuyển Order từ `PAYMENT_FAILED` sang `PENDING` qua `OrderService.transition()`, sử dụng key mới và tạo Payment mới. Không áp dụng giới hạn ba lần hoặc thời hạn 15 phút nếu các giới hạn này đã được loại bỏ khỏi thiết kế. Retry không trực tiếp thay đổi `Ingredient.stock`. |
+| **BR-PAY-06** | Retry | Retry sau thất bại chuyển Order từ `PAYMENT_FAILED` sang `PENDING` qua `OrderService.transition()`, sử dụng key mới và tạo Payment mới. Không giới hạn số lần retry. Thời hạn 15 phút chỉ áp dụng cho *link thanh toán VNPay* (BR-PAY-10), không áp dụng cho Order. Retry không trực tiếp thay đổi `Ingredient.stock`. |
 | **BR-PAY-07** | Timeout | Cách ghi nhận Payment và chuyển trạng thái Order khi timeout phải tuân theo chính sách timeout đã thống nhất. Nếu timeout được xác định là thất bại theo thiết kế MVP, Payment chuyển sang `FAILED`, ghi `Gateway timeout` và Order chuyển sang `PAYMENT_FAILED`. Không xem kết quả chưa xác định là thất bại đã được xác nhận nếu chưa có căn cứ. |
 | **BR-PAY-08** | Bảo toàn tồn kho nguyên liệu | `PaymentsService` không trực tiếp gọi `deductIngredients()` hoặc `restoreIngredients()` để xử lý kết quả thanh toán. `Ingredient.stock` phải giữ nguyên do riêng luồng Payment khi thất bại, retry hoặc replay. Tồn kho thực tế được xác minh bằng dữ liệu database trước và sau kiểm thử. |
 | **BR-PAY-09** | Replay không lặp nghiệp vụ | Replay không gọi lại gateway, không tạo Payment mới, không cộng loyalty lần nữa và không làm thay đổi `Ingredient.stock`. |
+| **BR-PAY-10** | Một Payment VNPay chờ xử lý mỗi đơn | Mỗi Order chỉ có tối đa một Payment VNPay `PENDING` còn hạn. Yêu cầu mới (kể cả key khác) trả lại Payment đó. Payment quá 15 phút bị chuyển `FAILED` ("Hết hạn thanh toán VNPay") trước khi tạo Payment mới. Link VNPay hết hạn sau 15 phút (`vnp_ExpireDate`). |
+| **BR-PAY-11** | IPN khi Order không `PENDING` | Payment được ghi nhận theo kết quả VNPay nhưng Order không bị chuyển trạng thái, không cộng Loyalty, không đổi tồn kho. Giao dịch thành công trên đơn không `PENDING` được đánh dấu "Cần hoàn tiền thủ công". Backend vẫn trả `RspCode 00` để VNPay ngừng gửi lại. |
 
 ## 8. Kết luận các vấn đề thiết kế
 
@@ -131,13 +133,13 @@ HTTP status khi replay phải thống nhất với API contract và code thực 
 
 - Khi giao dịch thất bại đã được xác nhận, Payment chuyển sang `FAILED` và Order chuyển sang `PAYMENT_FAILED` qua `OrderService.transition()`.
 - Khách hàng được phép retry không giới hạn theo quy tắc nghiệp vụ; retry chuyển Order về `PENDING` và sử dụng key mới.
-- Không áp dụng giới hạn ba lần, thời hạn 15 phút hoặc khóa vĩnh viễn Order ở `PAYMENT_FAILED`.
+- Không áp dụng giới hạn ba lần hoặc khóa vĩnh viễn Order ở `PAYMENT_FAILED`. Thời hạn 15 phút chỉ áp dụng cho link thanh toán VNPay, không áp dụng cho Order.
 
 ### Q2 – Thời gian chờ thanh toán tối đa
 
 **Đã chốt – Quyết định D6**
 
-- Loại bỏ scheduler/cron-job tự động hết hạn 15 phút và trường `expiresAt` khỏi phạm vi MVP.
+- Loại bỏ scheduler/cron-job tự động hết hạn Order và trường `expiresAt` khỏi phạm vi MVP. Link VNPay vẫn hết hạn sau 15 phút nhờ tham số `vnp_ExpireDate`; hết hạn chỉ đánh dấu Payment `FAILED` khi khách tạo lại thanh toán, không tự hủy Order.
 - Đơn hàng bị bỏ dở có thể tiếp tục giữ tồn kho theo cơ chế giữ tồn kho của hệ thống cho đến khi được hủy qua `POST /orders/:id/cancel`.
 - Việc giữ tồn kho do cơ chế đơn hàng không đồng nghĩa với việc luồng Payment được phép trực tiếp trừ hoặc hoàn `Ingredient.stock`.
 
