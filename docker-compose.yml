@@ -50,7 +50,7 @@ services:
       - "http"
       - "backend:4000"
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-3LUzy8S41JsY4v4Nh4F4QeXWYt3_5vCLiTtoKt7pUBTNe7q1k}
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?cần đặt NGROK_AUTHTOKEN trong .env}
     ports:
       - "4040:4040"
     depends_on:
