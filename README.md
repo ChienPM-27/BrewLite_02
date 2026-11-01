@@ -4,43 +4,53 @@
 > **Kiến trúc Monorepo:** 
 > - **Backend:** NestJS 11 + Prisma ORM 6 + PostgreSQL 16 (Docker)
 > - **Frontend:** Next.js 15 (App Router) + React 19 + Tailwind CSS 3 + Zustand
-> - **Thiết kế:** Design System **Warm Roasted Modern** (tông nâu rang mộc, kem sữa, bạc hà, đổ bóng elevation ấm)
+> - **Thiết kế:** Design System **Warm Roasted Modern** (tông nâu cà phê ấm, kem sữa, bạc hà)
 
 ---
 
 ## 🚀 HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG (QUICK START)
 
-Bạn có thể khởi chạy hệ thống theo 1 trong 2 cách dưới đây trên máy sạch (yêu cầu Docker Desktop và Node.js 20+):
-
-### CÁCH A: Chạy toàn bộ hệ thống bằng Docker (Khuyên dùng)
-Chỉ với 1 lệnh duy nhất để build và khởi chạy cả 3 dịch vụ (PostgreSQL, NestJS Backend, Next.js Frontend):
-
-1. **Khởi động các dịch vụ:**
-   ```bash
-   docker compose up --build -d
-   ```
-   - **Postgres Database:** `localhost:5432` (tự động chạy `prisma migrate deploy`)
-   - **Backend API:** `http://localhost:4000/api/v1` (Health check: `http://localhost:4000/api/v1/health`)
-   - **Frontend Web UI:** `http://localhost:3000`
-
-2. **Nạp dữ liệu mẫu (Seeding):**
-   *(Dữ liệu mẫu KHÔNG tự nạp khi khởi động mặc định để tránh vô tình xóa dữ liệu. Sử dụng profile `seed` khi cần nạp dữ liệu demo ban đầu)*:
-   ```bash
-   docker compose --profile seed run --rm seed
-   ```
-
-3. **Dừng hệ thống:**
-   ```bash
-   docker compose down
-   # hoặc xóa sạch cả volume dữ liệu:
-   docker compose down -v
-   ```
-
-> **Lưu ý về môi trường:** Trong `docker-compose.yml`, biến `BACKEND_NODE_ENV` mặc định là `development`. Điều này cho phép header `X-Mock-Outcome` hoạt động để phục vụ demo các kịch bản lỗi thanh toán. Nếu đặt `BACKEND_NODE_ENV=production`, backend sẽ bỏ qua header này theo đúng nguyên tắc bảo mật.
+Bạn có thể chạy dự án nhanh nhất qua **Docker** (khuyên dùng) hoặc **Chạy trực tiếp trên máy** để lập trình.
 
 ---
 
-### CÁCH B: Chạy thủ công từng phần cho Lập trình viên (Local Dev)
+### CÁCH 1: Siêu đơn giản với Docker (Khuyên Dùng – 1 Lệnh)
+
+Yêu cầu máy đã cài **Docker Desktop** (đang bật).
+
+#### 1. Tạo file cấu hình môi trường:
+```bash
+cp .env.example .env
+```
+*(Nếu dùng Windows PowerShell: `copy .env.example .env`)*
+
+#### 2. Khởi động toàn bộ hệ thống (Postgres, Backend, Frontend, Cloudflare Tunnel):
+```bash
+docker compose up -d
+```
+
+#### 3. Nạp dữ liệu mẫu ban đầu (Sản phẩm, Topping, Voucher, Tài khoản):
+```bash
+docker compose --profile seed run --rm seed
+```
+
+#### 4. Truy cập ứng dụng:
+- 🌐 **Khách hàng (Đặt hàng & Thanh toán):** [http://localhost:3000](http://localhost:3000)
+- 👨‍🍳 **Quản lý / Barista (Nhận đơn & Pha chế):** [http://localhost:3000/admin](http://localhost:3000/admin)
+- 🔌 **Backend REST API:** [http://localhost:4000/api/v1](http://localhost:4000/api/v1) *(Health check: `http://localhost:4000/api/v1/health`)*
+
+#### Dừng hệ thống khi không dùng:
+```bash
+docker compose down
+# Hoặc nếu muốn xóa sạch cả database để làm lại từ đầu:
+docker compose down -v
+```
+
+---
+
+### CÁCH 2: Chạy trực tiếp cho Lập trình viên (Local Dev)
+
+Dành cho lúc viết code, cần hot-reload nhanh mà không muốn rebuild Docker container.
 
 #### 1. Khởi động PostgreSQL qua Docker:
 ```bash
@@ -56,100 +66,128 @@ npx prisma migrate deploy
 npm run prisma:seed
 npm run start:dev
 ```
-- **REST API Base URL:** `http://localhost:4000/api/v1`
-- Toàn bộ biến môi trường dev được cấu hình mẫu trong `backend/.env.example` (`PORT`, `NODE_ENV`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `JWT_EXPIRATION`). Lệnh `cp .env.example .env` đã nạp sẵn cấu hình dev kết nối tới PostgreSQL cục bộ.
+API hoạt động tại: `http://localhost:4000/api/v1`
 
 #### 3. Cài đặt và chạy Frontend (Port 3000):
+Mở một cửa sổ Terminal mới:
 ```bash
 cd frontend
 cp .env.example .env.local
 npm install
 npm run dev
 ```
-- **Giao diện Web:** `http://localhost:3000`
-- Cấu hình môi trường dev trong `frontend/.env.example`:
-  - `NEXT_PUBLIC_API_URL`: Trỏ tới backend API (`http://localhost:4000/api/v1`).
-  - `NEXT_PUBLIC_DEMO_MODE`: Bật/tắt công cụ mô phỏng thanh toán trực quan (true/false).
+Giao diện hoạt động tại: `http://localhost:3000`
 
 ---
 
 ## 🔑 TÀI KHOẢN & DỮ LIỆU DEMO
 
-Hệ thống đã nạp sẵn dữ liệu mẫu khi chạy lệnh seed (`npm run prisma:seed` hoặc qua docker seed profile):
-- **Tài khoản người dùng Demo:**
-  - **Email:** `demo@brewlite.test`
-  - **Mật khẩu:** `Demo@12345`
-  - Có sẵn **120 điểm loyalty** (BrewPoints).
-  - *(Trên trang Đăng nhập có nút bấm "Điền tài khoản Demo" giúp đăng nhập nhanh).*
+Hệ thống đã nạp sẵn dữ liệu mẫu phục vụ kiểm thử:
 
-- **Mã ưu đãi khuyến mãi (Khớp chính xác với seed DB):**
-  - `WELCOME10`: Giảm 10% giá trị đơn hàng, giảm tối đa **20.000đ**, áp dụng cho đơn từ **40.000đ**.
-  - `GIAM15K`: Giảm trực tiếp **15.000đ**, áp dụng cho đơn từ **60.000đ**.
+### 1. Tài khoản đăng nhập sẵn
+| Vai trò | Email | Mật khẩu | Chức năng chính |
+| :--- | :--- | :--- | :--- |
+| **Khách hàng** | `demo@brewlite.test` | `Demo@12345` | Đặt món, áp mã giảm giá, thanh toán, tích 120 BrewPoints |
+| **Admin / Barista** | `admin@brewlite.com` | `Admin@123456` | Bảng điều khiển Barista `/admin`: Chờ pha ➔ Đang pha ➔ Chờ giao ➔ Đã giao |
 
-- **Chế độ Demo thanh toán (`NEXT_PUBLIC_DEMO_MODE=true`):**
-  - Mở giao diện giả lập Cổng thanh toán (Mock Payment Gateway) trực quan:
-    - **Ví điện tử (MoMo / VietQR):** Hiển thị mã QR động, bộ đếm ngược thời gian thanh toán và các nút mô phỏng: *Thanh toán thành công* hoặc *Thanh toán thất bại (Quá hạn/Số dư không đủ)*.
-    - **Thẻ ngân hàng (NAPAS / Visa / Mastercard):** Form nhập thông tin thẻ, mã OTP xác thực và nút mô phỏng thành công/thất bại.
+*(Tại màn hình Đăng nhập `http://localhost:3000/auth/login` có sẵn nút **"Điền tài khoản Demo"** để đăng nhập ngay mà không cần gõ phím).*
+
+### 2. Mã giảm giá (Voucher)
+- `WELCOME10`: Giảm 10% (tối đa **20.000đ**), áp dụng cho đơn từ **40.000đ**.
+- `GIAM15K`: Giảm trực tiếp **15.000đ**, áp dụng cho đơn từ **60.000đ**.
 
 ---
 
-## ☕ LUỒNG DEMO END-TO-END
+## 💳 HƯỚNG DẪN KIỂM THỬ THANH TOÁN
 
-### Kịch bản 1: Đặt hàng & Thanh toán thành công (Happy Path)
-1. **Đăng nhập:** Mở `http://localhost:3000/auth/login`, bấm "Điền tài khoản Demo" rồi bấm "Đăng nhập". Hệ thống cấp JWT và chuyển hướng đến trang Thực đơn.
-2. **Chọn món & tùy biến:**
-   - Vào `/menu`, chọn một món đồ uống (ví dụ: *Cà phê sữa đá*).
-   - Chọn kích cỡ (Size M +5.000đ hoặc Size L +10.000đ).
-   - Thêm các loại Topping yêu thích (Trân châu trắng, Thạch cà phê...).
-   - Bấm "Thêm vào giỏ hàng".
-3. **Giỏ hàng & Khuyến mãi:**
-   - Vào `/cart`, kiểm tra danh sách món và phụ thu.
-   - Nhập mã ưu đãi `WELCOME10` (nếu đơn >= 40.000đ) hoặc `GIAM15K` (nếu đơn >= 60.000đ), bấm "Áp dụng". Hệ thống tính toán mức giảm và cập nhật tổng tiền thanh toán.
-   - Bấm "Tiến hành đặt hàng".
-4. **Xác nhận đặt hàng:** Trang `/checkout` hiển thị tóm tắt đơn hàng. Bấm "Xác nhận đặt hàng" để tạo đơn ở trạng thái `PENDING`.
-5. **Thanh toán:**
-   - Trang `/checkout/payment` hiển thị lựa chọn phương thức (Ví điện tử hoặc Thẻ ngân hàng).
-   - Bấm "Mở cổng thanh toán [MoMo / Thẻ ngân hàng]".
-   - Trên modal cổng thanh toán giả lập, bấm **"Mô phỏng: Quét mã thành công"** (hoặc xác thực OTP).
-   - Hệ thống gửi request với `Idempotency-Key` duy nhất, đơn hàng chuyển sang `PAID`, điểm thưởng thành viên được tự động tích lũy (10.000đ = 1 điểm).
-6. **Xác nhận & Kiểm tra lịch sử:**
-   - Màn hình thông báo "Thanh toán thành công!" kèm số điểm vừa tích lũy.
-   - Vào `/orders` hoặc `/orders/:id` để xem chi tiết đơn hàng, lịch sử trạng thái và giao dịch thanh toán.
+Hệ thống hỗ trợ 2 cơ chế thanh toán:
 
-### Kịch bản 2: Thanh toán thất bại & Thử lại (Failure & Retry Path)
-1. Tại bước thanh toán `/checkout/payment`, chọn phương thức và bấm mở cổng thanh toán.
-2. Trên modal giả lập, bấm **"Mô phỏng: Quá hạn thanh toán / Hủy"** (hoặc chọn checkbox "Mô phỏng thanh toán thất bại").
-3. Giao diện báo lỗi thanh toán, đơn hàng được cập nhật sang trạng thái `PAYMENT_FAILED`.
-4. Bấm nút **"Thử lại thanh toán"**: hệ thống cấp `Idempotency-Key` mới, chuyển trạng thái đơn từ `PAYMENT_FAILED` về `PENDING`, cho phép khách hàng đổi phương thức thanh toán hoặc thử lại cho đến khi thành công.
-5. Khách hàng cũng có thể chọn **"Hủy đơn hàng"**: đơn hàng chuyển sang `CANCELLED`, toàn bộ số lượng tồn kho của sản phẩm và topping được hoàn trả ngay lập tức vào database.
+### Lựa chọn A: Mock Payment Gateway (Mặc định – Không cần Internet/Tunnel)
+Hệ thống tích hợp sẵn giao diện giả lập Cổng thanh toán trực quan dành cho báo cáo và chấm điểm:
+1. Khi đến bước thanh toán đơn hàng, chọn **Ví điện tử (MoMo / VietQR)** hoặc **Thẻ ngân hàng**.
+2. Nhấn nút mở cổng thanh toán giả lập.
+3. Sử dụng các nút mô phỏng trên giao diện:
+   - **Mô phỏng: Quét mã thành công / Xác thực OTP**: Đơn chuyển sang `PAID`, cộng điểm tích lũy ngay lập tức.
+   - **Mô phỏng: Thất bại / Hủy**: Đơn chuyển sang `PAYMENT_FAILED`. Khách hàng có thể bấm **"Thử lại thanh toán"** hoặc **"Hủy đơn"** (tồn kho nguyên liệu được hoàn lại tức thì).
+
+### Lựa chọn B: Kiểm thử Cổng VNPay Sandbox thật
+Dành cho kiểm thử giao dịch thật qua cổng Sandbox của VNPay:
+
+1. **Cấu hình thông tin Merchant VNPay:**  
+   Mở file `.env` (ở thư mục gốc) và điền:
+   ```env
+   VNPAY_TMN_CODE=JVDDQS32
+   VNPAY_HASH_SECRET=IEKIESWSBCDHHJICGKDSRFDBMPKNYJXI
+   ```
+   Khởi động lại backend hoặc chạy `docker compose up -d`.
+
+2. **Lấy Public URL từ Cloudflare Tunnel:**
+   Dự án đã tích hợp sẵn container `tunnel` (Cloudflare Quick Tunnel) tự động mở cổng public ra Internet mà không cần cài phần mềm ngoài hay tạo tài khoản:
+   ```bash
+   docker compose logs -f tunnel
+   ```
+   Tìm dòng có dạng:
+   ```text
+   https://<ngau-nhien>.trycloudflare.com
+   ```
+
+3. **Cập nhật IPN URL trên trang quản trị VNPay Sandbox:**
+   - Truy cập: [https://sandbox.vnpayment.vn/merchantv2/](https://sandbox.vnpayment.vn/merchantv2/)
+   - Đăng nhập tài khoản Merchant Sandbox.
+   - Vào menu **Cấu hình** ➔ **Cập nhật IPN URL**.
+   - Dán URL đầy đủ dạng:
+     ```text
+     https://<ngau-nhien>.trycloudflare.com/api/v1/payments/vnpay/ipn
+     ```
+     *(⚠️ Lưu ý: Tuyệt đối không để dấu `#` ở đầu và bắt buộc phải có đuôi `/api/v1/payments/vnpay/ipn`)*.
+   - *Lưu ý về Cloudflare Quick Tunnel:* Domain `*.trycloudflare.com` là miễn phí và ngẫu nhiên. Mỗi lần bạn restart lại container `tunnel`, hãy xem log để cập nhật lại IPN URL nếu domain thay đổi.
+
+4. **Thông tin thẻ ATM test của VNPay:**
+   - **Ngân hàng:** `NCB`
+   - **Số thẻ:** `9704198526191432198`
+   - **Tên chủ thẻ:** `NGUYEN VAN A`
+   - **Ngày phát hành:** `07/15`
+   - **Mã OTP xác thực:** `123456`
 
 ---
 
-## 🧪 CHẠY KIỂM THỬ (TESTING)
+## ☕ LUỒNG ĐẶT HÀNG & PHA CHẾ ĐẦY ĐỦ (END-TO-END)
 
-### 1. Unit Test Backend (Không cần DB):
-Toàn bộ kiểm thử logic cô lập (State Machine, PricingService, AuthService, v.v.):
+1. **Khách đặt hàng:**
+   - Đăng nhập `demo@brewlite.test` ➔ Chọn món tại `/menu` (chọn size, topping) ➔ Thêm vào giỏ.
+   - Mở `/cart`, nhập mã `WELCOME10` ➔ Bấm "Tiến hành đặt hàng".
+   - Bấm "Xác nhận đặt hàng" để tạo đơn `PENDING`.
+2. **Thanh toán:**
+   - Chọn VNPay hoặc Mock Gateway ➔ Hoàn tất thanh toán.
+   - Đơn hàng chuyển sang `PAID` và tích lũy điểm thưởng thành viên (10.000đ = 1 điểm).
+3. **Barista xử lý đơn (`/admin`):**
+   - Đăng nhập tài khoản `admin@brewlite.com`.
+   - Vào [http://localhost:3000/admin](http://localhost:3000/admin).
+   - Tab **Chờ pha (PAID):** Thấy đơn mới ➔ Bấm **"Bắt đầu pha"** (chuyển sang `PREPARING`).
+   - Tab **Đang pha (PREPARING):** Hoàn thành pha chế ➔ Bấm **"Pha xong"** (chuyển sang `READY`).
+   - Tab **Chờ giao (READY):** Khách đến lấy ➔ Bấm **"Đã giao khách"** (chuyển sang `COMPLETED`).
+4. **Khách hàng theo dõi đơn:**
+   - Vào `/orders` hoặc `/orders/:id`, trạng thái đơn cập nhật theo thời gian thực tương ứng với từng bước của Barista.
+
+---
+
+## 🧪 CHẠY KIỂM THỬ TỰ ĐỘNG (TESTING)
+
+### 1. Unit Test Backend (146 tests)
+Kiểm tra cô lập toàn bộ nghiệp vụ (Auth, Pricing, State Machine, Idempotency, VNPay):
 ```bash
 cd backend
 npm test
 ```
 
-### 2. Kiểm thử Tự động E2E Concurrency & Idempotency (Task 10):
-Bộ kiểm thử tích hợp tự động với database PostgreSQL thật, kiểm tra toàn diện:
-- **(c)** Tranh chấp kho: 10 request đặt hàng song song với sản phẩm tồn kho = 3 (Optimistic Locking, đảm bảo 201 <= 3, tồn kho cuối >= 0, không có 500).
-- **(c2)** Tranh chấp kho topping: 10 request đặt song song với topping tồn kho = 2.
-- **(b)** Tranh chấp Idempotency-Key: 5 request thanh toán song song cùng 1 key (chỉ 1 Payment được lưu, cùng payment ID, điểm tích lũy chỉ cộng 1 lần, không có 500).
-- **(b2)** Sai lệch request body: cùng key nhưng đổi phương thức thanh toán trả về `409 Conflict`.
-- **(a)** State machine error paths: hủy đơn đã `PAID` trả về `409 Conflict`; hủy 2 lần trả về `409 Conflict`.
-
+### 2. Kiểm thử Tự động E2E Concurrency & Idempotency
+Kiểm tra tranh chấp tài nguyên trên PostgreSQL thật (Optimistic Locking, Idempotency-Key song song, Rollback tồn kho):
 ```bash
 cd backend
 npm run test:e2e
 ```
-*(Yêu cầu database PostgreSQL đang chạy và đã migrate. Bộ test tự tạo dữ liệu độc lập và dọn dẹp sạch sau khi chạy, có thể chạy lặp lại nhiều lần mà không phụ thuộc trạng thái DB)*.
 
-### 3. Script Demo Tranh Chấp Thủ Công (Console Demo):
-Script chạy trực quan ra màn hình terminal để phục vụ trình chiếu/demo cho hội đồng chấm:
+### 3. Demo Trực quan Tranh chấp Kho trên Terminal (Console Demo)
 ```bash
 cd backend
 npm run test:concurrency
@@ -164,51 +202,32 @@ npm run build
 
 ---
 
-## 📌 GHI CHÚ VỀ PHẠM VI HỆ THỐNG (SCOPE & MVP)
-
-- **Quy trình Barista (Trạng thái PREPARING / READY / COMPLETED):**
-  Theo yêu cầu đề bài đồ án, đồ án tập trung vào trải nghiệm khách hàng đặt hàng và thanh toán không tiền mặt. Các trạng thái chế biến đồ uống của Barista (`PREPARING`, `READY`, `COMPLETED`) nằm ngoài phạm vi giao diện MVP của đợt này. Toàn bộ logic chuyển trạng thái hợp lệ và bất hợp lệ của quy trình này đã được bảo đảm và kiểm thử đầy đủ bằng unit test state machine (`backend/src/modules/orders/order-state.spec.ts`).
-
----
-
 ## 📁 CẤU TRÚC MONOREPO
 
 ```
 BrewLite/
 ├── backend/                      # Ứng dụng NestJS REST API (Port 4000)
 │   ├── src/
-│   │   ├── common/               # Interceptors, Filters, Guards
+│   │   ├── common/               # Interceptors, Filters, Guards, Decorators
 │   │   ├── modules/
-│   │   │   ├── auth/             # Xác thực người dùng & JWT
+│   │   │   ├── auth/             # Xác thực người dùng, JWT, Admin Guard
 │   │   │   ├── products/         # Danh mục sản phẩm & Topping
-│   │   │   ├── orders/           # Đặt hàng, State Machine, Hủy đơn, Lịch sử
-│   │   │   └── payments/         # Thanh toán Idempotency & Mock Gateway
-│   │   └── prisma/               # Prisma Service
-│   ├── prisma/schema.prisma      # Định nghĩa mô hình cơ sở dữ liệu
-│   ├── test/                     # Test Suites (e2e, concurrency script)
-│   │   ├── jest-e2e.json         # Cấu hình Jest E2E
-│   │   ├── orders-concurrency.e2e-spec.ts  # Test tự động Concurrency & Idempotency
-│   │   └── concurrency.ts        # Script demo terminal
-│   ├── Dockerfile                # Multi-stage Docker build cho Backend
-│   └── requests/smoke-gd1.http   # File request HTTP kiểm thử nhanh REST Client
+│   │   │   ├── orders/           # Đặt hàng, State Machine, Rollback tồn kho
+│   │   │   └── payments/         # Thanh toán Idempotency, Mock Gateway & VNPay IPN
+│   │   └── prisma/               # Prisma Service & Seed data
+│   ├── prisma/schema.prisma      # Mô hình cơ sở dữ liệu PostgreSQL
+│   ├── test/                     # Test Suites (E2E Concurrency, Jest config)
+│   └── Dockerfile                # Multi-stage Docker build cho Backend
 ├── frontend/                     # Ứng dụng Next.js 15 App Router (Port 3000)
 │   ├── src/
-│   │   ├── app/                  # Route pages: /, /menu, /cart, /checkout, /orders, /auth
-│   │   ├── components/           # UI components, layout, MockGatewayModal
+│   │   ├── app/                  # Các trang: /, /menu, /cart, /checkout, /orders, /admin, /payment
+│   │   ├── components/           # UI components, Header, BottomNav, MockGatewayModal
 │   │   ├── hooks/                # useRequireAuth, useHydrated
 │   │   ├── lib/                  # api-client, format-currency, idempotency
-│   │   ├── services/             # auth, product, order, payment services
+│   │   ├── services/             # auth, product, order, payment, admin-order services
 │   │   └── store/                # useAuthStore, useCartStore (Zustand)
-│   ├── Dockerfile                # Multi-stage Docker build cho Frontend
-│   └── design/design-system.md   # Đặc tả Design System "Warm Roasted Modern"
-├── docs/                         # Tài liệu đặc tả & Hợp đồng API
-│   ├── auth/                     # Use-case & Contract Auth
-│   ├── cart/                     # Use-case & Contract Giỏ hàng
-│   ├── order/                    # Đặc tả Đặt hàng & Concurrency Control
-│   ├── payment/                  # Idempotency & Cổng thanh toán
-│   ├── order-history/            # Lịch sử đơn hàng & Tra cứu chi tiết
-│   ├── git-convention.md         # Quy chuẩn Git & Commit
-│   └── checklist-review.md       # Tiêu chí review code
-├── docker-compose.yml            # Khởi chạy PostgreSQL, Backend, Frontend & Seed
-└── README.md
+│   └── Dockerfile                # Multi-stage Docker build cho Frontend
+├── docs/                         # Tài liệu thiết kế & Đặc tả nghiệp vụ
+├── docker-compose.yml            # Docker Compose (Postgres, Backend, Frontend, Tunnel, Seed)
+└── README.md                     # Hướng dẫn dự án
 ```
