@@ -98,7 +98,12 @@ export class VnpayGatewayService {
       );
     }
 
-    const createDate = getVietnamDateTime();
+    const now = new Date();
+    const createDate = getVietnamDateTime(now);
+    const expireMinutes = params.expireMinutes ?? 15;
+    const expireDate = getVietnamDateTime(
+      new Date(now.getTime() + expireMinutes * 60 * 1000),
+    );
 
     const vnpParams: Record<string, string> = {
       vnp_Version: '2.1.0',
@@ -113,6 +118,7 @@ export class VnpayGatewayService {
       vnp_ReturnUrl: this.returnUrl,
       vnp_IpAddr: normalizeIpAddress(params.clientIp),
       vnp_CreateDate: createDate,
+      vnp_ExpireDate: expireDate,
     };
 
     // Sắp xếp tham số trước khi ký

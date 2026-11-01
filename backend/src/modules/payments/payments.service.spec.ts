@@ -595,6 +595,8 @@ describe('PaymentsService', () => {
       finalAmount: new Prisma.Decimal(65000),
     });
 
+    tx.payment.findFirst.mockResolvedValue(null);
+
     tx.payment.create.mockResolvedValue({
       id: 'pay-vnpay-1',
       orderId: 'order-vnpay-1',
@@ -632,6 +634,7 @@ describe('PaymentsService', () => {
       amount: 65000,
       orderInfo: 'Thanh toan don hang 1001',
       clientIp: '127.0.0.1',
+      expireMinutes: 15,
     });
 
     expect(result.status).toBe(PaymentStatus.PENDING);
@@ -643,6 +646,129 @@ describe('PaymentsService', () => {
     expect(orderServiceMock.transition).not.toHaveBeenCalled();
     expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
 
+    expectIngredientStockUnchanged();
+  });
+
+  it('reuses existing pending VNPay payment when created within 15 minutes', async () => {
+    prismaMock.payment.findUnique.mockResolvedValue(null);
+
+    tx.order.findUnique.mockResolvedValue({
+      id: 'order-vnpay-1',
+      orderNumber: 1001,
+      userId: 'user-1',
+      status: OrderStatus.PENDING,
+      finalAmount: new Prisma.Decimal(65000),
+    });
+
+    const activePendingPayment = {
+      id: 'pay-vnpay-existing',
+      orderId: 'order-vnpay-1',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.BANK_CARD,
+      gateway: PaymentGateway.VNPAY,
+      status: PaymentStatus.PENDING,
+      transactionRef: 'pay-vnpay-existing',
+      gatewayTransactionNo: null,
+      paymentUrl: 'https://sandbox.vnpayment.vn/payment?test=existing',
+      failureReason: null,
+      createdAt: new Date(Date.now() - 5 * 60 * 1000),
+    };
+
+    tx.payment.findFirst.mockResolvedValue(activePendingPayment);
+
+    const result = await service.createPayment(
+      'user-1',
+      'vnpay-idem-reuse',
+      vnpayDto,
+      undefined,
+      '127.0.0.1',
+    );
+
+    expect(tx.payment.create).not.toHaveBeenCalled();
+    expect(vnpayGatewayMock.createPaymentUrl).not.toHaveBeenCalled();
+    expect(result.id).toBe('pay-vnpay-existing');
+    expect(result.paymentUrl).toBe(
+      'https://sandbox.vnpayment.vn/payment?test=existing',
+    );
+    expect(result.status).toBe(PaymentStatus.PENDING);
+    expect(orderServiceMock.transition).not.toHaveBeenCalled();
+    expectIngredientStockUnchanged();
+  });
+
+  it('marks expired pending VNPay payment as FAILED and creates a new one when > 15 minutes', async () => {
+    prismaMock.payment.findUnique.mockResolvedValue(null);
+
+    tx.order.findUnique.mockResolvedValue({
+      id: 'order-vnpay-1',
+      orderNumber: 1001,
+      userId: 'user-1',
+      status: OrderStatus.PENDING,
+      finalAmount: new Prisma.Decimal(65000),
+    });
+
+    const expiredPendingPayment = {
+      id: 'pay-vnpay-expired',
+      orderId: 'order-vnpay-1',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.BANK_CARD,
+      gateway: PaymentGateway.VNPAY,
+      status: PaymentStatus.PENDING,
+      transactionRef: 'pay-vnpay-expired',
+      paymentUrl: 'https://sandbox.vnpayment.vn/payment?test=expired',
+      createdAt: new Date(Date.now() - 16 * 60 * 1000),
+    };
+
+    tx.payment.findFirst.mockResolvedValue(expiredPendingPayment);
+
+    tx.payment.create.mockResolvedValue({
+      id: 'pay-vnpay-new',
+      orderId: 'order-vnpay-1',
+      status: PaymentStatus.PENDING,
+    });
+
+    vnpayGatewayMock.createPaymentUrl.mockReturnValue(
+      'https://sandbox.vnpayment.vn/payment?test=new',
+    );
+
+    tx.payment.update.mockResolvedValue({
+      id: 'pay-vnpay-new',
+      orderId: 'order-vnpay-1',
+      amount: new Prisma.Decimal(65000),
+      method: PaymentMethod.BANK_CARD,
+      gateway: PaymentGateway.VNPAY,
+      status: PaymentStatus.PENDING,
+      transactionRef: 'pay-vnpay-new',
+      gatewayTransactionNo: null,
+      paymentUrl: 'https://sandbox.vnpayment.vn/payment?test=new',
+      failureReason: null,
+      createdAt: new Date(),
+    });
+
+    const result = await service.createPayment(
+      'user-1',
+      'vnpay-idem-expired',
+      vnpayDto,
+      undefined,
+      '127.0.0.1',
+    );
+
+    expect(tx.payment.update).toHaveBeenCalledWith({
+      where: { id: 'pay-vnpay-expired' },
+      data: {
+        status: PaymentStatus.FAILED,
+        failureReason: 'Hết hạn thanh toán VNPay (15 phút)',
+      },
+    });
+
+    expect(tx.payment.create).toHaveBeenCalled();
+    expect(vnpayGatewayMock.createPaymentUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transactionRef: 'pay-vnpay-new',
+        expireMinutes: 15,
+      }),
+    );
+    expect(result.id).toBe('pay-vnpay-new');
+    expect(result.status).toBe(PaymentStatus.PENDING);
     expectIngredientStockUnchanged();
   });
 
@@ -878,6 +1004,131 @@ describe('PaymentsService', () => {
 
     expect(orderServiceMock.transition).not.toHaveBeenCalled();
     expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
+
+    expectIngredientStockUnchanged();
+  });
+
+  it('handles successful VNPay IPN when order is CANCELLED without transitioning or awarding loyalty', async () => {
+    vnpayGatewayMock.verifyIpnSignature.mockReturnValue(true);
+
+    tx.payment.findFirst.mockResolvedValue({
+      ...vnpayPayment,
+      order: {
+        ...vnpayPayment.order,
+        status: OrderStatus.CANCELLED,
+      },
+    });
+
+    tx.payment.updateMany.mockResolvedValue({
+      count: 1,
+    });
+
+    const result = await service.handleVnpayIpn(validVnpayParams);
+
+    expect(tx.payment.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'pay-vnpay-1',
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.SUCCESS,
+        gatewayTransactionNo: '12345678',
+        failureReason:
+          'Cần hoàn tiền thủ công: đơn đang ở trạng thái CANCELLED',
+      },
+    });
+
+    expect(orderServiceMock.transition).not.toHaveBeenCalled();
+    expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
+
+    expect(result).toEqual({
+      RspCode: '00',
+      Message: 'Confirm Success',
+    });
+
+    expectIngredientStockUnchanged();
+  });
+
+  it('handles successful VNPay IPN when order is already PAID without transitioning or awarding loyalty', async () => {
+    vnpayGatewayMock.verifyIpnSignature.mockReturnValue(true);
+
+    tx.payment.findFirst.mockResolvedValue({
+      ...vnpayPayment,
+      order: {
+        ...vnpayPayment.order,
+        status: OrderStatus.PAID,
+      },
+    });
+
+    tx.payment.updateMany.mockResolvedValue({
+      count: 1,
+    });
+
+    const result = await service.handleVnpayIpn(validVnpayParams);
+
+    expect(tx.payment.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'pay-vnpay-1',
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.SUCCESS,
+        gatewayTransactionNo: '12345678',
+        failureReason: 'Cần hoàn tiền thủ công: đơn đang ở trạng thái PAID',
+      },
+    });
+
+    expect(orderServiceMock.transition).not.toHaveBeenCalled();
+    expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
+
+    expect(result).toEqual({
+      RspCode: '00',
+      Message: 'Confirm Success',
+    });
+
+    expectIngredientStockUnchanged();
+  });
+
+  it('handles failed VNPay IPN when order is not PENDING without transitioning or awarding loyalty', async () => {
+    vnpayGatewayMock.verifyIpnSignature.mockReturnValue(true);
+
+    tx.payment.findFirst.mockResolvedValue({
+      ...vnpayPayment,
+      order: {
+        ...vnpayPayment.order,
+        status: OrderStatus.CANCELLED,
+      },
+    });
+
+    tx.payment.updateMany.mockResolvedValue({
+      count: 1,
+    });
+
+    const result = await service.handleVnpayIpn({
+      ...validVnpayParams,
+      vnp_ResponseCode: '24',
+      vnp_TransactionStatus: '24',
+    });
+
+    expect(tx.payment.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'pay-vnpay-1',
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+        gatewayTransactionNo: '12345678',
+        failureReason: 'VNPay response: 24, transaction status: 24',
+      },
+    });
+
+    expect(orderServiceMock.transition).not.toHaveBeenCalled();
+    expect(loyaltyServiceMock.award).not.toHaveBeenCalled();
+
+    expect(result).toEqual({
+      RspCode: '00',
+      Message: 'Confirm Success',
+    });
 
     expectIngredientStockUnchanged();
   });

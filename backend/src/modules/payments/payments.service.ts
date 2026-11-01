@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -43,6 +44,8 @@ type PaymentResponseSource = {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderService: OrderService,
@@ -153,6 +156,42 @@ export class PaymentsService {
           );
         }
 
+        // Đối với VNPay: Kiểm tra nếu đã có payment PENDING cho đơn hàng này.
+        // Tái sử dụng payment PENDING nếu còn trong hạn 15 phút để tránh tạo nhiều payment
+        // khiến khách hàng bị trừ tiền nhiều lần.
+        if (gateway === PaymentGateway.VNPAY) {
+          const existingPending = await tx.payment.findFirst({
+            where: {
+              orderId: order.id,
+              gateway: PaymentGateway.VNPAY,
+              status: PaymentStatus.PENDING,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          });
+
+          if (existingPending) {
+            const ageMs = Date.now() - existingPending.createdAt.getTime();
+            const ttlMs = 15 * 60 * 1000;
+
+            if (ageMs < ttlMs && existingPending.paymentUrl) {
+              return this.toPaymentResponse(existingPending);
+            }
+
+            // Hết hạn 15 phút -> đánh dấu FAILED để tạo payment mới
+            await tx.payment.update({
+              where: {
+                id: existingPending.id,
+              },
+              data: {
+                status: PaymentStatus.FAILED,
+                failureReason: 'Hết hạn thanh toán VNPay (15 phút)',
+              },
+            });
+          }
+        }
+
         // Tạo Payment PENDING trước khi xử lý Gateway.
         const payment = await tx.payment.create({
           data: {
@@ -243,6 +282,7 @@ export class PaymentsService {
               amount: Number(order.finalAmount),
               orderInfo: `Thanh toan don hang ${order.orderNumber}`,
               clientIp,
+              expireMinutes: 15,
             });
 
           const updatedPayment =
@@ -386,7 +426,16 @@ export class PaymentsService {
         responseCode === '00' &&
         transactionStatus === '00';
 
+      const orderStatus = payment.order.status;
+
       // 7. Cập nhật Payment có điều kiện.
+      let failureReason: string | null = null;
+      if (!isSuccess) {
+        failureReason = `VNPay response: ${responseCode}, transaction status: ${transactionStatus}`;
+      } else if (orderStatus !== OrderStatus.PENDING) {
+        failureReason = `Cần hoàn tiền thủ công: đơn đang ở trạng thái ${orderStatus}`;
+      }
+
       const paymentUpdate = await tx.payment.updateMany({
         where: {
           id: payment.id,
@@ -402,9 +451,7 @@ export class PaymentsService {
               ? gatewayTransactionNo
               : null,
 
-          failureReason: isSuccess
-            ? null
-            : `VNPay response: ${responseCode}, transaction status: ${transactionStatus}`,
+          failureReason,
         },
       });
 
@@ -413,6 +460,19 @@ export class PaymentsService {
         return {
           RspCode: '02',
           Message: 'Order already confirmed',
+        };
+      }
+
+      // Kiểm tra trạng thái đơn hàng. Nếu đơn không ở trạng thái PENDING
+      // (ví dụ đã bị HỦY - CANCELLED, hoặc đã thanh toán - PAID, hoặc PAYMENT_FAILED),
+      // KHÔNG gọi transition và KHÔNG cộng loyalty để tránh ném ConflictException (409).
+      if (orderStatus !== OrderStatus.PENDING) {
+        this.logger.warn(
+          `VNPay IPN nhận kết quả cho đơn hàng ${payment.orderId} nhưng đơn đang ở trạng thái ${orderStatus}. Không chuyển trạng thái đơn.`,
+        );
+        return {
+          RspCode: '00',
+          Message: 'Confirm Success',
         };
       }
 

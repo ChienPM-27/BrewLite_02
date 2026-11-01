@@ -7,6 +7,7 @@ export interface CreateVnpayPaymentParams {
   amount: number;
   orderInfo: string;
   clientIp: string;
+  expireMinutes?: number;
 }
 
 // ==========================================

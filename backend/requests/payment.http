@@ -125,5 +125,6 @@ Content-Type: application/json
 
 {
   "orderId": "{{vnpayOrderId}}",
-  "method": "BANK_CARD"
+  "method": "BANK_CARD",
+  "gateway": "VNPAY"
 }

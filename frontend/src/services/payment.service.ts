@@ -2,11 +2,13 @@
 import { fetchApi } from '@/lib/api-client';
 
 export type PaymentMethod = 'E_WALLET' | 'BANK_CARD';
-export type PaymentStatus = 'SUCCESS' | 'FAILED';
+export type PaymentGateway = 'MOCK' | 'VNPAY';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
 
 export interface CreatePaymentDto {
   orderId: string;
   method: PaymentMethod;
+  gateway?: PaymentGateway;
 }
 
 export interface PaymentResponse {
@@ -14,8 +16,11 @@ export interface PaymentResponse {
   orderId: string;
   amount: number;
   method: PaymentMethod;
+  gateway?: PaymentGateway;
   status: PaymentStatus;
   transactionRef: string;
+  gatewayTransactionNo?: string | null;
+  paymentUrl?: string | null;
   failureReason?: string | null;
   createdAt: string;
 }
@@ -39,6 +44,11 @@ export async function createPayment(
     body: JSON.stringify({
       orderId: dto.orderId,
       method: dto.method,
+      gateway: dto.gateway ?? 'MOCK',
     }),
   });
+}
+
+export async function getPayment(paymentId: string): Promise<PaymentResponse> {
+  return await fetchApi<PaymentResponse>(`/payments/${paymentId}`);
 }
