@@ -33,6 +33,11 @@ enum PaymentStatus {
   FAILED
 }
 
+enum PaymentGateway {
+  MOCK
+  VNPAY
+}
+
 enum ProductSize {
   S
   M
@@ -72,14 +77,14 @@ model User {
 }
 
 model Category {
-  id           String    @id @default(cuid())
-  name         String    @unique
-  slug         String    @unique
-  displayOrder Int       @default(0) @map("display_order")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  name         String   @unique
+  slug         String   @unique
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  products     Product[]
+  products Product[]
 
   @@map("categories")
 }
@@ -96,10 +101,10 @@ model Product {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  category    Category?          @relation(fields: [categoryId], references: [id])
-  sizePrices  ProductSizePrice[]
-  orderItems  OrderItem[]
-  recipes     ProductRecipe[]
+  category   Category?          @relation(fields: [categoryId], references: [id])
+  sizePrices ProductSizePrice[]
+  orderItems OrderItem[]
+  recipes    ProductRecipe[]
 
   @@map("products")
 }
@@ -110,7 +115,7 @@ model ProductSizePrice {
   size            ProductSize
   priceAdjustment Decimal     @default(0) @map("price_adjustment") @db.Decimal(12, 0) // Phụ thu theo size
 
-  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, size])
   @@map("product_size_prices")
@@ -132,20 +137,20 @@ model Topping {
 }
 
 model Promotion {
-  id               String    @id @default(cuid())
-  code             String    @unique // Mã giảm giá ví dụ WELCOME10, GIAM15K
-  description      String?
-  discountPercent  Int?      @map("discount_percent") // % giảm (nếu có)
-  discountAmount   Decimal?  @map("discount_amount") @db.Decimal(12, 0) // Số tiền giảm cố định (nếu có)
-  maxDiscount      Decimal?  @map("max_discount") @db.Decimal(12, 0) // Mức giảm tối đa
-  minOrderAmount   Decimal   @default(0) @map("min_order_amount") @db.Decimal(12, 0) // Đơn tối thiểu
-  startDate        DateTime  @default(now()) @map("start_date")
-  endDate          DateTime? @map("end_date")
-  isActive         Boolean   @default(true) @map("is_active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  code            String    @unique // Mã giảm giá ví dụ WELCOME10, GIAM15K
+  description     String?
+  discountPercent Int?      @map("discount_percent") // % giảm (nếu có)
+  discountAmount  Decimal?  @map("discount_amount") @db.Decimal(12, 0) // Số tiền giảm cố định (nếu có)
+  maxDiscount     Decimal?  @map("max_discount") @db.Decimal(12, 0) // Mức giảm tối đa
+  minOrderAmount  Decimal   @default(0) @map("min_order_amount") @db.Decimal(12, 0) // Đơn tối thiểu
+  startDate       DateTime  @default(now()) @map("start_date")
+  endDate         DateTime? @map("end_date")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  orders           Order[]
+  orders Order[]
 
   @@map("promotions")
 }
@@ -165,13 +170,13 @@ model Order {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  user                 User                   @relation(fields: [userId], references: [id])
-  promotion            Promotion?             @relation(fields: [promotionId], references: [id])
-  items                OrderItem[]
-  payments             Payment[]              // 1-N: cho phép retry thanh toán khi thất bại
-  statusHistory        OrderStatusHistory[]
-  loyaltyTransactions  LoyaltyTransaction[]
-  ingredientUsages     OrderIngredientUsage[]
+  user                User                   @relation(fields: [userId], references: [id])
+  promotion           Promotion?             @relation(fields: [promotionId], references: [id])
+  items               OrderItem[]
+  payments            Payment[] // 1-N: cho phép retry thanh toán khi thất bại
+  statusHistory       OrderStatusHistory[]
+  loyaltyTransactions LoyaltyTransaction[]
+  ingredientUsages    OrderIngredientUsage[]
 
   @@index([userId])
   @@index([status])
@@ -187,39 +192,47 @@ model OrderItem {
   unitPrice Decimal     @map("unit_price") @db.Decimal(12, 0) // Đã cộng phụ thu size
   lineTotal Decimal     @map("line_total") @db.Decimal(12, 0) // (unitPrice + toppings) * quantity
 
-  order     Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product            @relation(fields: [productId], references: [id])
-  toppings  OrderItemTopping[]
+  order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product  Product            @relation(fields: [productId], references: [id])
+  toppings OrderItemTopping[]
 
   @@index([orderId])
   @@map("order_items")
 }
 
 model OrderItemTopping {
-  id          String   @id @default(cuid())
-  orderItemId String   @map("order_item_id")
-  toppingId   String   @map("topping_id")
-  price       Decimal  @db.Decimal(12, 0) // Giá topping tại thời điểm đặt
+  id          String  @id @default(cuid())
+  orderItemId String  @map("order_item_id")
+  toppingId   String  @map("topping_id")
+  price       Decimal @db.Decimal(12, 0) // Giá topping tại thời điểm đặt
 
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  topping     Topping   @relation(fields: [toppingId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  topping   Topping   @relation(fields: [toppingId], references: [id])
 
   @@map("order_item_toppings")
 }
 
 model Payment {
-  id             String        @id @default(cuid())
-  orderId        String        @map("order_id") // Bỏ @unique để 1 Order hỗ trợ nhiều lượt thử thanh toán (Retry)
-  idempotencyKey String        @unique @map("idempotency_key") // Khóa chống trùng lặp (Task 10)
-  requestHash    String?       @map("request_hash") // Hash payload request kiểm tra tính toàn vẹn
-  amount         Decimal       @db.Decimal(12, 0)
-  method         PaymentMethod
-  status         PaymentStatus @default(PENDING)
-  failureReason  String?       @map("failure_reason")
-  transactionRef String?       @map("transaction_ref")
-  createdAt      DateTime      @default(now()) @map("created_at")
+  id             String  @id @default(cuid())
+  orderId        String  @map("order_id") // 1 Order có thể có nhiều Payment khi retry
+  idempotencyKey String  @unique @map("idempotency_key") // Khóa chống trùng lặp
+  requestHash    String? @map("request_hash") // Hash payload để kiểm tra tính toàn vẹn
 
-  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount  Decimal        @db.Decimal(12, 0)
+  method  PaymentMethod
+  gateway PaymentGateway @default(MOCK) // MOCK hoặc VNPAY
+
+  status        PaymentStatus @default(PENDING)
+  failureReason String?       @map("failure_reason")
+
+  // Thông tin giao dịch từ Gateway
+  transactionRef       String? @map("transaction_ref") // Mã tham chiếu do BrewLite tạo
+  gatewayTransactionNo String? @map("gateway_transaction_no") // Mã giao dịch từ VNPay
+  paymentUrl           String? @map("payment_url") // URL chuyển hướng sang VNPay Sandbox
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("payments")
@@ -234,23 +247,23 @@ model LoyaltyTransaction {
   reason    String
   createdAt DateTime               @default(now()) @map("created_at")
 
-  user      User                   @relation(fields: [userId], references: [id])
-  order     Order?                 @relation(fields: [orderId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
+  order Order? @relation(fields: [orderId], references: [id])
 
   @@index([userId])
   @@map("loyalty_transactions")
 }
 
 model OrderStatusHistory {
-  id         String      @id @default(cuid())
-  orderId    String      @map("order_id")
+  id         String       @id @default(cuid())
+  orderId    String       @map("order_id")
   fromStatus OrderStatus? @map("from_status")
-  toStatus   OrderStatus @map("to_status")
-  changedBy  String?     @map("changed_by") // user, barista, system
+  toStatus   OrderStatus  @map("to_status")
+  changedBy  String?      @map("changed_by") // user, barista, system
   reason     String?
-  createdAt  DateTime    @default(now()) @map("created_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
 
-  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("order_status_history")
@@ -263,7 +276,7 @@ model OrderStatusHistory {
 model Ingredient {
   id           String   @id @default(cuid())
   name         String   @unique
-  unit         String   // "g", "ml", "piece"
+  unit         String // "g", "ml", "piece"
   stock        Int      @default(0) // Số lượng tồn kho theo đơn vị tính
   minThreshold Int      @default(50) @map("min_threshold") // Ngưỡng cảnh báo sắp hết
   isAvailable  Boolean  @default(true) @map("is_available")
@@ -282,36 +295,36 @@ model ProductRecipe {
   productId    String      @map("product_id")
   size         ProductSize @default(M)
   ingredientId String      @map("ingredient_id")
-  quantity     Int         // Số lượng tiêu hao (g, ml, piece)
+  quantity     Int // Số lượng tiêu hao (g, ml, piece)
 
-  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
 
   @@unique([productId, size, ingredientId])
   @@map("product_recipes")
 }
 
 model ToppingRecipe {
-  id           String     @id @default(cuid())
-  toppingId    String     @map("topping_id")
-  ingredientId String     @map("ingredient_id")
-  quantity     Int        // Số lượng tiêu hao (g, ml, piece)
+  id           String @id @default(cuid())
+  toppingId    String @map("topping_id")
+  ingredientId String @map("ingredient_id")
+  quantity     Int // Số lượng tiêu hao (g, ml, piece)
 
-  topping      Topping    @relation(fields: [toppingId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  topping    Topping    @relation(fields: [toppingId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
 
   @@unique([toppingId, ingredientId])
   @@map("topping_recipes")
 }
 
 model OrderIngredientUsage {
-  id           String     @id @default(cuid())
-  orderId      String     @map("order_id")
-  ingredientId String     @map("ingredient_id")
-  quantity     Int        // Snapshot tổng lượng tiêu hao của đơn hàng
+  id           String @id @default(cuid())
+  orderId      String @map("order_id")
+  ingredientId String @map("ingredient_id")
+  quantity     Int // Snapshot tổng lượng tiêu hao của đơn hàng
 
-  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
 
   @@unique([orderId, ingredientId])
   @@map("order_ingredient_usages")

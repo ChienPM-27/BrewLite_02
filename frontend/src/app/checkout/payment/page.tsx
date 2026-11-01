@@ -18,7 +18,7 @@ import {
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useCartStore } from '@/store/useCartStore';
 import { cancelOrder, getOrderById, OrderDetail } from '@/services/order.service';
-import { createPayment, PaymentMethod } from '@/services/payment.service';
+import { createPayment, PaymentGateway, PaymentMethod } from '@/services/payment.service';
 import { formatVND } from '@/lib/format-currency';
 import { generateIdempotencyKey } from '@/lib/idempotency';
 import MockGatewayModal from '@/components/checkout/MockGatewayModal';
@@ -36,6 +36,7 @@ function PaymentContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [gateway, setGateway] = useState<PaymentGateway>('MOCK');
   const [method, setMethod] = useState<PaymentMethod>('E_WALLET');
   const [isDemoFail, setIsDemoFail] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
@@ -45,6 +46,13 @@ function PaymentContent() {
 
   // Giữ idempotency key trong useRef cho cả lượt thanh toán
   const idempotencyKeyRef = useRef<string | null>(null);
+
+  const handleSelectGateway = (newGateway: PaymentGateway) => {
+    if (gateway !== newGateway) {
+      setGateway(newGateway);
+      idempotencyKeyRef.current = null;
+    }
+  };
 
   const handleSelectMethod = (newMethod: PaymentMethod) => {
     if (method !== newMethod) {
@@ -133,10 +141,16 @@ function PaymentContent() {
 
     try {
       const res = await createPayment(
-        { orderId: order.id, method },
+        { orderId: order.id, method, gateway },
         idempotencyKey,
-        shouldFail,
+        gateway === 'MOCK' ? shouldFail : false,
       );
+
+      if (gateway === 'VNPAY' && res.paymentUrl) {
+        clearCart();
+        window.location.href = res.paymentUrl;
+        return;
+      }
 
       if (res.status === 'SUCCESS') {
         setIsGatewayModalOpen(false);
@@ -259,7 +273,13 @@ function PaymentContent() {
                 <div className="mt-4 flex flex-wrap gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setIsGatewayModalOpen(true)}
+                    onClick={() => {
+                      if (gateway === 'MOCK') {
+                        setIsGatewayModalOpen(true);
+                      } else {
+                        handlePay();
+                      }
+                    }}
                     disabled={isPaying}
                     className="inline-flex items-center gap-1.5 rounded-full bg-danger px-4 py-2 text-xs font-bold text-white shadow-cta hover:opacity-90 active:scale-95 disabled:opacity-60"
                   >
@@ -279,6 +299,67 @@ function PaymentContent() {
             </div>
           </div>
         )}
+
+        {/* Chọn cổng thanh toán */}
+        <div className="rounded-3xl border border-border-warm bg-surface-milk p-6 shadow-card">
+          <h2 className="mb-4 text-base font-extrabold text-navy">
+            Chọn cổng thanh toán
+          </h2>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleSelectGateway('MOCK')}
+              className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                gateway === 'MOCK'
+                  ? 'border-primary bg-primary-light/50 ring-2 ring-primary/20 shadow-card'
+                  : 'border-border-warm bg-surface-milk hover:border-primary/40'
+              }`}
+            >
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                  gateway === 'MOCK'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-sand text-navy'
+                }`}
+              >
+                <QrCode className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-navy">Cổng Mock (Thử nghiệm)</h3>
+                <p className="text-[11px] text-content-secondary">
+                  Mô phỏng thanh toán nội bộ BrewLite (Sandbox)
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSelectGateway('VNPAY')}
+              className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 text-left transition-all ${
+                gateway === 'VNPAY'
+                  ? 'border-primary bg-primary-light/50 ring-2 ring-primary/20 shadow-card'
+                  : 'border-border-warm bg-surface-milk hover:border-primary/40'
+              }`}
+            >
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                  gateway === 'VNPAY'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-sand text-navy'
+                }`}
+              >
+                <CreditCard className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-navy">Cổng VNPay</h3>
+                <p className="text-[11px] text-content-secondary">
+                  Thanh toán qua cổng VNPay Sandbox
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Chọn phương thức thanh toán */}
         <div className="rounded-3xl border border-border-warm bg-surface-milk p-6 shadow-card">
@@ -342,7 +423,7 @@ function PaymentContent() {
           </div>
 
           {/* Demo Mode Toggle */}
-          {isDemoMode && (
+          {isDemoMode && gateway === 'MOCK' && (
             <div className="mt-5 rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 p-3.5">
               <label className="flex cursor-pointer items-center justify-between text-xs">
                 <div>
@@ -367,7 +448,13 @@ function PaymentContent() {
           <div className="mt-6 hidden lg:block">
             <button
               type="button"
-              onClick={() => setIsGatewayModalOpen(true)}
+              onClick={() => {
+                if (gateway === 'MOCK') {
+                  setIsGatewayModalOpen(true);
+                } else {
+                  handlePay();
+                }
+              }}
               disabled={isPaying}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-base font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -408,7 +495,13 @@ function PaymentContent() {
         <div className="mx-auto flex max-w-md items-center gap-3">
           <button
             type="button"
-            onClick={() => setIsGatewayModalOpen(true)}
+            onClick={() => {
+              if (gateway === 'MOCK') {
+                setIsGatewayModalOpen(true);
+              } else {
+                handlePay();
+              }
+            }}
             disabled={isPaying}
             className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white shadow-cta transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
