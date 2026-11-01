@@ -33,8 +33,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-brewlite_super_secret_jwt_key_2026}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
-      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-JVDDQS32}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-IEKIESWSBCDHHJICGKDSRFDBMPKNYJXI}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:3000/payment/vnpay-return}
     depends_on:
       postgres:
