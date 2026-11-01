@@ -42,17 +42,11 @@ services:
     command: >
       sh -c "npx prisma migrate deploy && node dist/main"
 
-  ngrok:
-    image: ngrok/ngrok:latest
-    container_name: brewlite_ngrok
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: brewlite_tunnel
     restart: unless-stopped
-    command:
-      - "http"
-      - "backend:4000"
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?cần đặt NGROK_AUTHTOKEN trong .env}
-    ports:
-      - "4040:4040"
+    command: tunnel --no-autoupdate --url http://backend:4000
     depends_on:
       - backend
 
