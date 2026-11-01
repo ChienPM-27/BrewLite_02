@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
 
 import {
@@ -43,8 +44,9 @@ type PaymentResponseSource = {
 };
 
 @Injectable()
-export class PaymentsService {
+export class PaymentsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PaymentsService.name);
+  private cachedTunnelHostname: string | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -53,6 +55,72 @@ export class PaymentsService {
     private readonly mockGateway: MockGatewayService,
     private readonly vnpayGateway: VnpayGatewayService,
   ) {}
+
+  async detectTunnelHostname(): Promise<string | null> {
+    if (this.cachedTunnelHostname) {
+      return this.cachedTunnelHostname;
+    }
+    try {
+      const res = await fetch('http://tunnel:20241/metrics', {
+        signal: AbortSignal.timeout(2500),
+      });
+      if (res.ok) {
+        const text = await res.text();
+        const match = text.match(/userHostname="https:\/\/([^"]+)"/);
+        if (match && match[1]) {
+          this.cachedTunnelHostname = match[1];
+          return this.cachedTunnelHostname;
+        }
+      }
+    } catch {
+      // Tunnel chưa sẵn sàng hoặc không chạy qua docker
+    }
+    return null;
+  }
+
+  async getTunnelInfo() {
+    const hostname = await this.detectTunnelHostname();
+    const creds = this.vnpayGateway.getCredentials();
+    return {
+      tunnelUrl: hostname ? `https://${hostname}` : null,
+      ipnUrl: hostname ? `https://${hostname}/api/v1/payments/vnpay/ipn` : null,
+      sandbox: {
+        merchantAdminUrl: 'https://sandbox.vnpayment.vn/merchantv2/',
+        email: 'pminhchien2006@gmail.com',
+        password: 'chienCHIEN1230',
+        tmnCode: creds.tmnCode,
+      },
+      testCard: {
+        bank: 'NCB',
+        cardNumber: '9704198526191432198',
+        cardHolder: 'NGUYEN VAN A',
+        issueDate: '07/15',
+        otp: '123456',
+      },
+    };
+  }
+
+  async onApplicationBootstrap() {
+    // Tự động kiểm tra và in thông tin kết nối VNPay ra console
+    setTimeout(async () => {
+      for (let i = 0; i < 6; i++) {
+        const hostname = await this.detectTunnelHostname();
+        if (hostname) {
+          const ipnUrl = `https://${hostname}/api/v1/payments/vnpay/ipn`;
+          console.log('\n' + '='.repeat(70));
+          console.log('🌐 [VNPAY SANDBOX] CLOUDFLARE TUNNEL ĐÃ SẴN SÀNG:');
+          console.log(`👉 IPN URL CẦN GẮN: ${ipnUrl}`);
+          console.log('👉 Trang quản lý Merchant: https://sandbox.vnpayment.vn/merchantv2/');
+          console.log('   - Email: pminhchien2006@gmail.com | Mật khẩu: chienCHIEN1230');
+          console.log('   - Mã Website (TmnCode): JVDDQS32');
+          console.log('💳 Thẻ test NCB: 9704198526191432198 | NGUYEN VAN A | 07/15 | OTP: 123456');
+          console.log('='.repeat(70) + '\n');
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }, 2000);
+  }
 
   // ==========================================
   // TẠO PAYMENT

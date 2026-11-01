@@ -82,6 +82,15 @@ export class PaymentsController {
     return this.paymentsService.handleVnpayIpn(query);
   }
 
+  // ==========================================
+  // THÔNG TIN TUNNEL & SANDBOX VNPAY
+  // ==========================================
+
+  @Get('vnpay/tunnel-info')
+  async getTunnelInfo() {
+    return this.paymentsService.getTunnelInfo();
+  }
+
   @Get(':id')
 @UseGuards(JwtAuthGuard)
 async getPaymentById(

@@ -52,6 +52,14 @@ export class VnpayGatewayService {
       this.configService.get<string>('VNPAY_HASH_SECRET') ?? '';
   }
 
+  getCredentials() {
+    return {
+      tmnCode: this.tmnCode || 'JVDDQS32',
+      paymentUrl: this.paymentUrl,
+      returnUrl: this.returnUrl,
+    };
+  }
+
   // ==========================================
   // KIỂM TRA CẤU HÌNH VNPAY
   // ==========================================

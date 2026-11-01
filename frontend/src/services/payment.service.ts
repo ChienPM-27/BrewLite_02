@@ -52,3 +52,29 @@ export async function createPayment(
 export async function getPayment(paymentId: string): Promise<PaymentResponse> {
   return await fetchApi<PaymentResponse>(`/payments/${paymentId}`);
 }
+
+export interface TunnelInfo {
+  tunnelUrl: string | null;
+  ipnUrl: string | null;
+  sandbox: {
+    merchantAdminUrl: string;
+    email: string;
+    password: string;
+    tmnCode: string;
+  };
+  testCard: {
+    bank: string;
+    cardNumber: string;
+    cardHolder: string;
+    issueDate: string;
+    otp: string;
+  };
+}
+
+export async function getTunnelInfo(): Promise<TunnelInfo | null> {
+  try {
+    return await fetchApi<TunnelInfo>('/payments/vnpay/tunnel-info');
+  } catch {
+    return null;
+  }
+}

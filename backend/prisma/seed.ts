@@ -9,6 +9,14 @@ async function main() {
     throw new Error('Không chạy seed ở production');
   }
 
+  const force = process.env.FORCE_SEED === 'true' || process.argv.includes('--force');
+  const productCount = await prisma.product.count();
+  if (productCount > 0 && !force) {
+    console.log(`ℹ️ Cơ sở dữ liệu đã có sẵn ${productCount} sản phẩm. Bỏ qua nạp dữ liệu mẫu tự động.`);
+    console.log('   (Nếu muốn nạp lại từ đầu, chạy: npm run prisma:seed -- --force)');
+    return;
+  }
+
   console.log('🌱 Bắt đầu nạp dữ liệu mẫu (Seeding BrewLite DB)...');
 
   // 1. Xóa dữ liệu cũ theo thứ tự quan hệ

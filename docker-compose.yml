@@ -40,7 +40,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma migrate deploy && node dist/main"
+      sh -c "npx prisma migrate deploy && npx prisma db seed && node dist/main"
 
   tunnel:
     image: cloudflare/cloudflared:latest
