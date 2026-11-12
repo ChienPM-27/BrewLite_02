@@ -186,13 +186,6 @@ Phân hệ Danh mục sản phẩm (Product Catalog) chịu trách nhiệm cung 
   * Mô tả: *"Đã có lỗi xảy ra trong quá trình lấy danh sách sản phẩm. Vui lòng kiểm tra lại kết nối mạng."*
   * Nút bấm hành động: Nút **"Thử lại"** (`Retry`) màu chủ đạo thương hiệu để kích hoạt gọi lại API.
 
-### 5.5. Trạng thái Hết hàng / Ngừng bán (Out of Stock / Unavailable State)
-* **Khi nào xuất hiện:** Khi một món có `isAvailable = false` hoặc `stock = 0` (được xử lý ở màn hình chi tiết hoặc danh sách nếu có món hiển thị).
-* **Giao diện thể hiện:**
-  * Ảnh sản phẩm bị phủ lớp mờ xám (grayscale 50% opacity).
-  * Huy hiệu (Badge) màu xám ở góc trên thẻ: *"Hết hàng"*.
-  * Nút xem chi tiết hoặc thêm nhanh vào giỏ bị vô hiệu hóa (disabled cursor).
-
 ---
 
 ## 6. GIẢ ĐỊNH / CÂU HỎI MỞ
